@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>59</ApplicationRevision>
+    <ApplicationRevision>60</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -75,11 +75,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="activeOrder.cs" />
-    <Compile Include="PixelReader.cs" />
+    <Compile Include="Helpers\PixelReader.cs" />
     <Compile Include="ErrorParser.cs" />
     <Compile Include="fileHandler.cs" />
     <Compile Include="Modules.cs" />
-    <Compile Include="helpers.cs" />
+    <Compile Include="Helpers\Helpers.cs" />
     <Compile Include="loginManager.cs" />
     <Compile Include="order.cs" />
     <Compile Include="orderManager.cs" />
