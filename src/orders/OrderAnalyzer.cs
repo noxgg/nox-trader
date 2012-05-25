@@ -4,22 +4,22 @@ using System.Collections.Generic;
 //TODO no buy orders exist?
 namespace noxiousET
 {
-    class activeOrder
+    class OrderAnalyzer
     {
         private string lastOrderTypeID;
 
-        public activeOrder()
+        public OrderAnalyzer()
         {
             lastOrderTypeID = "0";
         }
 
-        public double scanOrder(ref orderManager orders, out double bestSellOrderPrice, out double bestBuyOrderPrice, out string itemName, out int typeID, ref string path, ref int terminalItemID, string myStationID, int fileNameTrimLength, ref int offsetFlag)
+        public double findBestBuyAndSell(ref OrderManager orders, out double bestSellOrderPrice, out double bestBuyOrderPrice, out string itemName, out int typeID, string path, ref int terminalItemID, string stationID, int fileNameTrimLength, ref int offsetFlag)
         {
             itemName = "";
             bestBuyOrderPrice = bestSellOrderPrice = 0;
             typeID = 0;
 
-            fileHandler file = new fileHandler(path);
+            FileHandler file = new FileHandler(path);
             if (file.openNewestFile(path) == -1) return -1;
             string line;
             string[] parts = { "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0" };
@@ -66,7 +66,7 @@ namespace noxiousET
             //Find the most competitive sell order.
             if (parts[7].CompareTo("False") == 0) //If there is at least one sell order
             {
-                if (myStationID.CompareTo(parts[10]) == 0) //If this order is competing at my station
+                if (stationID.CompareTo(parts[10]) == 0) //If this order is competing at my station
                 {
                     topSellOrder = line.Split(',');
                 }
@@ -76,7 +76,7 @@ namespace noxiousET
                     {
                         parts = line.Split(',');
 
-                        if (parts[7].CompareTo("False") == 0 && myStationID.CompareTo(parts[10]) == 0 && topSellOrder[0].CompareTo("-1") == 0) //If this order is competing at my station
+                        if (parts[7].CompareTo("False") == 0 && stationID.CompareTo(parts[10]) == 0 && topSellOrder[0].CompareTo("-1") == 0) //If this order is competing at my station
                         {
                             topSellOrder = line.Split(',');
                             break;
@@ -89,7 +89,7 @@ namespace noxiousET
             {
                 parts = line.Split(',');
             }
-            if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref myStationID)) //If this order is competing at my station
+            if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
             {
                 topBuyOrder = line.Split(',');//null if there are no buy orders
             }
@@ -99,7 +99,7 @@ namespace noxiousET
                 {
                     parts = line.Split(',');
 
-                    if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref myStationID)) //If this order is competing at my station
+                    if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
                     {
                         topBuyOrder = line.Split(',');
                         break;
@@ -129,9 +129,9 @@ namespace noxiousET
             return activeOrderCheck;
         }
 
-        public double bestOrder(ref orderManager orders, ref int orderType, ref int run, ref ListView modifiedOrdersListView, ref double orderPrice, ref string path, ref int typeID, int fileNameTrimLength, ref List<string> exception)
+        public double getNewPriceForOrder(ref OrderManager orders, ref int orderType, int run, ref double orderPrice, string path, ref int typeID, int fileNameTrimLength)
         {
-            fileHandler file = new fileHandler(path);
+            FileHandler file = new FileHandler(path);
             if (file.openNewestFile(path) == -1) return -1;
 
             string line;
@@ -169,7 +169,7 @@ namespace noxiousET
             if (listPosition >= 0) //If the order was found in the database.
             {
 
-                string myStationID = orders.getOrderStation(ref listPosition, ref orderType);//Get the station ID.
+                string stationID = orders.getOrderStation(ref listPosition, ref orderType);//Get the station ID.
                 if (orders.getOrderRuns(ref listPosition, ref orderType) < run)//If this order has not yet been udpated on this run.
                 {
                     orders.incrementOrderRuns(ref listPosition, ref orderType);
@@ -182,7 +182,7 @@ namespace noxiousET
                             file.close();
                             return 0;
                         }
-                        else if (myStationID.CompareTo(parts[10]) == 0) //If this order is competing at my station
+                        else if (stationID.CompareTo(parts[10]) == 0) //If this order is competing at my station
                         {
                             topSellOrder = line.Split(',');
                         }
@@ -195,7 +195,7 @@ namespace noxiousET
                                 file.close();
                                 return 0;
                             }
-                            else if (parts[7].CompareTo("False") == 0 && myStationID.CompareTo(parts[10]) == 0 && topSellOrder[0].CompareTo("-1") == 0) //If this order is competing at my station
+                            else if (parts[7].CompareTo("False") == 0 && stationID.CompareTo(parts[10]) == 0 && topSellOrder[0].CompareTo("-1") == 0) //If this order is competing at my station
                             {
                                 topSellOrder = line.Split(',');
                                 break;
@@ -213,7 +213,7 @@ namespace noxiousET
                         return 0;
                     }
 
-                    else if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref myStationID)) //If this order is competing at my station
+                    else if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
                     {
                         topBuyOrder = line.Split(',');
                     }
@@ -227,7 +227,7 @@ namespace noxiousET
                                 file.close();
                                 return 0;
                             }
-                            else if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref myStationID)) //If this order is competing at my station
+                            else if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
                             {
                                 topBuyOrder = line.Split(',');
                                 break;
@@ -243,27 +243,27 @@ namespace noxiousET
                     {
                         if (topSellPrice > (topBuyPrice + (myOrderPrice - topBuyPrice) / 2))
                         {
-                            logModification(ref modifiedOrdersListView, ref run, ref itemName, "Sell", ref topSellPrice, ref topBuyPrice, ref myOrderPrice, Convert.ToDouble(topSellOrder[0]) - .01);
+                            //logModification(ref modifiedOrdersListView, ref run, ref itemName, "Sell", ref topSellPrice, ref topBuyPrice, ref myOrderPrice, Convert.ToDouble(topSellOrder[0]) - .01);
                             return (Convert.ToDouble(topSellOrder[0]) - .01); //The caller should adjust the order price to .01 ISK less than the best sell order.
                         }
                         {
-                            exceptionSignificantPriceChange(ref exception, "Sell", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
+                            //exceptionSignificantPriceChange(ref exception, "Sell", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
                         }
                     }
                     else //Otherwise it is a buy order
                     {
                         if (topSellPrice >= 0 && topSellPrice - (topBuyPrice + topBuyPrice * 0.007406 + topSellPrice * 0.007406 + topSellPrice * 0.005) <= topBuyPrice * .005)
                         {
-                            exceptionSignificantPriceChange(ref exception, "Buy", "Item no longer profitable.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
+                            //exceptionSignificantPriceChange(ref exception, "Buy", "Item no longer profitable.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
                         }
                         else if (topSellPrice < 0 || topBuyPrice < (topSellPrice - (topSellPrice - myOrderPrice) / 2))
                         {
-                            logModification(ref modifiedOrdersListView, ref run, ref itemName, "Buy", ref topSellPrice, ref topBuyPrice, ref myOrderPrice, Convert.ToDouble(topSellOrder[0]) + .01);
+                            //logModification(ref modifiedOrdersListView, ref run, ref itemName, "Buy", ref topSellPrice, ref topBuyPrice, ref myOrderPrice, Convert.ToDouble(topSellOrder[0]) + .01);
                             return (Convert.ToDouble(topBuyOrder[0]) + .01); //The caller should adjust the order price to .01 ISK more than best buy order.
                         }
                         else
                         {
-                            exceptionSignificantPriceChange(ref exception, "Buy", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
+                            //exceptionSignificantPriceChange(ref exception, "Buy", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
                         }
                     }
                 }

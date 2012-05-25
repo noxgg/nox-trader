@@ -1,6 +1,6 @@
 ﻿namespace noxiousET
 {
-    class order
+    class Order
     {
         private string orderID;
         private string typeID;
@@ -10,11 +10,11 @@
         private int volume;
         private int runs;
 
-        public order()
+        public Order()
         {
         }
 
-        public order(string orderID, string typeID, string station, int range, double price, int volume)
+        public Order(string orderID, string typeID, string station, int range, double price, int volume)
         {
             this.orderID = orderID;
             this.typeID = typeID;

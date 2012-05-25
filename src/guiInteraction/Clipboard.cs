@@ -1,9 +1,33 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace noxiousET
+namespace noxiousET.src.guiInteraction
 {
+    class Clipboard
+    {
+        public static string GetTextFromClip()
+        {
+            try
+            {
+                IDataObject dataObj = System.Windows.Forms.Clipboard.GetDataObject();
+                return dataObj.GetData(DataFormats.Text).ToString();
+            }
+            catch
+            {
+                return "0";
+            }
+        }
+
+        public static void setClipboardText(String inputText)
+        {
+            new SetClipboardHelper(DataFormats.Text, inputText).Go();
+        }
+    }
+
     abstract class StaHelper
     {
         readonly ManualResetEvent _complete = new ManualResetEvent(false);
@@ -73,7 +97,7 @@ namespace noxiousET
                 _data
             );
 
-            Clipboard.SetDataObject(obj, true);
+            System.Windows.Forms.Clipboard.SetDataObject(obj, true);
         }
     }
 }

@@ -8,13 +8,13 @@ using System.Threading;
 
 namespace noxiousET
 {
-    class fileHandler
+    class FileHandler
     {
         private StreamReader file;
         private string path;
         private string fileName;
 
-        public fileHandler(string path)
+        public FileHandler(string path)
         {
             this.path = path;
         }

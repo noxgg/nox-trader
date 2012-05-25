@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace noxiousET
+namespace noxiousET.src.helpers
 {
     class PixelReader
     {

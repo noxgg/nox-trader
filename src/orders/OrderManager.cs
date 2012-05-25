@@ -5,18 +5,18 @@ using System.IO;
 
 namespace noxiousET
 {
-    class orderManager
+    class OrderManager
     {
 
-        List<order>[] myOrders;
+        List<Order>[] orders;
         int buyOrders;
         int sellOrders;
 
-        public orderManager(string filePathAndName, ref StreamReader file)
+        public OrderManager(string filePathAndName, ref StreamReader file)
         {
-            myOrders = new List<order>[2];
-            myOrders[0] = new List<order>();
-            myOrders[1] = new List<order>();
+            orders = new List<Order>[2];
+            orders[0] = new List<Order>();
+            orders[1] = new List<Order>();
             string line;
             string[] parts;
             buyOrders = 0;
@@ -29,23 +29,23 @@ namespace noxiousET
 
                 if (parts[9].CompareTo("False") == 0) //If this is a sell order
                 {
-                    order newOrder = new order(parts[0], parts[1], parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
-                    myOrders[0].Add(newOrder);
+                    Order newOrder = new Order(parts[0], parts[1], parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
+                    orders[0].Add(newOrder);
                     ++sellOrders;
                 }
                 else //Otherwise it is a buy order
                 {
-                     order newOrder;
+                     Order newOrder;
                     try
                     {
-                        newOrder = new order(parts[0], parts[1], parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
+                        newOrder = new Order(parts[0], parts[1], parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
                     }
                     catch
                     {
                         file.Close();
                         return;
                     }
-                        myOrders[1].Add(newOrder);
+                        orders[1].Add(newOrder);
                     ++buyOrders;
                 }
             }
@@ -58,12 +58,12 @@ namespace noxiousET
 
         public string getOrderIDandListPosition(ref string typeID, ref int orderType, out int listPosition)
         {
-            for (int i = 0; i < myOrders[orderType].Count(); ++i)
+            for (int i = 0; i < orders[orderType].Count(); ++i)
             {
-                if (typeID.CompareTo(myOrders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID.CompareTo(orders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
                 {
                     listPosition = i;
-                    return myOrders[orderType][i].getOrderID();
+                    return orders[orderType][i].getOrderID();
                 }
             }
             listPosition = -1;
@@ -75,16 +75,16 @@ namespace noxiousET
         {
             bool sellOrderExists = false;
             bool buyOrderExists = false;
-            for (int i = 0; i < myOrders[0].Count(); ++i)
+            for (int i = 0; i < orders[0].Count(); ++i)
             {
-                if (typeID.CompareTo(myOrders[0][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID.CompareTo(orders[0][i].getTypeID()) == 0) //If this element is the target sell order.
                 {
                     sellOrderExists = true;
                 }
             }
-            for (int i = 0; i < myOrders[1].Count(); ++i)
+            for (int i = 0; i < orders[1].Count(); ++i)
             {
-                if (typeID.CompareTo(myOrders[1][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID.CompareTo(orders[1][i].getTypeID()) == 0) //If this element is the target sell order.
                 {
                     buyOrderExists = true;
                 }
@@ -109,9 +109,9 @@ namespace noxiousET
 
         public int getListPosition(ref string typeID, ref int orderType)
         {
-            for (int i = 0; i < myOrders[orderType].Count(); ++i)
+            for (int i = 0; i < orders[orderType].Count(); ++i)
             {
-                if (typeID.CompareTo(myOrders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID.CompareTo(orders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
                 {
                     return i;
                 }
@@ -121,23 +121,23 @@ namespace noxiousET
 
         public string getOrderStation(ref int listPosition, ref int orderType)
         {
-            return myOrders[orderType][listPosition].getStation();
+            return orders[orderType][listPosition].getStation();
         }
 
         public string getOrderTypeID(ref int listPosition, ref int orderType)
         {
-            return myOrders[orderType][listPosition].getTypeID();
+            return orders[orderType][listPosition].getTypeID();
         }
 
         public int incrementOrderRuns(ref int listPosition, ref int orderType)
         {
-            myOrders[orderType][listPosition].incrementRuns();
+            orders[orderType][listPosition].incrementRuns();
             return 0;
         }
 
         public int getOrderRuns(ref int listPosition, ref int orderType)
         {
-            return myOrders[orderType][listPosition].getRuns();
+            return orders[orderType][listPosition].getRuns();
         }
 
         public int[] getNumOfActiveOrders()
@@ -148,7 +148,7 @@ namespace noxiousET
 
         public double getOrderPrice(ref int listPosition, ref int orderType)
         {
-            return myOrders[orderType][listPosition].getPrice();
+            return orders[orderType][listPosition].getPrice();
         }
     };
 }
