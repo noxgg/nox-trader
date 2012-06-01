@@ -3,15 +3,15 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.io;
-using noxiousET.src.model.data.paths;
-using noxiousET.src.model.data.uielements;
-using noxiousET.src.model.helpers;
+using noxiousET.src.data.characters;
+using noxiousET.src.data.client;
+using noxiousET.src.data.io;
+using noxiousET.src.data.paths;
+using noxiousET.src.data.uielements;
+using noxiousET.src.helpers;
 using noxiousET.src.etevent;
 
-namespace noxiousET.src.model.guiInteraction.login
+namespace noxiousET.src.guiInteraction.login
 {
     class LoginBot : GuiBot
     {
@@ -166,25 +166,21 @@ namespace noxiousET.src.model.guiInteraction.login
 
         private int waitForEnvironment()
         {
-
-            int result;
             DirectoryEraser.nuke(paths.logPath);
             setEVEHandle(character.name);
             SetForegroundWindow(eveHandle);
             for (int i = 0; i < 20; i++)
             {
                 mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
+
                 try
-                {
-                    result = exportOrders();//Clicks on export orders.
-                }
-                catch
-                {
-                    result = 1;
-                    errorCheck();
-                }
-                if (result == 0)
+                { 
+                    orderSet = exportOrders(1, 1);
                     return 0;
+                }
+                catch (Exception e) 
+                { 
+                } 
                 Thread.Sleep(1000);
             }
             throw new Exception("Error Logging in. Failed to find environment.");
@@ -216,7 +212,7 @@ namespace noxiousET.src.model.guiInteraction.login
             wait(2);
             for (int i = 0; i < 15; ++i)
             {
-                if (confirmOrder(0, 0, 0, 0, 0) == 0) //TODO refactor this out of here
+                if (confirmOrder(uiElements.OrderBoxOK, 0,0) == 0) //TODO refactor this out of here
                     return 0;
                 else
                 {

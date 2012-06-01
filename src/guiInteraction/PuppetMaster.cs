@@ -2,13 +2,14 @@
 using System.Threading;
 using System.Collections.Generic;
 using noxiousET.src.etevent;
-using noxiousET.src.model.data;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.guiInteraction.login;
-using noxiousET.src.model.guiInteraction.orders.autoadjuster;
-using noxiousET.src.model.guiInteraction.orders.autolister;
+using noxiousET.src.data;
+using noxiousET.src.data.characters;
+using noxiousET.src.guiInteraction.login;
+using noxiousET.src.guiInteraction.orders.autoadjuster;
+using noxiousET.src.guiInteraction.orders.autolister;
+using noxiousET.src.guiInteraction.orders.autoinvester;
 
-namespace noxiousET.src.model.guiInteraction
+namespace noxiousET.src.guiInteraction
 {
     class PuppetMaster
     {
@@ -18,6 +19,7 @@ namespace noxiousET.src.model.guiInteraction
         AutoAdjuster autoAdjuster;
         AutoLister autoLister;
         EventDispatcher eventDispatcher;
+        AutoInvestor autoInvestor;
 
         public PuppetMaster(DataManager dataManager)
         {
@@ -26,6 +28,7 @@ namespace noxiousET.src.model.guiInteraction
             this.loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.eventDispatcher);
             this.autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
             this.autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
+            this.autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
             this.eventDispatcher = dataManager.eventDispatcher;
         }
         public int automate(int iterations)
@@ -59,9 +62,10 @@ namespace noxiousET.src.model.guiInteraction
                 result = loginBot.login(character);
                 if (result == 0)
                 {
-                    if (character.autoAdjustsPerAutoList > 0 && (Math.Floor((Double)(i / characterCount)) % character.autoAdjustsPerAutoList) == 0)
-                        autoLister.execute(character);
-                    autoAdjuster.execute(character, true);
+                    autoInvestor.execute(character);
+                    //if (character.autoAdjustsPerAutoList > 0 && (Math.Floor((Double)(i / characterCount)) % character.autoAdjustsPerAutoList) == 0)
+                      //  autoLister.execute(character);
+                    //autoAdjuster.execute(character, true);
                     characterManager.save(character.name);
 
                     queue.Enqueue(character.name);

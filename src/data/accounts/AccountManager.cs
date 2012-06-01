@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace noxiousET.src.model.data.accounts
+namespace noxiousET.src.data.accounts
 {
     class AccountManager
     {

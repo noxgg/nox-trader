@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using noxiousET.src.model.data.accounts;
-using noxiousET.src.model.data.io;
-using noxiousET.src.model.data.paths;
+using noxiousET.src.data.accounts;
+using noxiousET.src.data.io;
+using noxiousET.src.data.paths;
 using noxiousET.src.etevent;
 
-namespace noxiousET.src.model.data.characters
+namespace noxiousET.src.data.characters
 {
     class CharacterManager
     {
@@ -110,7 +110,7 @@ namespace noxiousET.src.model.data.characters
             textFileio.save(characterData, paths.configPath, name + ".ini");
 
             saveTradeHistory(character.name, character.tradeHistory);
-            saveTradeQueue(character.name, character.tradeQueue);
+            saveTradeQueue(character.name, character.tradeQueue.ToArray());
         }
 
         private Character load(string name)
@@ -174,11 +174,13 @@ namespace noxiousET.src.model.data.characters
             return tradeHistory;
         }
 
-        private void saveTradeQueue(String name, Queue<int> tradeQueue)
+        private void saveTradeQueue(String name, int[] tradeQueue)
         {
             List<Object> data = new List<Object>();
-            while (tradeQueue.Count > 0)
-                data.Add(tradeQueue.Dequeue());
+            foreach (int i in tradeQueue)
+            {
+                data.Add(i);
+            }
             textFileio.save(data, paths.configPath + Paths.characterDataSubDir, name + tradeQueueFileName);
         }
 

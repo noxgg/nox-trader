@@ -2,14 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using noxiousET.src.model.data.characters;
+using noxiousET.src.data.characters;
 
 namespace noxiousET.src.control
 {
     class CharacterInfoProvider
     {
         CharacterManager characterManager;
-        Character character;
 
         public CharacterInfoProvider(CharacterManager characterManager)
         {

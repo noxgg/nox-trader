@@ -1,4 +1,4 @@
-﻿namespace noxiousET.src.model.data.paths
+﻿namespace noxiousET.src.data.paths
 {
     class Paths
     {

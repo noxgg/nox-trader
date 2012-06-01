@@ -2,7 +2,7 @@
 using System.Linq;
 using System.Threading;
 
-namespace noxiousET.src.model.helpers
+namespace noxiousET.src.helpers
 {
     class FileHandler
     {

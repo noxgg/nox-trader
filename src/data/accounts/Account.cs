@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace noxiousET.src.model.data.accounts
+namespace noxiousET.src.data.accounts
 {
     class Account
     {

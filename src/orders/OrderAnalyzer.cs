@@ -1,20 +1,127 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
-using noxiousET.src.model.helpers;
+using noxiousET.src.helpers;
 using noxiousET.src.etevent;
+
 //TODO no buy orders exist?
-namespace noxiousET.src.model.orders
+namespace noxiousET.src.orders
 {
     class OrderAnalyzer
     {
+        public OrderManager orderSet { set; get; }
         private string lastOrderTypeID;
         private EventDispatcher eventDispatcher;
+        private bool bestSellOwned;
+        private bool bestBuyOwned;
+        private bool someBuyOwned;
+        private bool someSellOwned;
+        private double buyPrice;
+        private double sellPrice;
+        private int buyQuantity;
 
         public OrderAnalyzer(EventDispatcher eventDispatcher)
         {
             lastOrderTypeID = "0";
             this.eventDispatcher = eventDispatcher;
+        }
+
+        public void analyzeInvestment(List<String[]> orderData, String typeid, String stationid)
+        {
+            analyze(orderData, typeid, stationid);
+        }
+
+        private void analyze(List<String[]> orderData, String typeid, String stationid)
+        {
+            int i = 0;
+            int orderDataCount = orderData.Count;
+            String[] order = i < orderDataCount ? orderData[i++] : null;
+            if (typeid.CompareTo(order[2]) != 0)
+            {
+                throw new Exception("Wrong typeid");
+            }
+            someSellOwned = orderSet.existsOrderOfType(Convert.ToInt32(typeid), 0);
+            someBuyOwned = orderSet.existsOrderOfType(Convert.ToInt32(typeid), 1);
+            //Find first order at target station
+            while (order != null && order[7].CompareTo("False") == 0 && order[10].CompareTo(stationid) != 0)
+                order = i < orderDataCount ? orderData[i++] : null;
+
+            //If this order is a sell order and if it is competing at the target station
+            if (order != null && order[7].CompareTo("False") == 0 && order[10].CompareTo(stationid) == 0)
+            {
+                //Is this an owned order?
+                bestSellOwned = orderSet.isOrderOwned(order[4], 0);
+
+                sellPrice = Convert.ToDouble(order[0]);
+            }
+            else
+            {
+                bestSellOwned = false;
+                sellPrice = 0;
+            }
+
+            //Jump over any remaining sell orders
+            while (order != null && order[7].CompareTo("False") == 0)
+                order = i < orderDataCount ? orderData[i++] : null;
+
+            //Find first order that is competing at target station
+            while (order != null && !isCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationid))
+                order = i < orderDataCount ? orderData[i++] : null;
+
+            if (order != null && order[7].CompareTo("True") == 0 && isCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationid))
+            {
+                //Is this an owned order?
+                bestBuyOwned = orderSet.isOrderOwned(order[4], 1);
+
+                buyPrice = Convert.ToDouble(order[0]);
+            }
+            else
+            {
+                bestBuyOwned = false;
+                buyPrice = 0;
+            }
+
+            if (sellPrice <= 0 && buyPrice <= 0) //If there are no orders to compare against, return code 4.
+                return;
+            else if (sellPrice <= 0)//If there are no active sell orders, sell for twice the best buy order.
+                sellPrice = buyPrice * 1.5;
+            else if (buyPrice <= 0)//If there are no active buy orders, buy for half the best sell order.
+                buyPrice = sellPrice / 2;
+            return;
+        }
+
+
+
+        private bool isCompetingBuyOrder(int range, int jumps, string stationid, string targetStationid)
+        {
+            if (range == -1 && stationid.CompareTo(targetStationid) == 0 || range - jumps >= 0)//If this is my station and the order has a station range
+                return true;
+            return false;
+        }
+
+        public double getBuyPrice()
+        {
+            return buyPrice;
+        }
+
+        public int getBuyQuantity()
+        {
+            return buyQuantity;
+        }
+
+        public double getSellPrice()
+        {
+            return sellPrice;
+        }
+
+        public bool isSomeBuyOwned()
+        {
+            return someBuyOwned;
+        }
+
+        public bool isSomeSellOwned()
+        {
+            return someSellOwned;
         }
 
         public double findBestBuyAndSell(ref OrderManager orders, out double bestSellOrderPrice, out double bestBuyOrderPrice, out string itemName, out int typeID, string path, ref int terminalItemID, string stationID, int fileNameTrimLength, ref int offsetFlag)
@@ -29,7 +136,7 @@ namespace noxiousET.src.model.orders
             string[] parts = { "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0" };
             string[] topSellOrder = { "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1" };
             string[] topBuyOrder = { "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1" };
-            int[] numOfActiveOrders = orders.getNumOfActiveOrders();
+            int[] numOfActiveOrders = orders.getNumberOfActiveBuysAndActiveSells();
             itemName = file.getItemName(fileNameTrimLength);
             if (itemName.CompareTo("[Parse Error]") == 0)//If we're still looking at the buy orders file, return as if it were a previous order.
             {
@@ -93,7 +200,7 @@ namespace noxiousET.src.model.orders
             {
                 parts = line.Split(','); //Iterate past all sell orders.
             }
-            if (line != null && isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
+            if (line != null && isCompetingBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), parts[10], stationID)) //If this order is competing at my station
             {
                 topBuyOrder = line.Split(',');//null if there are no buy orders
             }
@@ -103,7 +210,7 @@ namespace noxiousET.src.model.orders
                 {
                     parts = line.Split(',');
 
-                    if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
+                    if (isCompetingBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), parts[10], stationID)) //If this order is competing at my station
                     {
                         topBuyOrder = line.Split(',');
                         break;
@@ -154,26 +261,26 @@ namespace noxiousET.src.model.orders
             
             typeID = Convert.ToInt32(parts[2]);
             string myOrderID = orders.getOrderIDandListPosition(ref parts[2], ref orderType, out listPosition);
-            if (listPosition == -1 || String.Compare(lastOrderTypeID, orders.getOrderTypeID(ref listPosition, ref orderType)) == 0)
+            if (listPosition == -1 || String.Compare(lastOrderTypeID, Convert.ToString(orders.getOrderTypeID(ref listPosition, ref orderType))) == 0)
             {
                 file.close();
                 return -2;
             }
 
-            if (String.Compare(lastOrderTypeID, orders.getOrderTypeID(ref listPosition, ref orderType)) == 0)
+            if (String.Compare(lastOrderTypeID, Convert.ToString(orders.getOrderTypeID(ref listPosition, ref orderType))) == 0)
             {
                 file.close();
                 return -2;
             }
 
-            lastOrderTypeID = string.Copy(orders.getOrderTypeID(ref listPosition, ref orderType));
+            lastOrderTypeID = string.Copy(Convert.ToString(orders.getOrderTypeID(ref listPosition, ref orderType)));
 
             orderPrice = orders.getOrderPrice(ref listPosition, ref orderType);
 
             if (listPosition >= 0) //If the order was found in the database.
             {
 
-                string stationID = orders.getOrderStation(ref listPosition, ref orderType);//Get the station ID.
+                string stationID = Convert.ToString(orders.getOrderStation(ref listPosition, ref orderType));//Get the station ID.
                 if (orders.getOrderRuns(ref listPosition, ref orderType) < run)//If this order has not yet been udpated on this run.
                 {
                     orders.incrementOrderRuns(ref listPosition, ref orderType);
@@ -217,7 +324,7 @@ namespace noxiousET.src.model.orders
                         return 0;
                     }
 
-                    else if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
+                    else if (isCompetingBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), parts[10], stationID)) //If this order is competing at my station
                     {
                         topBuyOrder = line.Split(',');
                     }
@@ -231,7 +338,7 @@ namespace noxiousET.src.model.orders
                                 file.close();
                                 return 0;
                             }
-                            else if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
+                            else if (isCompetingBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), parts[10], stationID)) //If this order is competing at my station
                             {
                                 topBuyOrder = line.Split(',');
                                 break;
@@ -306,22 +413,6 @@ namespace noxiousET.src.model.orders
             temp.Remove(0, 10);
             temp.Remove((length - 22), 22);
             return temp;
-        }
-
-        private bool isCompetitiveBuyOrder(int range, int jumps, ref string orderStationID, ref string myStationID)
-        {
-            if (range == -1 && orderStationID.CompareTo(myStationID) == 0)//If this is my station and the order has a station range
-            {
-                return true;
-            }
-            else if (range - jumps >= 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
         }
 
         public int clearLastBuyOrder()

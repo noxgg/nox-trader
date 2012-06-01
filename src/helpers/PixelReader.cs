@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace noxiousET.src.model.helpers
+namespace noxiousET.src.helpers
 {
     class PixelReader
     {

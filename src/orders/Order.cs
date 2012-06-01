@@ -1,10 +1,10 @@
-﻿namespace noxiousET.src.model.orders
+﻿namespace noxiousET.src.orders
 {
     class Order
     {
         private string orderID;
-        private string typeID;
-        private string station;
+        private int typeID;
+        private string stationid;
         private int range;
         private double price;
         private int volume;
@@ -14,11 +14,11 @@
         {
         }
 
-        public Order(string orderID, string typeID, string station, int range, double price, int volume)
+        public Order(string orderID, int typeID, string stationid, int range, double price, int volume)
         {
             this.orderID = orderID;
             this.typeID = typeID;
-            this.station = station;
+            this.stationid = stationid;
             this.range = range;
             this.price = price;
             this.volume = volume;
@@ -30,12 +30,12 @@
             return this.orderID;
         }
 
-        public string getStation()
+        public string getStationid()
         {
-            return this.station;
+            return this.stationid;
         }
 
-        public string getTypeID()
+        public int getTypeID()
         {
             return this.typeID;
         }

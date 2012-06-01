@@ -1,7 +1,7 @@
 ﻿using System;
-using noxiousET.src.model.data.uielements;
+using noxiousET.src.data.uielements;
 
-namespace noxiousET.src.model.data.io
+namespace noxiousET.src.data.io
 {
     public class UiElementsio : TextFileio
     {
@@ -98,6 +98,16 @@ namespace noxiousET.src.model.data.io
                 uiElements.confirmationCopyOffset[1] = readLineAsInt();
                 uiElements.endOfItemsList = readLineAsInt();
                 uiElements.itemsMenuTouchesBottomOfScreen = readLineAsInt();
+                uiElements.bringMarketWindowToFront[0] = readLineAsInt();
+                uiElements.bringMarketWindowToFront[1] = readLineAsInt();
+                uiElements.marketSearchTab[0] = readLineAsInt();
+                uiElements.marketSearchTab[1] = readLineAsInt();
+                uiElements.marketSearchInputBox[0] = readLineAsInt();
+                uiElements.marketSearchInputBox[1] = readLineAsInt();
+                uiElements.marketSearchResult[0] = readLineAsInt();
+                uiElements.marketSearchResult[1] = readLineAsInt();
+                uiElements.marketSearchExecute[0] = readLineAsInt();
+                uiElements.marketSearchExecute[1] = readLineAsInt();
 
                 readClose();
 
@@ -105,6 +115,7 @@ namespace noxiousET.src.model.data.io
             }
             catch
             {
+                readClose();
                 return 1;
             }
         }

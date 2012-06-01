@@ -4,15 +4,15 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
 using noxiousET.src.etevent;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.paths;
-using noxiousET.src.model.data.uielements;
-using noxiousET.src.model.helpers;
-using noxiousET.src.model.orders;
+using noxiousET.src.data.characters;
+using noxiousET.src.data.client;
+using noxiousET.src.data.paths;
+using noxiousET.src.data.uielements;
+using noxiousET.src.helpers;
+using noxiousET.src.orders;
 
 
-namespace noxiousET.src.model.guiInteraction
+namespace noxiousET.src.guiInteraction
 {
     class GuiBot
     {
@@ -92,41 +92,43 @@ namespace noxiousET.src.model.guiInteraction
             return 0;
         }
 
-        protected int exportOrders()
+        protected OrderManager exportOrders(int tries, int waitMultiplier)
         {
-            errorCheck();
-            mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
-
-            string fileName;
-
-            var directory = new DirectoryInfo(paths.logPath);
-            var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-            StreamReader file;
-
-            try
+            for (int i = 0; i < tries; i++)
             {
-                fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                file = new System.IO.StreamReader(directory.ToString() + fileTemp.ToString());
-            }
-            catch
-            {
-                return 1;
-            }
-            fileName = fileTemp.ToString();
-            orderSet = new OrderManager(directory.ToString() + fileName, ref file, character.tradeHistory);
+                wait(waitMultiplier);
 
-            file.Close();
-            return 0;
+                errorCheck();
+                mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
+
+                string fileName;
+
+                var directory = new DirectoryInfo(paths.logPath);
+                var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
+                StreamReader file;
+
+                try
+                {
+                    fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
+                    file = new System.IO.StreamReader(directory.ToString() + fileTemp.ToString());
+                    fileName = fileTemp.ToString();
+                    return new OrderManager(directory.ToString() + fileName, ref file, character.tradeHistory);
+                }
+                catch (Exception e)
+                {
+                }
+            }
+            throw new Exception("Failed to export orders");
         }
 
-        protected int confirmOrder(int longOrderXoffset, int longOrderYOffset, int typeID, int confirmationType, int buyOrSell)
+        protected int confirmOrder(int[]coords, int confirmationType, int buyOrSell)
         {
             int failCount = 0;
             string result = "0";
             int errorFlag = 0;
             do
             {
-                mouse.pointAndClick(LEFT, uiElements.OrderBoxOK[0], uiElements.OrderBoxOK[1] + longOrderYOffset, 1, 1, 1);
+                mouse.pointAndClick(LEFT, coords, 1, 1, 1);
                 if (confirmationType == 1 && failCount > 3)
                 {
                     errorFlag = getError();

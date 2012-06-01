@@ -1,4 +1,4 @@
-﻿namespace noxiousET.src.model.data.uielements
+﻿namespace noxiousET.src.data.uielements
 {
     public class UiElements
     {
@@ -54,6 +54,11 @@
         public int itemsViewModuleDetailExtraOffset { set; get; }
         public int endOfItemsList { set; get; }
         public int itemsMenuTouchesBottomOfScreen { set; get; }
+        public int[] bringMarketWindowToFront { set; get; }
+        public int[] marketSearchTab { set; get; }
+        public int[] marketSearchInputBox { set; get; }
+        public int[] marketSearchResult { set; get; }
+        public int[] marketSearchExecute { set; get; }
 
         public UiElements() 
         {
@@ -109,6 +114,13 @@
             itemsViewModuleDetailExtraOffset = -17;
             endOfItemsList = 720;
             itemsMenuTouchesBottomOfScreen = 573;
+
+
+            bringMarketWindowToFront = new int[2] { 1300, 735 };
+            marketSearchTab = new int[2] { 1300, 735 };
+            marketSearchInputBox = new int[2] { 1300, 735 };
+            marketSearchResult = new int[2] { 1300, 735 };
+            marketSearchExecute = new int[2] { 1300, 735 };
         }
 
     };

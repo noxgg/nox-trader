@@ -1,15 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using noxiousET.src.model.data.accounts;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.io;
-using noxiousET.src.model.data.modules;
-using noxiousET.src.model.data.paths;
-using noxiousET.src.model.data.uielements;
+using noxiousET.src.data.accounts;
+using noxiousET.src.data.characters;
+using noxiousET.src.data.client;
+using noxiousET.src.data.io;
+using noxiousET.src.data.modules;
+using noxiousET.src.data.paths;
+using noxiousET.src.data.uielements;
 using noxiousET.src.etevent;
 
-namespace noxiousET.src.model.data
+namespace noxiousET.src.data
 {
     class DataManager
     {
@@ -22,6 +22,7 @@ namespace noxiousET.src.model.data
         public EventDispatcher eventDispatcher { set; get; }
         private TextFileio textFileio;
         private TextFileToDictionaryLoader textFileToDictionaryLoader;
+        private MarketOrderio marketOrderio;
         private UiElementsio uiElementsio;
 
         private const String ROOT_CONFIG_FILENAME = "last.ini";
@@ -72,6 +73,8 @@ namespace noxiousET.src.model.data
             modules.fittableModuleTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine();
             modules.longNameTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine(paths.configPath, LONG_NAME_TYPE_IDS_FILENAME);
             modules.typeNames = textFileToDictionaryLoader.loadIntKeyStringValue(paths.configPath, TYPE_NAMES_FILENAME);
+
+            marketOrderio = new MarketOrderio();
         }
 
         public void savePathAndClientSettings()
@@ -147,6 +150,25 @@ namespace noxiousET.src.model.data
                 return result;
             else
                 throw new Exception("Invalid integer value for given character data key");
+        }
+        private void getTypeForCharacterFromNewestLogFile(Character character)
+        {
+            String fileName;
+            fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
+            String[] result = marketOrderio.readFirstEntry(paths.logPath, fileName);
+            int typeid = Convert.ToInt32(result[2]);
+            if (modules.typeNames.ContainsKey(typeid))
+            {
+                if (!character.tradeQueue.Contains(typeid))
+                {
+                    character.tradeQueue.Enqueue(typeid);
+                    eventDispatcher.log("Added " + modules.typeNames[typeid] + " to queue for " + character.name);
+                }
+                if (!character.tradeHistory.ContainsKey(typeid))
+                {
+                    character.tradeHistory.Add(typeid, typeid);
+                }
+            }
         }
     }
 }

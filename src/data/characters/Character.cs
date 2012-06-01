@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using noxiousET.src.model.data.accounts;
+using noxiousET.src.data.accounts;
 
-namespace noxiousET.src.model.data.characters
+namespace noxiousET.src.data.characters
 {
     class Character
     {

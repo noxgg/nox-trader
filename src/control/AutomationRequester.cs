@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Threading;
-using noxiousET.src.model.guiInteraction;
+using noxiousET.src.guiInteraction;
 
 namespace noxiousET.src.control
 {

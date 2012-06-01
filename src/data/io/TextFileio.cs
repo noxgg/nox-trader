@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
-namespace noxiousET.src.model.data.io
+namespace noxiousET.src.data.io
 {
     public class TextFileio
     {
@@ -10,6 +11,12 @@ namespace noxiousET.src.model.data.io
         public String fileName { set; get; }
         protected TextReader textReader;
         protected TextWriter textWriter;
+
+        public TextFileio()
+        {
+            this.path = path;
+            this.fileName = fileName;
+        }
 
         public TextFileio(String path, String fileName)
         {
@@ -82,7 +89,14 @@ namespace noxiousET.src.model.data.io
 
         protected String readLine()
         {
-            return textReader.ReadLine();
+            try
+            {
+                return textReader.ReadLine();
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         protected List<String> readFile()
@@ -144,6 +158,21 @@ namespace noxiousET.src.model.data.io
             this.path = path;
             this.fileName = file;
             return read();
+        }
+
+        public int getNumberOfFilesInDirectory(String directory)
+        {
+            return Directory.GetFiles(directory).Length;
+        }
+
+        public String getNewestFileNameInDirectory(String directory)
+        {
+            if (getNumberOfFilesInDirectory(directory) > 0)
+            {
+                var directoryVar = new DirectoryInfo(directory);
+                return directoryVar.GetFiles().OrderByDescending(f => f.LastWriteTime).First().ToString();
+            }
+            return null;
         }
     }
 }

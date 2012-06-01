@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
-using noxiousET.src.model.data;
-using noxiousET.src.model.guiInteraction;
+using noxiousET.src.data;
+using noxiousET.src.guiInteraction;
 using noxiousET.src.control;
 
 namespace noxiousET

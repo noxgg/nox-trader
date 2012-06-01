@@ -2,7 +2,7 @@
 using System.Threading;
 using System.Windows.Forms;
 
-namespace noxiousET.src.model.guiInteraction
+namespace noxiousET.src.guiInteraction
 {
     class Mouse
     {

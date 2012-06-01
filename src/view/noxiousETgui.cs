@@ -1,13 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using noxiousET.src;
 using noxiousET.src.control;
 using noxiousET.src.etevent;
-using System;
-using System.ComponentModel;
-using System.Threading;
-using System.Windows.Forms;
-using noxiousET.src;
 
 
 //TODO: Margin trading scam? Order creation flags. Max order setting. Buying an item with no sell orders shifts buy order quantity box up.

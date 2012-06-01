@@ -3,14 +3,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using noxiousET.src.etevent;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.io;
-using noxiousET.src.model.data.modules;
-using noxiousET.src.model.data.paths;
-using noxiousET.src.model.data.uielements;
+using noxiousET.src.data.characters;
+using noxiousET.src.data.client;
+using noxiousET.src.data.io;
+using noxiousET.src.data.modules;
+using noxiousET.src.data.paths;
+using noxiousET.src.data.uielements;
 
-namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
+namespace noxiousET.src.guiInteraction.orders.autoadjuster
 {
     class AutoAdjuster : OrderBot
     {
@@ -53,29 +53,9 @@ namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
 
                     int failCount = 0;
                     DirectoryEraser.nuke(paths.logPath);
-                    do
-                    {
-                        wait(20);
-                        int result;
-                        try
-                        {
-                            result = exportOrders();//Clicks on export orders.
-                        }
-                        catch
-                        {
-                            result = 1;
-                        }
-                        if (result == 1)
-                        {
-                            ++failCount;
-                            errorCheck();
-                            wait(20);
-                        }
-                        else
-                        {
-                            failCount = 4;
-                        }
-                    } while (failCount < 3);
+
+                    try { orderSet = exportOrders(3, 30); }
+                    catch (Exception e) { throw e; } 
 
                     //Keyboard.send("^(V)");
 
@@ -135,7 +115,7 @@ namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
             int typeID = 0;
             int lastTypeID = 0;
             int[] cursorPosition = { 0, 0 };
-            int[] activeOrders = orderSet.getNumOfActiveOrders();
+            int[] activeOrders = orderSet.getNumberOfActiveBuysAndActiveSells();
             double modifyTo;
             double originalPrice;
             double temp;
@@ -177,7 +157,7 @@ namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
                             if (lastOrderModified)
                             {
                                 errorCheck();
-                                confirmOrder(0, 0, typeID, 1, orderType);
+                                confirmOrder(fixCoordsForLongTypeName(typeID,uiElements.OrderBoxOK), 1, orderType);
                             }
                             else
                             {
@@ -206,7 +186,7 @@ namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
                     if (consecutiveFailures == 3)
                         return 1;
                     else if (lastOrderModified)
-                        confirmOrder(0, 0, lastTypeID, 1, orderType);
+                        confirmOrder(fixCoordsForLongTypeName(typeID, uiElements.OrderBoxOK), 1, orderType);
 
                     if (modifyTo > 0)
                     {
@@ -290,7 +270,7 @@ namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
 
             }
             if (lastOrderModified)
-                confirmOrder(0, 0, typeID, 1, orderType);
+                confirmOrder(fixCoordsForLongTypeName(typeID, uiElements.OrderBoxOK), 1, orderType);
             return 0;
         }
 

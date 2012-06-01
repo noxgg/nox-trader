@@ -1,12 +1,12 @@
 ﻿using noxiousET.src.etevent;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.modules;
-using noxiousET.src.model.data.paths;
-using noxiousET.src.model.data.uielements;
-using noxiousET.src.model.orders;
+using noxiousET.src.data.characters;
+using noxiousET.src.data.client;
+using noxiousET.src.data.modules;
+using noxiousET.src.data.paths;
+using noxiousET.src.data.uielements;
+using noxiousET.src.orders;
 
-namespace noxiousET.src.model.guiInteraction.orders
+namespace noxiousET.src.guiInteraction.orders
 {
     class OrderBot : GuiBot
     {
@@ -52,6 +52,38 @@ namespace noxiousET.src.model.guiInteraction.orders
             }
             else
                 return 1;
+        }
+
+        protected int closeMarketAndItemsWindows()
+        {
+            mouse.pointAndClick(LEFT, uiElements.closeMarketWindow, 0, 5, 5);
+            mouse.pointAndClick(LEFT, uiElements.closeItems, 0, 5, 0);
+            return 0;
+        }
+
+        protected int[] fixCoordsForLongTypeName(int typeId, int[] coords)
+        {
+            if (modules.longNameTypeIDs.ContainsKey(typeId))
+                return new int[2] { coords[0], coords[1] + 22 };
+            return coords;
+        }
+
+        protected int getBuyOrderQty(double bestBuyOrderPrice, double bestSellOrderPrice)
+        {
+            int i;
+            if (bestSellOrderPrice / bestBuyOrderPrice < 1.0736) //TODO: FACTOR OUT HARDCODED VALUE
+            {
+                return -1;
+            }
+            else
+            {
+                for (i = 0; i < character.quantityThreshHolds.Count; ++i)
+                {
+                    if (bestBuyOrderPrice < character.quantityThreshHolds[i][0])
+                        return character.quantityThreshHolds[i][1];
+                }
+            }
+            return character.quantityThreshHolds[i - 1][1];
         }
     }
 }

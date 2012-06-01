@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.paths;
+using noxiousET.src.data.client;
+using noxiousET.src.data.paths;
 
 namespace noxiousET.src.control
 {

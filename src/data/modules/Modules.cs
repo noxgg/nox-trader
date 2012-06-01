@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace noxiousET.src.model.data.modules
+namespace noxiousET.src.data.modules
 {
     class Modules
     {

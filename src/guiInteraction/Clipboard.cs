@@ -5,7 +5,7 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace noxiousET.src.model.guiInteraction
+namespace noxiousET.src.guiInteraction
 {
     class Clipboard
     {

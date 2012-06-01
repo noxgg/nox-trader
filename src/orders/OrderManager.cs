@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace noxiousET.src.model.orders
+namespace noxiousET.src.orders
 {
     class OrderManager
     {
@@ -34,7 +34,7 @@ namespace noxiousET.src.model.orders
 
                 if (parts[9].CompareTo("False") == 0) //If this is a sell order
                 {
-                    Order newOrder = new Order(parts[0], parts[1], parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
+                    Order newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
                     orders[0].Add(newOrder);
                     ++sellOrders;
                 }
@@ -43,7 +43,7 @@ namespace noxiousET.src.model.orders
                      Order newOrder;
                     try
                     {
-                        newOrder = new Order(parts[0], parts[1], parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
+                        newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
                     }
                     catch
                     {
@@ -68,7 +68,7 @@ namespace noxiousET.src.model.orders
                 if (typeID.CompareTo(orders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
                 {
                     listPosition = i;
-                    return orders[orderType][i].getOrderID();
+                    return Convert.ToString(orders[orderType][i].getOrderID());
                 }
             }
             listPosition = -1;
@@ -112,6 +112,26 @@ namespace noxiousET.src.model.orders
             }
         }
 
+        public bool existsOrderOfType(int typeid, int type)
+        {
+            foreach (Order o in orders[type])
+            {
+                if (o.getTypeID() == typeid)
+                    return true;
+            }
+            return false;
+        }
+
+        public bool isOrderOwned(String orderid, int type)
+        {
+            foreach (Order o in orders[type])
+            {
+                if (o.getOrderID().CompareTo(orderid) == 0)
+                    return true;
+            }
+            return false;
+        }
+
         public int getListPosition(ref string typeID, ref int orderType)
         {
             for (int i = 0; i < orders[orderType].Count(); ++i)
@@ -124,12 +144,12 @@ namespace noxiousET.src.model.orders
             return -1;
         }
 
-        public string getOrderStation(ref int listPosition, ref int orderType)
+        public String getOrderStation(ref int listPosition, ref int orderType)
         {
-            return orders[orderType][listPosition].getStation();
+            return orders[orderType][listPosition].getStationid();
         }
 
-        public string getOrderTypeID(ref int listPosition, ref int orderType)
+        public int getOrderTypeID(ref int listPosition, ref int orderType)
         {
             return orders[orderType][listPosition].getTypeID();
         }
@@ -145,10 +165,15 @@ namespace noxiousET.src.model.orders
             return orders[orderType][listPosition].getRuns();
         }
 
-        public int[] getNumOfActiveOrders()
+        public int[] getNumberOfActiveBuysAndActiveSells()
         {
             int[] temp = { sellOrders, buyOrders };
             return temp;
+        }
+
+        public int getNumberOfActiveOrders()
+        {
+            return sellOrders + buyOrders;
         }
 
         public double getOrderPrice(ref int listPosition, ref int orderType)

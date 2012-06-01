@@ -3,14 +3,14 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using noxiousET.src.etevent;
-using noxiousET.src.model.data.characters;
-using noxiousET.src.model.data.client;
-using noxiousET.src.model.data.io;
-using noxiousET.src.model.data.modules;
-using noxiousET.src.model.data.paths;
-using noxiousET.src.model.data.uielements;
+using noxiousET.src.data.characters;
+using noxiousET.src.data.client;
+using noxiousET.src.data.io;
+using noxiousET.src.data.modules;
+using noxiousET.src.data.paths;
+using noxiousET.src.data.uielements;
 
-namespace noxiousET.src.model.guiInteraction.orders.autolister
+namespace noxiousET.src.guiInteraction.orders.autolister
 {
     class AutoLister : OrderBot
     {
@@ -43,32 +43,13 @@ namespace noxiousET.src.model.guiInteraction.orders.autolister
                 stopwatch.Start();
                 setEVEHandle(character.name);
                 SetForegroundWindow(eveHandle);
-                int failCount = 0;
                 DirectoryEraser.nuke(paths.logPath);
 
                 logger.log("Automatically placing orders for " + character.name + "...");
                 logger.autoListerLog(character.name);
 
-                do
-                {
-                    wait(20);
-                    try { result = exportOrders(); }//Clicks on export orders. 
-                    catch { result = 1; }
-                    if (result == 1)//Clicks on export orders.
-                    {
-                        ++failCount;
-                        errorCheck();
-                        wait(20);
-                    }
-                    else
-                    {
-                        activeOrders = orderSet.getNumOfActiveOrders();
-                        openOrders = character.maximumOrders - (activeOrders[0] + activeOrders[1]);
-                        failCount = 4;
-                    }
-                } while (failCount < 3);
-                if (failCount == 3)
-                    return 1;
+                try { orderSet = exportOrders(3, 30); }
+                catch (Exception e) { throw e; } 
 
                 new SetClipboardHelper(DataFormats.Text, "0").Go();
 
@@ -125,13 +106,6 @@ namespace noxiousET.src.model.guiInteraction.orders.autolister
                 logger.log("Automatic order creation completed.");
                 logger.log("Created " + sellOrdersCreated + " sell orders and " + buyOrdersCreated + " buy orders in " + stopwatch.Elapsed.ToString());
             }
-            return 0;
-        }
-
-        private int closeMarketAndItemsWindows()
-        {
-            mouse.pointAndClick(LEFT, uiElements.closeMarketWindow, 0, 5, 5);
-            mouse.pointAndClick(LEFT, uiElements.closeItems, 0, 5, 0);
             return 0;
         }
 
@@ -234,7 +208,7 @@ namespace noxiousET.src.model.guiInteraction.orders.autolister
                 if (activeOrderCheck == 0 || activeOrderCheck == 1)//If a new buy order needs to be placed.
                 {
                     double temp;
-                    buyOrderQuantity = getBuyOrderQty(ref bestBuyOrderPrice, ref bestSellOrderPrice);
+                    buyOrderQuantity = getBuyOrderQty(bestBuyOrderPrice, bestSellOrderPrice);
 
                     if (buyOrderQuantity > 0)
                     {
@@ -316,7 +290,7 @@ namespace noxiousET.src.model.guiInteraction.orders.autolister
 
                     if (lastOrderModified)
                     {
-                        confirmOrder(longOrderNameXOffset, longOrderNameYOffset - itemSoldOutModifier, typeID, 0, 0);
+                        confirmOrder(new int[2] {uiElements.OrderBoxOK[0], uiElements.OrderBoxOK[1] + longOrderNameYOffset - itemSoldOutModifier }, 1, 1);
                         --openOrders;
                         lastOrderModified = false;
                     }
@@ -401,31 +375,13 @@ namespace noxiousET.src.model.guiInteraction.orders.autolister
                     {
                         ++sellOrdersCreated;
                         cursorPosition[1] = cursorPosition[1] - uiElements.itemsLineHeight;
-                        confirmOrder(longOrderNameXOffset, longOrderNameYOffset, typeID, 0, 0);
+                        confirmOrder(fixCoordsForLongTypeName(typeID, uiElements.OrderBoxOK), 1, 0);
                         --openOrders;
                     }
                 }
                 cursorPosition[1] = cursorPosition[1] + uiElements.itemsLineHeight;
             }
             return 0;
-        }
-
-        int getBuyOrderQty(ref double bestBuyOrderPrice, ref double bestSellOrderPrice)
-        {
-            int i;
-            if (bestSellOrderPrice / bestBuyOrderPrice < 1.0736) //TODO: FACTOR OUT HARDCODED VALUE
-            {   
-                return -1;
-            }
-            else
-            {
-                for (i = 0; i < character.quantityThreshHolds.Count; ++i)
-                {
-                    if (bestBuyOrderPrice < character.quantityThreshHolds[i][0])
-                        return character.quantityThreshHolds[i][1];
-                }
-            }
-            return character.quantityThreshHolds[i-1][1];
         }
 
         private bool verifyNewOrderInput(double desiredInput, out bool lastOrderModified, ref int longOrderNameYOffset)

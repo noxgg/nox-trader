@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace noxiousET.src.model.data.io
+namespace noxiousET.src.data.io
 {
     class TextFileToDictionaryLoader : TextFileio
     {

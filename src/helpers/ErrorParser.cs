@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Text.RegularExpressions;
 
-namespace noxiousET.src.model.helpers
+namespace noxiousET.src.helpers
 {
     //return codes
     //0 no error found
