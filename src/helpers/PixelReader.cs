@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Runtime.InteropServices;
-using System.Drawing;
-using System.Windows.Forms;
 
-namespace noxiousET.src.helpers
+namespace noxiousET.src.model.helpers
 {
     class PixelReader
     {

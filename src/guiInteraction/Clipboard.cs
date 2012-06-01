@@ -5,11 +5,11 @@ using System.Text;
 using System.Windows.Forms;
 using System.Threading;
 
-namespace noxiousET.src.guiInteraction
+namespace noxiousET.src.model.guiInteraction
 {
     class Clipboard
     {
-        public static string GetTextFromClip()
+        public static string getTextFromClipboard()
         {
             try
             {
@@ -22,7 +22,7 @@ namespace noxiousET.src.guiInteraction
             }
         }
 
-        public static void setClipboardText(String inputText)
+        public static void setClip(String inputText)
         {
             new SetClipboardHelper(DataFormats.Text, inputText).Go();
         }

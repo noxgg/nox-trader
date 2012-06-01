@@ -3,98 +3,70 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
-using noxiousET.src.data.characters;
-using noxiousET.src.data.client;
-using noxiousET.src.data.io;
-using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
-using noxiousET.src.helpers;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.data.client;
+using noxiousET.src.model.data.io;
+using noxiousET.src.model.data.paths;
+using noxiousET.src.model.data.uielements;
+using noxiousET.src.model.helpers;
+using noxiousET.src.etevent;
 
-namespace noxiousET.src.guiInteraction.login
+namespace noxiousET.src.model.guiInteraction.login
 {
     class LoginBot : GuiBot
     {
         private PixelReader pixelReader;
 
-        public LoginBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character): base(clientConfig, uiElements, paths, character)
+        public LoginBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, EventDispatcher eventDispatcher)
+            : base(clientConfig, uiElements, paths, character, eventDispatcher)
         {
             pixelReader = new PixelReader(uiElements.loginStage2ActiveCharacter[0] - 5, uiElements.loginStage2ActiveCharacter[1] - 5);
         }
 
-        public int launchEVEStateUnknown()
+        private int launchClient()
         {
             eveHandle = FindWindow("triuiScreen", "EVE");
             Process[] proc = Process.GetProcessesByName("EXEFile");
             if (!(proc.Count() == 1 && eveHandle != IntPtr.Zero))
             {
                 ProcessKiller.killProcess("EXEFile");
-                launchEVE();
+                Process.Start(paths.clientPath);
             }
-            int result = 1;
-
-            if (login() != 0)
-                return 1;
-            if (errorCheck() == stopAllActivity)
-                return stopAllActivity;
-            if (loginStage2() != 0)
-                return 2;
-            if (errorCheck() == stopAllActivity)
-                return stopAllActivity;
-            if (extendedTryToExportOrders() != 0)
-                return 3;
-            if (errorCheck() == stopAllActivity)
-                return stopAllActivity;
-
-            result = setConfirmationValue();
-
-            if (result == stopAllActivity)
-                return stopAllActivity;
-            else if (result == 1)
-                return 4;
-
-            //closeItemsAndMarketWindows();
-
-            //excepListBox.Items.Add("Success! Logged in as " + selectedCharacter);
             return 0;
         }
 
-        public int launchEVEPrep()
+        public int login(Character character)
         {
-            if (errorCheck() == stopAllActivity)
-                return stopAllActivity;
-            if (isSelectedCharacterLoggedIn() && extendedTryToExportOrders() == 0 && setConfirmationValue() == 0)
-            {
-                return 0;
-            }
-            int result = launchEVEStateUnknown();
 
-            switch (result)
+            this.character = character;
+
+            if (isEVERunningForSelectedCharacter() && waitForEnvironment() == 0 && prepareEnvironment() == 0)
             {
-                case 1:
-                    //excepListBox.Items.Add("Error logging in. Failed at or before login screen.");
-                    break;
-                case 2:
-                    //excepListBox.Items.Add("Error logging in. Failed at character selection.");
-                    break;
-                case 3:
-                    //excepListBox.Items.Add("Error logging in. Failed at character selection.");
-                    break;
-                case 4:
-                    //excepListBox.Items.Add("Error logging in. Failed to set confirmatino value.");
-                    break;
-                case -69:
-                    return stopAllActivity;
+                logger.log("Logged in as " + character.name);
+            }
+            else
+            {
+                logger.log("Logging in as " + character.name + "...");
+
+                try
+                {
+                    launchClient();
+                    enterCredentials();
+                    selectCharacter();
+                    waitForEnvironment();
+                    prepareEnvironment();
+                    logger.log("Logged in as " + character.name);
+                }
+                catch (Exception e)
+                {
+                    logger.log(e.Message);
+                    return 1;
+                }
             }
             return 0;
         }
 
-        public int launchEVE()
-        {
-            Process.Start(paths.EVEPath);
-            return 0;
-        }
-
-        private int login()
+        private void enterCredentials()
         {
             int failCount = 0;
             eveHandle = IntPtr.Zero;
@@ -105,51 +77,40 @@ namespace noxiousET.src.guiInteraction.login
                 failCount++;
             }
             if (eveHandle == IntPtr.Zero)
-                return 1;
-            Clipboard.setClipboardText("0");
+                throw new Exception("Error logging in. Could not find client.");
+            Clipboard.setClip("0");
             errorCheck();
             for (int i = 0; i < 25; ++i)
             {
-                if (stopCheck() == stopAllActivity)
-                    return stopAllActivity;
+                errorCheck();
                 SetForegroundWindow(eveHandle);
                 ProcessKiller.killProcess("Chrome");
-                mouse.pointCursor(uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1]);
-                mouse.rightClick(10, 2);
-                mouse.pointCursor(Cursor.Position.X + uiElements.modifyOffset[0], Cursor.Position.Y + uiElements.modifyOffset[1]);
-                mouse.leftClick(10, 2);
-                if (Clipboard.GetTextFromClip().ToString().CompareTo("0") != 0)
+                mouse.pointAndClick(RIGHT, uiElements.loginScreenUserName, 0, 10, 2);
+                mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 0, 10, 2);
+                if (Clipboard.getTextFromClipboard().CompareTo("0") != 0)
                 {
-                    mouse.pointCursor(uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1]);
-                    mouse.doubleClick(2, 2);
-                    mouse.doubleClick(2, 2);
+                    mouse.pointAndClick(DOUBLE, uiElements.loginScreenUserName, 0, 2, 2);
+                    mouse.click(DOUBLE, 2, 2);
                     Keyboard.send(getLoginText());
-                    wait(1);
-                    mouse.pointCursor(uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1] + 15);
-                    mouse.doubleClick(2, 2);
-                    mouse.doubleClick(2, 2);
-                    wait(1);
-                    //debugexcepListBox.Items.Add(p);
+                    mouse.pointAndClick(DOUBLE, uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1] + 15, 1, 2, 2);
+                    mouse.click(DOUBLE, 2, 3);
                     Keyboard.send(character.account.p);
-                    mouse.pointCursor(uiElements.loginScreenConnect[0], uiElements.loginScreenConnect[1]);
-                    mouse.leftClick(1, 1);
-
-                    return 0;
+                    mouse.pointAndClick(LEFT, uiElements.loginScreenConnect, 0, 1, 1);
+                    mouse.pointAndClick(LEFT, uiElements.loginScreenConnect, 0, 1, 1);
+                    return;
                 }
             }
-            return 1;
+            throw new Exception("Error logging in. Failed to enter credentials.");
         }
 
-        private int loginStage2()
+        private int selectCharacter()
         {
             int result = 1;
             int errorFlag = 0;
             for (int i = 0; i < 20; ++i)
             {
-                if (stopCheck() == stopAllActivity)
-                    return stopAllActivity;
                 SetForegroundWindow(eveHandle);
-                result = loginCharacterSelect();
+                result = findCharacter();
                 if (result == 0)
                 {
                     ProcessKiller.killProcess("Chrome");
@@ -159,49 +120,43 @@ namespace noxiousET.src.guiInteraction.login
                 if (errorFlag != 0)
                 {
                     errorCheck();
-                    mouse.doubleClick();
+                    mouse.click(DOUBLE,0,0);
                     Thread.Sleep(1000);
                     return 1;
                 }
-
             }
-            return 1;
+            throw new Exception("Error logging in. Could not find character select screen.");
         }
 
-        private int loginCharacterSelect()
+        private int findCharacter()
         {
             wait(200);
-            if (pixelReader.checkForTarget(character.loginColors))
+            if (pixelReader.checkForTarget(character.loginColor))
             {
                 //pick this character if it is the right one.
-                mouse.pointCursor(uiElements.loginStage2ActiveCharacter[0], uiElements.loginStage2ActiveCharacter[1]);
-                mouse.leftClick(10, 2);
+                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
                 return 0;
             }
 
-            //select alt1
-            mouse.pointCursor(uiElements.loginStage2Alt1[0], uiElements.loginStage2Alt1[1]);
-            mouse.leftClick(10, 2);
+            //select alt2
+            mouse.pointAndClick(LEFT, uiElements.loginStage2Alt2, 0, 10, 2);
             wait(200);
 
-            if (pixelReader.checkForTarget(character.loginColors))
+            if (pixelReader.checkForTarget(character.loginColor))
             {
                 //pick this character if it is the right one.
-                mouse.pointCursor(uiElements.loginStage2ActiveCharacter[0], uiElements.loginStage2ActiveCharacter[1]);
-                mouse.leftClick(10, 2);
+                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
                 return 0;
             }
-            //Select alt2
-            mouse.pointCursor(uiElements.loginStage2Alt2[0], uiElements.loginStage2Alt2[1]);
-            mouse.leftClick(10, 2);
+            //Select alt1
+            mouse.pointAndClick(LEFT, uiElements.loginStage2Alt1, 0, 10, 2);
             wait(200);
 
             //Check new character
-            if (pixelReader.checkForTarget(character.loginColors))
+            if (pixelReader.checkForTarget(character.loginColor))
             {
                 //pick this character if it is the right one.
-                mouse.pointCursor(uiElements.loginStage2ActiveCharacter[0], uiElements.loginStage2ActiveCharacter[1]);
-                mouse.leftClick(10, 2);
+                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
                 return 0;
             }
             return 1;
@@ -209,15 +164,16 @@ namespace noxiousET.src.guiInteraction.login
 
 
 
-        public int extendedTryToExportOrders()
+        private int waitForEnvironment()
         {
 
             int result;
             DirectoryEraser.nuke(paths.logPath);
+            setEVEHandle(character.name);
+            SetForegroundWindow(eveHandle);
             for (int i = 0; i < 20; i++)
             {
-                mouse.pointCursor(uiElements.loginStage2ActiveCharacter[0], uiElements.loginStage2ActiveCharacter[1]);
-                mouse.leftClick(10, 2);
+                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
                 try
                 {
                     result = exportOrders();//Clicks on export orders.
@@ -231,7 +187,7 @@ namespace noxiousET.src.guiInteraction.login
                     return 0;
                 Thread.Sleep(1000);
             }
-            return 1;
+            throw new Exception("Error Logging in. Failed to find environment.");
         }
 
         private string getLoginText()
@@ -244,52 +200,31 @@ namespace noxiousET.src.guiInteraction.login
             eveHandle = FindWindow("triuiScreen", "EVE");
             SetForegroundWindow(eveHandle);
             wait(2);
-            Clipboard.setClipboardText("0");
+            Clipboard.setClip("0");
             errorCheck();
-            mouse.pointCursor(uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1]);
-            mouse.rightClick(10, 2);
-            mouse.pointCursor(Cursor.Position.X + uiElements.modifyOffset[0], Cursor.Position.Y + uiElements.modifyOffset[1]);
-            mouse.leftClick(10, 2);
-            if (Clipboard.GetTextFromClip().ToString().CompareTo("0") != 0)
-            {
+            mouse.pointAndClick(RIGHT, uiElements.loginScreenUserName, 0, 10, 2);
+            mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 0, 10, 2);
+            if (Clipboard.getTextFromClipboard().CompareTo("0") != 0)
                 return true;
-            }
             return false;
         }
 
-        private int setConfirmationValue()
+        private int prepareEnvironment()
         {
             wait(2);
-            Clipboard.setClipboardText("0");
+            Clipboard.setClip("0");
             wait(2);
-            int temp = 1;
             for (int i = 0; i < 15; ++i)
             {
-                temp = confirmOrder(0, 0, 0, 0, 0); //TODO refactor this out of here
-                if (temp == 0)//Success!
-                {
+                if (confirmOrder(0, 0, 0, 0, 0) == 0) //TODO refactor this out of here
                     return 0;
-                }
-                else if (temp == stopAllActivity)
-                {
-                    return stopAllActivity;
-                }
                 else
                 {
-                    mouse.pointCursor(uiElements.OrderBoxOK[0], uiElements.OrderBoxOK[1]);
-                    mouse.leftClick(1, 1);
+                    mouse.pointAndClick(LEFT, uiElements.OrderBoxOK, 0, 1, 1);
                     Keyboard.send("-1");
                 }
             }
-            return 1;//Failure
-        }
-
-        private bool isSelectedCharacterLoggedIn()
-        {
-            return isEVERunning();
+            throw new Exception("Error Logging in. Could not prepare environment.");
         }
     }
-
-
-
 }

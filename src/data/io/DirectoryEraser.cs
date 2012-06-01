@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Linq;
 
-namespace noxiousET.src.data.io
+namespace noxiousET.src.model.data.io
 {
     class DirectoryEraser
     {

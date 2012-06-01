@@ -1,17 +1,18 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using noxiousET.src.data.characters;
-using noxiousET.src.data.client;
-using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
-using noxiousET.src.helpers;
+using noxiousET.src.etevent;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.data.client;
+using noxiousET.src.model.data.paths;
+using noxiousET.src.model.data.uielements;
+using noxiousET.src.model.helpers;
+using noxiousET.src.model.orders;
 
 
-namespace noxiousET.src.guiInteraction
+namespace noxiousET.src.model.guiInteraction
 {
     class GuiBot
     {
@@ -32,43 +33,35 @@ namespace noxiousET.src.guiInteraction
         protected IntPtr eveHandle;
         protected ErrorParser errorParser;
         protected int timingMultiplier;
-        protected static readonly int stopAllActivity = -69;
         protected Boolean lastOrderModified = false;
         protected OrderManager orderSet;
+        protected EventDispatcher logger;
+        protected static readonly int LEFT = (int)Mouse.clickTypes.LEFT;
+        protected static readonly int RIGHT = (int)Mouse.clickTypes.RIGHT;
+        protected static readonly int DOUBLE = (int)Mouse.clickTypes.DOUBLE;
 
-        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character)
+        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, EventDispatcher eventDispatcher)
         {
             this.clientConfig = clientConfig;
             this.timingMultiplier = clientConfig.timingMultiplier;
             this.uiElements = uiElements;
             this.paths = paths;
             this.character = character;
+            this.logger = eventDispatcher;
             mouse = new Mouse(timingMultiplier);
             errorParser = new ErrorParser();
         }
 
         protected int errorCheck()
         {
-            mouse.pointCursor(uiElements.errorCheck[0], uiElements.errorCheck[1]);
-            mouse.leftClick(2);
-            return stopCheck();
-        }
-
-        protected int stopCheck()
-        {
-            foreach (Process p in Process.GetProcesses())
-            {
-                if (p.ProcessName == "taskmgr")
-                    return stopAllActivity;
-            }
+            mouse.pointAndClick(LEFT, uiElements.errorCheck, 0, 2, 0);
             return 0;
         }
 
         protected int confirmErrorCheck()
         {
-            mouse.pointCursor(uiElements.confirmErrorCheck[0], uiElements.confirmErrorCheck[1]);
-            mouse.leftClick(2);
-            return stopCheck();
+            mouse.pointAndClick(LEFT, uiElements.confirmErrorCheck, 0, 2, 0);
+            return 0;
         }
 
         protected void wait(int multiplier)
@@ -76,28 +69,23 @@ namespace noxiousET.src.guiInteraction
             Thread.Sleep(timingMultiplier * multiplier);
         }
 
-        protected bool isEVERunning()
+        protected bool isEVERunningForSelectedCharacter()
         {
-            eveHandle = FindWindow("triuiScreen", "EVE - " + character.name);
+            setEVEHandle(character.name);
+            return !(eveHandle == IntPtr.Zero);
+        }
 
-            if (eveHandle == IntPtr.Zero)
-            {
-                return false;
-            }
-            else
-            {
-                return true;
-            }
+        protected void setEVEHandle(String character)
+        {
+            eveHandle = FindWindow("triuiScreen", "EVE - " + character);
         }
 
         protected int getError()
         {
             string message;
-            mouse.pointCursor(uiElements.parseErrorMessage[0], uiElements.parseErrorMessage[1]);
-            mouse.rightClick(1, 1);
-            mouse.offsetCursor(uiElements.parseErrorMessageCopyOffset[0], uiElements.parseErrorMessageCopyOffset[1]);
-            mouse.leftClick(1, 1);
-            message = Clipboard.GetTextFromClip();
+            mouse.pointAndClick(RIGHT, uiElements.parseErrorMessage, 0, 1, 1);
+            mouse.offsetAndClick(LEFT, uiElements.parseErrorMessageCopyOffset, 0, 1, 1);
+            message = Clipboard.getTextFromClipboard();
 
             if (string.Compare(message, "0") != 0)
                 return errorParser.parse(message);
@@ -107,8 +95,7 @@ namespace noxiousET.src.guiInteraction
         protected int exportOrders()
         {
             errorCheck();
-            mouse.pointCursor(uiElements.exportOrderList[0], uiElements.exportOrderList[1]);
-            mouse.leftClick(2);
+            mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
 
             string fileName;
 
@@ -120,14 +107,13 @@ namespace noxiousET.src.guiInteraction
             {
                 fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
                 file = new System.IO.StreamReader(directory.ToString() + fileTemp.ToString());
-
             }
             catch
             {
                 return 1;
             }
             fileName = fileTemp.ToString();
-            orderSet = new OrderManager(directory.ToString() + fileName, ref file);
+            orderSet = new OrderManager(directory.ToString() + fileName, ref file, character.tradeHistory);
 
             file.Close();
             return 0;
@@ -140,47 +126,39 @@ namespace noxiousET.src.guiInteraction
             int errorFlag = 0;
             do
             {
-                wait(1);
-                mouse.pointCursor(uiElements.OrderBoxOK[0], uiElements.OrderBoxOK[1] + longOrderYOffset);
-                mouse.leftClick(1, 1);
+                mouse.pointAndClick(LEFT, uiElements.OrderBoxOK[0], uiElements.OrderBoxOK[1] + longOrderYOffset, 1, 1, 1);
                 if (confirmationType == 1 && failCount > 3)
                 {
                     errorFlag = getError();
                     //If the error is 'above regional average' and this is a sell order || it is below/buy
                     if (errorFlag == 1 && buyOrSell == 0 || errorFlag == 2 && buyOrSell == 1)
                     {
-                        if (confirmErrorCheck() == stopAllActivity)
-                            return stopAllActivity;
+                        confirmErrorCheck();
                         wait(1);
-                        if (confirmErrorCheck() == stopAllActivity)
-                            return stopAllActivity;
-                    }
-                    else
+                        confirmErrorCheck();
+                    } else
                     {
-                        if (errorCheck() == stopAllActivity)
-                            return stopAllActivity;
+                        errorCheck();
                         wait(1);
-                        if (errorCheck() == stopAllActivity)
-                            return stopAllActivity;
+                        errorCheck();
                     }
-                    Clipboard.setClipboardText("0");
+                    Clipboard.setClip("0");
                 }
 
                 //Right click where OK should no longer exist. 
-                mouse.pointCursor(uiElements.OrderBoxOK[0] + longOrderXoffset, uiElements.OrderBoxOK[1]);
-                mouse.rightClick(1, 1);
+                mouse.pointAndClick(RIGHT, uiElements.OrderBoxOK, 0, 1, 1);
 
                 //Click on copy
-                mouse.offsetCursor(uiElements.confirmationCopyOffset[0], uiElements.confirmationCopyOffset[1]);
-                mouse.leftClick(1, 1);
+                mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
 
-                result = Clipboard.GetTextFromClip();
+                result = Clipboard.getTextFromClipboard();
                 ++failCount;
             } while (string.Compare(result, "0") == 0 && failCount < 9);
+
             lastOrderModified = false;
             if (string.Compare(result, "0") != 0)
             {
-                Clipboard.setClipboardText("0");
+                Clipboard.setClip("0");
                 return 0;
             }
             else

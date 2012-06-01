@@ -1,10 +1,12 @@
-﻿using noxiousET.src.data.characters;
-using noxiousET.src.data.client;
-using noxiousET.src.data.modules;
-using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+﻿using noxiousET.src.etevent;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.data.client;
+using noxiousET.src.model.data.modules;
+using noxiousET.src.model.data.paths;
+using noxiousET.src.model.data.uielements;
+using noxiousET.src.model.orders;
 
-namespace noxiousET.src.guiInteraction.orders
+namespace noxiousET.src.model.guiInteraction.orders
 {
     class OrderBot : GuiBot
     {
@@ -13,61 +15,43 @@ namespace noxiousET.src.guiInteraction.orders
         protected int consecutiveFailures;
         protected Modules modules;
 
-        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules): base(clientConfig, uiElements, paths, character)
+        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher)
+            : base(clientConfig, uiElements, paths, character, eventDispatcher)
         {
             this.modules = modules;
-            orderAnalyzer = new OrderAnalyzer();
+            orderAnalyzer = new OrderAnalyzer(eventDispatcher);
             timingBackup = timingMultiplier;
             consecutiveFailures = 0;
         }
 
         //TODO, merge with confirmOrder
-        protected int cancelOrder(int longOrderXoffset, int longOrderYOffset, int typeID)
+        protected int cancelOrder(int longOrderXoffset, int longOrderYOffset)
         {
             int failCount = 0;
             string temp = "0";
             do
             {
-                wait(1);
-                mouse.pointCursor(uiElements.OrderBoxCancel[0], uiElements.OrderBoxCancel[1] + longOrderYOffset);
-                mouse.leftClick(1, 1);
-
+                mouse.pointAndClick(LEFT, uiElements.OrderBoxCancel[0], uiElements.OrderBoxCancel[1] + longOrderYOffset, 1, 1, 1);
 
                 if (failCount > 0 && failCount % 3 == 0)
-                {
-                    if (!modules.ignoreErrorCheckTypeIDs.ContainsKey(typeID))//skip missing
-                    {
-                        if (errorCheck() == stopAllActivity)
-                            return stopAllActivity;
-                    }
-                    else
-                    {
-                        if (confirmErrorCheck() == stopAllActivity)
-                            return stopAllActivity;
-                    }
-                }
+                        errorCheck();
 
-                //Right click where OK should no longer exist. 
-                mouse.pointCursor(uiElements.OrderBoxCancel[0] + longOrderXoffset, uiElements.OrderBoxCancel[1]);
-                mouse.rightClick(1, 1);
-
+                //Right click where OK should no longer exist.
+                mouse.pointAndClick(RIGHT, uiElements.OrderBoxCancel[0] + longOrderXoffset, uiElements.OrderBoxCancel[1], 0, 1, 1);
                 //Click on copy
-                mouse.offsetCursor(uiElements.confirmationCopyOffset[0], uiElements.confirmationCopyOffset[1]);
-                mouse.leftClick(1, 1);
+                mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
 
-                temp = Clipboard.GetTextFromClip();
+                temp = Clipboard.getTextFromClipboard();
                 ++failCount;
             } while (string.Compare(temp, "0") == 0 && failCount < 9);
             lastOrderModified = false;
             if (string.Compare(temp, "0") != 0)
             {
-                Clipboard.setClipboardText("0");
+                Clipboard.setClip("0");
                 return 0;
             }
             else
                 return 1;
         }
-
-        //TODO Refactor out
     }
 }

@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using noxiousET.src.data.accounts;
+using noxiousET.src.model.data.accounts;
 
-namespace noxiousET.src.data.characters
+namespace noxiousET.src.model.data.characters
 {
     class Character
     {
@@ -19,7 +17,9 @@ namespace noxiousET.src.data.characters
         public int fileNameTrimLength { set; get; }
         public int autoAdjustsPerAutoList { set; get; }
         public List<int[]> quantityThreshHolds { set; get; }
-        public int loginColors { set; get; }
+        public int loginColor { set; get; }
+        public Queue<int> tradeQueue { set; get; }
+        public Dictionary<int, int> tradeHistory { set; get; }
 
         public Character(String name)
         {
@@ -41,7 +41,7 @@ namespace noxiousET.src.data.characters
             this.fileNameTrimLength = fileNameTrimLength;
             this.autoAdjustsPerAutoList = autoAdjustsPerAutoList;
             this.quantityThreshHolds = quantityThreshHolds;
-            this.loginColors = loginColors;
+            this.loginColor = loginColors;
         }
     }
 }

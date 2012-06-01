@@ -1,14 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using noxiousET.src.data.accounts;
-using noxiousET.src.data.characters;
-using noxiousET.src.data.client;
-using noxiousET.src.data.io;
-using noxiousET.src.data.modules;
-using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+using noxiousET.src.model.data.accounts;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.data.client;
+using noxiousET.src.model.data.io;
+using noxiousET.src.model.data.modules;
+using noxiousET.src.model.data.paths;
+using noxiousET.src.model.data.uielements;
+using noxiousET.src.etevent;
 
-namespace noxiousET.src.data
+namespace noxiousET.src.model.data
 {
     class DataManager
     {
@@ -18,27 +19,32 @@ namespace noxiousET.src.data
         public CharacterManager characterManager { set; get; }
         public AccountManager accountManager { set; get; }
         public ClientConfig clientConfig { set; get; }
+        public EventDispatcher eventDispatcher { set; get; }
         private TextFileio textFileio;
         private TextFileToDictionaryLoader textFileToDictionaryLoader;
         private UiElementsio uiElementsio;
 
-        private static readonly String ROOT_CONFIG_FILENAME = "last.ini";
-        private static readonly String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.dat";
-        private static readonly String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.dat";
-        private static readonly String IGNORE_ERROR_CHECK_TYPE_IDS_FILENAME = "ignoreErrorCheckTypeIDs.dat";
+        private const String ROOT_CONFIG_FILENAME = "last.ini";
+        private const String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.dat";
+        private const String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.dat";
+        private const String IGNORE_ERROR_CHECK_TYPE_IDS_FILENAME = "ignoreErrorCheckTypeIDs.dat";
+        private const String TYPE_NAMES_FILENAME = "typeNames.dat";
 
         public DataManager()
         {
             paths = new Paths();
             clientConfig = new ClientConfig();
+            this.eventDispatcher = new EventDispatcher();
+            this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);
+            this.eventDispatcher.saveAllSettingsRequestHandler += new EventDispatcher.SaveAllSettingsRequestHandler(saveAllSettingsRequestListener);
 
             textFileio = new TextFileio("", ROOT_CONFIG_FILENAME);
 
-            List<String> config = textFileio.load();
+            List<String> config = textFileio.read();
 
             int line = 0;
             paths.logPath = config[line++];
-            paths.EVEPath = config[line++];
+            paths.clientPath = config[line++];
             paths.configPath = config[line++];
             clientConfig.timingMultiplier = Convert.ToInt32(config[line++]);
             clientConfig.iterations = Convert.ToInt32(config[line++]);
@@ -46,7 +52,7 @@ namespace noxiousET.src.data
             clientConfig.yResolution = Convert.ToInt32(config[line++]);
 
             accountManager = new AccountManager();
-            characterManager = new CharacterManager(paths, accountManager);
+            characterManager = new CharacterManager(paths, accountManager, eventDispatcher);
 
             int length = config.Count - line;
             String[] characters = new String[length];
@@ -54,7 +60,7 @@ namespace noxiousET.src.data
             {
                 characters[i] = config[line++];
             }
-            characterManager.loadCharacters(characters);
+            characterManager.load(characters);
 
             modules = new Modules();
 
@@ -62,24 +68,18 @@ namespace noxiousET.src.data
             uiElements = new UiElements();
             uiElementsio = new UiElementsio(paths.configPath, fileName, uiElements);
 
-            textFileToDictionaryLoader = new TextFileToDictionaryLoader(paths.configPath, "");
-            modules.fittableModuleTypeIDs = loadModuleData(FITTABLE_MODULE_TYPE_IDS_FILENAME);
-            modules.ignoreErrorCheckTypeIDs = loadModuleData(IGNORE_ERROR_CHECK_TYPE_IDS_FILENAME);
-            modules.longNameTypeIDs = loadModuleData(LONG_NAME_TYPE_IDS_FILENAME);
+            textFileToDictionaryLoader = new TextFileToDictionaryLoader(paths.configPath, FITTABLE_MODULE_TYPE_IDS_FILENAME);
+            modules.fittableModuleTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine();
+            modules.longNameTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine(paths.configPath, LONG_NAME_TYPE_IDS_FILENAME);
+            modules.typeNames = textFileToDictionaryLoader.loadIntKeyStringValue(paths.configPath, TYPE_NAMES_FILENAME);
         }
 
-        private Dictionary<int, int> loadModuleData(String fileName)
-        {
-            textFileToDictionaryLoader.fileName = fileName;
-            return textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine();
-        }
-
-        public void saveSettings()
+        public void savePathAndClientSettings()
         {
             List<Object> settings = new List<Object>();
 
             settings.Add(paths.logPath);
-            settings.Add(paths.EVEPath);
+            settings.Add(paths.clientPath);
             settings.Add(paths.configPath);
             settings.Add(clientConfig.timingMultiplier);
             settings.Add(clientConfig.iterations);
@@ -91,7 +91,62 @@ namespace noxiousET.src.data
                 settings.Add(s);
             }
 
-            textFileio.save(settings);
+            textFileio.save(settings, "", ROOT_CONFIG_FILENAME);
+        }
+
+        private void saveAllSettingsRequestListener(object o)
+        {
+            savePathAndClientSettings();
+            characterManager.saveAll();
+        }
+
+        private void clientSettingUpdatedListener(object o, string name, string key, string value)
+        {
+            try
+            {
+                switch (key)
+                {
+                    case EtConstants.TIMING_MULTIPLIER_KEY:
+                        clientConfig.timingMultiplier = parseValue(value, false);
+                        break;
+                    case EtConstants.ITERATIONS_KEY:
+                        clientConfig.iterations = parseValue(value, true);
+                        break;
+                    case EtConstants.X_RESOLUTION_KEY:
+                        clientConfig.xResolution = parseValue(value, false);
+                        break;
+                    case EtConstants.Y_RESOLUTION_KEY:
+                        clientConfig.yResolution = parseValue(value, false);
+                        break;
+                    case EtConstants.LOG_PATH_KEY:
+                        paths.logPath = value;
+                        break;
+                    case EtConstants.CONFIG_PATH_KEY:
+                        paths.configPath = value;
+                        break;
+                    case EtConstants.CLIENT_PATH_KEY:
+                        paths.clientPath = value;
+                        break;
+                    default:
+                        eventDispatcher.logError("Attempt to save value for non-existant client data key.");
+                        break;
+                }
+            }
+            catch
+            {
+                eventDispatcher.logError("Attempt to save value of incorrect type for the given character data key.");
+            }
+
+        }
+
+        private int parseValue(String value, Boolean acceptZero)
+        {
+            int result = Convert.ToInt32(value);
+
+            if ((acceptZero && result >= 0) || result > 0)
+                return result;
+            else
+                throw new Exception("Invalid integer value for given character data key");
         }
     }
 }

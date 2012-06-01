@@ -1,16 +1,20 @@
 ﻿using System;
-using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Windows.Forms;
+using noxiousET.src.model.helpers;
+using noxiousET.src.etevent;
 //TODO no buy orders exist?
-namespace noxiousET
+namespace noxiousET.src.model.orders
 {
     class OrderAnalyzer
     {
         private string lastOrderTypeID;
+        private EventDispatcher eventDispatcher;
 
-        public OrderAnalyzer()
+        public OrderAnalyzer(EventDispatcher eventDispatcher)
         {
             lastOrderTypeID = "0";
+            this.eventDispatcher = eventDispatcher;
         }
 
         public double findBestBuyAndSell(ref OrderManager orders, out double bestSellOrderPrice, out double bestBuyOrderPrice, out string itemName, out int typeID, string path, ref int terminalItemID, string stationID, int fileNameTrimLength, ref int offsetFlag)
@@ -87,9 +91,9 @@ namespace noxiousET
             //Find the most competitive buy order.
             while (parts[7].CompareTo("False") == 0 && (line = file.readLine()) != null)
             {
-                parts = line.Split(',');
+                parts = line.Split(','); //Iterate past all sell orders.
             }
-            if (isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
+            if (line != null && isCompetitiveBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), ref parts[10], ref stationID)) //If this order is competing at my station
             {
                 topBuyOrder = line.Split(',');//null if there are no buy orders
             }
@@ -119,7 +123,7 @@ namespace noxiousET
             else if (bestSellOrderPrice <= 0)//If there are no active sell orders, sell for twice the best buy order.
             {
                 offsetFlag = 1;
-                bestSellOrderPrice = bestBuyOrderPrice * 2;
+                bestSellOrderPrice = bestBuyOrderPrice * 1.5;
             }
             else if (bestBuyOrderPrice <= 0)//If there are no active buy orders, buy for half the best sell order.
             {
@@ -247,14 +251,14 @@ namespace noxiousET
                             return (Convert.ToDouble(topSellOrder[0]) - .01); //The caller should adjust the order price to .01 ISK less than the best sell order.
                         }
                         {
-                            //exceptionSignificantPriceChange(ref exception, "Sell", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
+                            exceptionSignificantPriceChange("Sell", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
                         }
                     }
                     else //Otherwise it is a buy order
                     {
                         if (topSellPrice >= 0 && topSellPrice - (topBuyPrice + topBuyPrice * 0.007406 + topSellPrice * 0.007406 + topSellPrice * 0.005) <= topBuyPrice * .005)
                         {
-                            //exceptionSignificantPriceChange(ref exception, "Buy", "Item no longer profitable.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
+                            exceptionSignificantPriceChange("Buy", "Item no longer profitable.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
                         }
                         else if (topSellPrice < 0 || topBuyPrice < (topSellPrice - (topSellPrice - myOrderPrice) / 2))
                         {
@@ -263,7 +267,7 @@ namespace noxiousET
                         }
                         else
                         {
-                            //exceptionSignificantPriceChange(ref exception, "Buy", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
+                            exceptionSignificantPriceChange("Buy", "Significant price change detected.", ref myOrderPrice, ref topSellPrice, ref topBuyPrice);
                         }
                     }
                 }
@@ -285,13 +289,13 @@ namespace noxiousET
             return 0;
         }
 
-        private int exceptionSignificantPriceChange(ref List<string> exception, string orderType, string errorMessage, ref double myOrderPrice, ref double topSellPrice, ref double topBuyPrice)
+        private int exceptionSignificantPriceChange(string orderType, string errorMessage, ref double myOrderPrice, ref double topSellPrice, ref double topBuyPrice)
         {
-            exception.Add(orderType + " order of price " + myOrderPrice + " not adjusted.");
-            exception.Add(errorMessage);
-            exception.Add("Best Sell Price: " + topSellPrice);
-            exception.Add("Best Buy Price: " + topBuyPrice);
-            exception.Add(" ");
+            eventDispatcher.autoListerLog(orderType + " order of price " + myOrderPrice + " not adjusted.");
+            eventDispatcher.autoListerLog(errorMessage);
+            eventDispatcher.autoListerLog("Best Sell Price: " + topSellPrice);
+            eventDispatcher.autoListerLog("Best Buy Price: " + topBuyPrice);
+            eventDispatcher.autoListerLog(" ");
             return 0;
         }
 

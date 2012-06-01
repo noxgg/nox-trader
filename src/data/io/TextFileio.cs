@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
 
-namespace noxiousET.src.data.io
+namespace noxiousET.src.model.data.io
 {
     public class TextFileio
     {
@@ -47,9 +45,13 @@ namespace noxiousET.src.data.io
         }
 
         protected int writeOpen()
-        {
+        { 
             try
             {
+                if (path.Length > 0 && !Directory.Exists(path))
+                    Directory.CreateDirectory(path);
+                if (!File.Exists(path + fileName))
+                    File.Create(path + fileName).Close();
                 textWriter = new StreamWriter(path + fileName);
             }
             catch
@@ -115,12 +117,33 @@ namespace noxiousET.src.data.io
             return 0;
         }
 
-        public List<String> load()
+        public int save(List<Object> settings, String path, String file)
         {
-            readOpen();
-            List<String> result = readFile();
-            readClose();
-            return result;
+            this.path = path;
+            this.fileName = file;
+            return save(settings);
+        }
+
+        public List<String> read()
+        {
+            try
+            {
+                readOpen();
+                List<String> result = readFile();
+                readClose();
+                return result;
+            }
+            catch
+            {
+                return new List<String>();
+            }
+        }
+
+        public List<String> read(String path, String file)
+        {
+            this.path = path;
+            this.fileName = file;
+            return read();
         }
     }
 }

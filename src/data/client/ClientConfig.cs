@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace noxiousET.src.data.client
+namespace noxiousET.src.model.data.client
 {
     class ClientConfig
     {

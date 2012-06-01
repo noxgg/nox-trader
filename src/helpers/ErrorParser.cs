@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
-namespace noxiousET
+namespace noxiousET.src.model.helpers
 {
     //return codes
     //0 no error found

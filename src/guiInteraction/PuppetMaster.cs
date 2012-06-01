@@ -1,104 +1,72 @@
 ﻿using System;
+using System.Threading;
 using System.Collections.Generic;
-using noxiousET.src.data;
-using noxiousET.src.data.characters;
-using noxiousET.src.guiInteraction.login;
-using noxiousET.src.guiInteraction.orders.autoadjuster;
-using noxiousET.src.guiInteraction.orders.autolister;
+using noxiousET.src.etevent;
+using noxiousET.src.model.data;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.guiInteraction.login;
+using noxiousET.src.model.guiInteraction.orders.autoadjuster;
+using noxiousET.src.model.guiInteraction.orders.autolister;
 
-namespace noxiousET.src.guiInteraction
+namespace noxiousET.src.model.guiInteraction
 {
     class PuppetMaster
     {
         DataManager dataManager;
         CharacterManager characterManager;
-        LoginBot loginBot;
+        public LoginBot loginBot {set; get;}
         AutoAdjuster autoAdjuster;
         AutoLister autoLister;
-        private static readonly int stopAllActivity = -69;
+        EventDispatcher eventDispatcher;
 
         public PuppetMaster(DataManager dataManager)
         {
             this.dataManager = dataManager;
             this.characterManager = dataManager.characterManager;
-            this.loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null);
-            this.autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules);
-            this.autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules);
+            this.loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.eventDispatcher);
+            this.autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
+            this.autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
+            this.eventDispatcher = dataManager.eventDispatcher;
         }
-        private int fullAutoManager()
+        public int automate(int iterations)
         {
             int result = 0;
-            int tries = 0;
-
             Character character;
+            Queue<String> queue;
+            Random random = new Random((int) DateTime.Now.Ticks & 0x0000FFFF);
 
             if (characterManager.selected == null && characterManager.active.Count > 0)
-            {
                 characterManager.selected = characterManager.active[0];
-            }
-            else
-            {
-                //exception
-            }
+            //else exception
 
-            //Reorder the list so that the selected character is first.
-            int index = characterManager.active.IndexOf(characterManager.selected);
-            if (index != 0)
-            {
-                List<String> front = new List<String>();
-                List<String> back = new List<String>();
-                for (int i = 0; i < index; i++)
-                    back.Add(characterManager.active[i]);
-                for (int i = index; i < characterManager.active.Count; i++)
-                    front.Add(characterManager.active[i]);
-                front.AddRange(back);
-                characterManager.active = front;
-            }
+            queue = new Queue<String>();
+            int characterCount = characterManager.active.Count;
+            int selectedIndex = characterManager.active.IndexOf(characterManager.selected);
+            for (int i = 0; i < characterCount; i++)
+                queue.Enqueue(characterManager.active[(i + selectedIndex) % characterCount]);
 
-            for (int i = 0; i < 50; i++)
+            iterations *= queue.Count;
+            for (int i = 0; i < iterations; i++)
             {
-                foreach (String c in characterManager.active)
+                if (i != 0 && i % characterCount == 0)
                 {
-                    character = characterManager.getCharacter(c);
-                    loginBot.character = character;
-                    //excepListBox.Items.Add("Starting run #" + i + 1 + ". i % autoSellEveryNRuns = " + i % autoSellEveryNRuns);
-                    tries = 0;
-                    while ((result = loginBot.launchEVEPrep()) != 0 && tries < 5)
-                    {
-                        if (result == stopAllActivity)
-                        {
-                            //if (exceptionsListbox.Items.Count == 0)
-                                //  displayExceptions();
-                            return 1;
-                        }
-                        else
-                        {
-                            tries++;
-                            //What to do when we fail too many times?
-                        }
-                    }
-                    if (character.autoAdjustsPerAutoList > 0 && (i % character.autoAdjustsPerAutoList) == 0)
-                    {
-                        autoLister.character = character;
-                        if (autoLister.execute() == stopAllActivity)
-                        {
-                            //if (exceptionsListbox.Items.Count == 0)
-                                //  displayExceptions();
-                            return 1;
-                        }
-                    }
-                    autoAdjuster.character = character;
-                    if (autoAdjuster.execute(true) == stopAllActivity)
-                    {
-                        //if (exceptionsListbox.Items.Count == 0)
-                            //displayExceptions();
-                        return 1;
-                    }
-                    if (characterManager.active.Count > 1)
-                    {
+                    if (random.Next(1, 3) % 3 == 0)
+                        Thread.Sleep(random.Next(0, 3600000));
+                    eventDispatcher.log("Starting run #" + i % characterCount);
+                }
+                character = characterManager.getCharacter(queue.Dequeue());
+                characterManager.selected = character.name;
+                result = loginBot.login(character);
+                if (result == 0)
+                {
+                    if (character.autoAdjustsPerAutoList > 0 && (Math.Floor((Double)(i / characterCount)) % character.autoAdjustsPerAutoList) == 0)
+                        autoLister.execute(character);
+                    autoAdjuster.execute(character, true);
+                    characterManager.save(character.name);
+
+                    queue.Enqueue(character.name);
+                    if (queue.Count > 1)
                         autoAdjuster.killClient();
-                    }
-                    //displayExceptions();
                 }
             }
             return 0;

@@ -1,4 +1,4 @@
-﻿namespace noxiousET.src.data.uielements
+﻿namespace noxiousET.src.model.data.uielements
 {
     public class UiElements
     {
@@ -52,6 +52,8 @@
         public int maxOrders { set; get; }
         public int itemsLineHeight { set; get; }
         public int itemsViewModuleDetailExtraOffset { set; get; }
+        public int endOfItemsList { set; get; }
+        public int itemsMenuTouchesBottomOfScreen { set; get; }
 
         public UiElements() 
         {
@@ -105,6 +107,8 @@
             maxOrders = 141;
             itemsLineHeight = 21;
             itemsViewModuleDetailExtraOffset = -17;
+            endOfItemsList = 720;
+            itemsMenuTouchesBottomOfScreen = 573;
         }
 
     };

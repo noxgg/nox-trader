@@ -1,4 +1,4 @@
-﻿namespace noxiousET
+﻿namespace noxiousET.src.model.orders
 {
     class Order
     {

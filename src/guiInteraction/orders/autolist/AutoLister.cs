@@ -1,21 +1,19 @@
 ﻿using System;
 using System.Diagnostics;
-using System.Drawing;
 using System.IO;
-using System.Threading;
 using System.Windows.Forms;
-using noxiousET.src.data.characters;
-using noxiousET.src.data.client;
-using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
-using noxiousET.src.data.modules;
-using noxiousET.src.data.io;
+using noxiousET.src.etevent;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.data.client;
+using noxiousET.src.model.data.io;
+using noxiousET.src.model.data.modules;
+using noxiousET.src.model.data.paths;
+using noxiousET.src.model.data.uielements;
 
-namespace noxiousET.src.guiInteraction.orders.autolister
+namespace noxiousET.src.model.guiInteraction.orders.autolister
 {
     class AutoLister : OrderBot
     {
-        //excepListBox.Items.Add("Automatically placing orders...");
         private int terminalItemID = 0;
         private int[] activeOrders = { 0, 0 };
         private int openOrders = 0;
@@ -23,16 +21,19 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         private int sellOrdersCreated = 0;
         private int result = 0;
         private int autoListerTiming;
-        
-        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules): base(clientConfig, uiElements, paths, character, modules)
+        private static readonly int TRITANIUM_TYPE_ID = 34;
+
+        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher)
+            : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
         {
         }
 
-        public int execute()
+        public int execute(Character character)
         {
+            this.character = character;
             autoListerTiming = timingBackup * 3;
             timingMultiplier = timingBackup; //TODO Sync with client setting
-            if (!isEVERunning())
+            if (!isEVERunningForSelectedCharacter())
             {
                 return 1;
             }
@@ -40,27 +41,24 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             {
                 Stopwatch stopwatch = new Stopwatch();
                 stopwatch.Start();
+                setEVEHandle(character.name);
                 SetForegroundWindow(eveHandle);
                 int failCount = 0;
                 DirectoryEraser.nuke(paths.logPath);
+
+                logger.log("Automatically placing orders for " + character.name + "...");
+                logger.autoListerLog(character.name);
+
                 do
                 {
-                    if (stopCheck() == stopAllActivity)
-                        return stopAllActivity;
-                    Thread.Sleep(timingMultiplier * 20);
-                    try
-                    {
-                        result = exportOrders();//Clicks on export orders.
-                    }
-                    catch
-                    {
-                        result = 1;
-                    }
+                    wait(20);
+                    try { result = exportOrders(); }//Clicks on export orders. 
+                    catch { result = 1; }
                     if (result == 1)//Clicks on export orders.
                     {
                         ++failCount;
                         errorCheck();
-                        Thread.Sleep(timingMultiplier * 20);
+                        wait(20);
                     }
                     else
                     {
@@ -69,76 +67,75 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                         failCount = 4;
                     }
                 } while (failCount < 3);
+                if (failCount == 3)
+                    return 1;
 
                 new SetClipboardHelper(DataFormats.Text, "0").Go();
-                if (failCount == 4)
+
+                closeMarketAndItemsWindows();
+                if (character.tradeItems)
                 {
-                    if (character.tradeItems)
+                    terminalItemID = 5321;
+                    wait(20);
+                    Keyboard.send("{PGUP}");
+                    wait(20);
+                    timingMultiplier = timingMultiplier * 3;
+                    result = autoList(0);
+                    
+                    if (result == 1)
                     {
-                        terminalItemID = 5321;
-                        Keyboard.send("{PGUP}");
-                        timingMultiplier = timingMultiplier * 3;
-                        result = autoSeller(0);
-                        if (result == stopAllActivity)
-                        {
-                            timingMultiplier = autoListerTiming;
-                            orderAnalyzer.clearLastBuyOrder();
-                            Keyboard.send("{PGUP}");
-                            return stopAllActivity;
-                        }
-                        else if (result == 1)
-                        {
-                            timingMultiplier = autoListerTiming;
-                            orderAnalyzer.clearLastBuyOrder();
-                            Keyboard.send("{PGUP}");
-                            return 1;
-                        }
-                        timingMultiplier = timingBackup;
+                        timingMultiplier = autoListerTiming;
                         orderAnalyzer.clearLastBuyOrder();
-                        wait(1);
                         Keyboard.send("{PGUP}");
-                        wait(1);
-                        Keyboard.send("{HOME}");
+                        return 1;
                     }
 
-                    if (character.tradeShips)
-                    {
-                        terminalItemID = 2078;
-                        Keyboard.send("{PGDN}");
-                        timingMultiplier = timingMultiplier * 3;
-                        result = autoSeller(1);
-                        if (result == stopAllActivity)
-                        {
-                            timingMultiplier = autoListerTiming;
-                            orderAnalyzer.clearLastBuyOrder();
-                            Keyboard.send("{PGDN}");
-                            return stopAllActivity;
-                        }
-                        else if (result == 1)
-                        {
-                            timingMultiplier = autoListerTiming;
-                            orderAnalyzer.clearLastBuyOrder();
-                            Keyboard.send("{PGDN}");
-                            return 1;
-                        }
-                        timingMultiplier = timingBackup;
-                        orderAnalyzer.clearLastBuyOrder();
-                        wait(1);
-                        Keyboard.send("{PGDN}");
-                        wait(1);
-                        Keyboard.send("{HOME}");
-                    }
+                    timingMultiplier = timingBackup;
+                    orderAnalyzer.clearLastBuyOrder();
+                    wait(1);
+                    Keyboard.send("{PGUP}");
+                    wait(1);
+                    Keyboard.send("{HOME}");
                 }
+
+                if (character.tradeShips)
+                {
+                    terminalItemID = 2078;
+                    wait(20);
+                    Keyboard.send("{PGDN}");
+                    wait(20);
+                    timingMultiplier = timingMultiplier * 3;
+                    result = autoList(1);
+                    if (result == 1)
+                    {
+                        timingMultiplier = autoListerTiming;
+                        orderAnalyzer.clearLastBuyOrder();
+                        Keyboard.send("{PGDN}");
+                        return 1;
+                    }
+                    timingMultiplier = timingBackup;
+                    orderAnalyzer.clearLastBuyOrder();
+                    wait(1);
+                    Keyboard.send("{PGDN}");
+                    wait(1);
+                    Keyboard.send("{HOME}");
+                }
+                cancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
                 stopwatch.Stop();
-                //excepListBox.Items.Add("Automatic order creation completed.");
-                //excepListBox.Items.Add("Created " + sellOrdersCreated + " sell orders and " + buyOrdersCreated + " buy orders in " + stopwatch.Elapsed.ToString());
+                logger.log("Automatic order creation completed.");
+                logger.log("Created " + sellOrdersCreated + " sell orders and " + buyOrdersCreated + " buy orders in " + stopwatch.Elapsed.ToString());
             }
-            //if (runMode == 2)
-                //displayExceptions();
             return 0;
         }
 
-        private int autoSeller(int itemType)
+        private int closeMarketAndItemsWindows()
+        {
+            mouse.pointAndClick(LEFT, uiElements.closeMarketWindow, 0, 5, 5);
+            mouse.pointAndClick(LEFT, uiElements.closeItems, 0, 5, 0);
+            return 0;
+        }
+
+        private int autoList(int itemType)
         {
             string itemName;
             int typeID = 0;
@@ -153,6 +150,8 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             int longOrderNameXOffset = 0;
             int longOrderNameYOffset = 0;
             int offsetFlag = 0;
+            int contextMenuShift = 0;
+            int itemSoldOutModifier = 0;
 
 
             string directory = paths.logPath;
@@ -161,114 +160,76 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             cursorPosition[1] = uiElements.itemsTop[1];
             consecutiveFailures = 0;
             wait(10);
-            while (openOrders > 0)
+            while (openOrders > 0 && cursorPosition[1] <= uiElements.endOfItemsList)
             {
-                if (stopCheck() == stopAllActivity)
-                    return stopAllActivity;
-                //debugexcepListBox.Items.Add("Open orders = " + openOrders);
-                bestSellOrderPrice = bestBuyOrderPrice = readFailCounter = copyFailCounter = buyOrderQuantity = longOrderNameXOffset = longOrderNameYOffset = offsetFlag = 0;
+                bestSellOrderPrice = bestBuyOrderPrice = readFailCounter = copyFailCounter = buyOrderQuantity = longOrderNameXOffset = longOrderNameYOffset = offsetFlag = itemSoldOutModifier = 0;
+                contextMenuShift = cursorPosition[1] > uiElements.itemsMenuTouchesBottomOfScreen ? cursorPosition[1] - uiElements.itemsMenuTouchesBottomOfScreen : 0;
                 activeOrderCheck = -1;
 
                 if (itemType == 0)
-                {
                     offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                }
                 else
-                {
                     offsetYModifier = 0;
-                }
-
-
                 if (Directory.GetFiles(directory).Length > 0)
-                {
                     DirectoryEraser.nuke(directory);
-                }
+
                 do
                 {
-                    if (activeOrderCheck == -1 && readFailCounter > 3)
-                    {
-                        //debugexcepListBox.Items.Add("Error Checking");
-                        if (errorCheck() == stopAllActivity)
-                            return stopAllActivity;
-                    }
                     if ((activeOrderCheck == -1 || activeOrderCheck == -2)) //Try view details again
                     {
                         //RClick current line
-                        wait(1);
-                        mouse.pointCursor(cursorPosition[0], cursorPosition[1]);
-                        mouse.rightClick(1, 1);
-
+                        mouse.pointAndClick(RIGHT, cursorPosition, 1, 1, 1);
                         //View details
+                        mouse.offsetAndClick(LEFT, uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] + offsetYModifier - contextMenuShift, 0, 2, 1);
 
-                        //autoSellerListBox.Items.Add("Modifier is" + offsetYModifier);//debug
-                        //autoSellerListBox.Items.Add("Y = " + (cursorPosition[1] + uiElements.itemsViewDetailsOffset[1] + offsetYModifier));//debug
-
-                        mouse.pointCursor(cursorPosition[0] + uiElements.itemsViewDetailsOffset[0], cursorPosition[1] + uiElements.itemsViewDetailsOffset[1] + offsetYModifier);
-                        mouse.leftClick(2, 1);
-
-                        //Alternate between offset and no offset
-                        if (offsetYModifier == 0 && itemType == 0)
-                        {
-                            //autoSellerListBox.Items.Add("Going to 21");//debug
-                            offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                        }
-                        else if (itemType == 0)
-                        {
-                            //autoSellerListBox.Items.Add("Going back to 0");//debug
-                            offsetYModifier = 0;
-                        }
-                        if (readFailCounter == 8)//invert
-                        {
-                            if (offsetYModifier == 0 && itemType == 0)
-                            {
-                                //autoSellerListBox.Items.Add("Going to 21");//debug
-                                offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                            }
-                            else if (itemType == 0)
-                            {
-                                //autoSellerListBox.Items.Add("Going back to 0");//debug
-                                offsetYModifier = 0;
-                            }
-                        }
+                        if (itemType == 0)
+                            offsetYModifier = (offsetYModifier == 0 && readFailCounter != 8) ? uiElements.itemsViewModuleDetailExtraOffset : 0;
+                        if (readFailCounter % 4 == 3)
+                            timingMultiplier += timingBackup;
+                        if (readFailCounter % 3 == 2)
+                            errorCheck();
                     }
                     //Click on Export Market info
-                    mouse.pointCursor(uiElements.exportItem[0], uiElements.exportItem[1]);
-                    mouse.leftClick(5, 3);
+                    mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
+
                     activeOrderCheck = orderAnalyzer.findBestBuyAndSell(ref orderSet, out bestSellOrderPrice, out bestBuyOrderPrice, out itemName, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), character.fileNameTrimLength, ref offsetFlag);
                     ++readFailCounter;
+
+                    if (typeID == TRITANIUM_TYPE_ID)//Make sure we didn't accidentally open the ship's cargohold.
+                    {
+                        wait(10);
+                        if (itemType == 0)
+                            Keyboard.send("{PGUP}");
+                        else
+                            Keyboard.send("{PGDN}");
+                        wait(10);
+                        activeOrderCheck = -1;
+                    }
                 } while ((activeOrderCheck == -1 || activeOrderCheck == -2) && readFailCounter < 17);
+
                 if (readFailCounter >= 17)
                 {
-                    ++consecutiveFailures;
-                    //exception.Add("Failed to check an item. Retry limit exceeded.");
+                    ++consecutiveFailures; 
+                    logger.logError("Failed to check an item. Retry limit exceeded.");
                 }
                 else
-                {
                     consecutiveFailures = 0;
-                }
+                timingMultiplier = timingBackup;
                 if ((activeOrderCheck == -1 || activeOrderCheck == -2) && consecutiveFailures == 3)
                 {
                     return 1;
                 }
                 else if (activeOrderCheck == -4)
                     return 0;
-                //debug
-                //autoSellerListBox.Items.Add(itemName);
-                //autoSellerListBox.Items.Add(activeOrderCheck);
-                //autoSellerListBox.Items.Add(bestSellOrderPrice.ToString());
-               // autoSellerListBox.Items.Add(bestBuyOrderPrice.ToString());
-                //autoSellerListBox.Items.Add("");
+                else if (consecutiveFailures > 0)
+                    resetView(itemType);
+
                 if (modules.longNameTypeIDs.ContainsKey(typeID))
                 {
                     longOrderNameXOffset = 253;
                     longOrderNameYOffset = 22;
                 }
 
-                if (activeOrderCheck == 4)
-                {
-                    //autoSellerListBox.Items.Add(itemName + " not processed. No orders exist for comparision.");
-                    //autoSellerListBox.Items.Add("");
-                }
                 offsetYModifier = 0;
                 if (activeOrderCheck == 0 || activeOrderCheck == 1)//If a new buy order needs to be placed.
                 {
@@ -278,64 +239,42 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     if (buyOrderQuantity > 0)
                     {
                         temp = 0;
-                        if (cancelOrder(0, 0, typeID) == 0)
+                        if (cancelOrder(0, 0) == 0)
                         {
                             do
                             {
-                                if (copyFailCounter % 4 == 0)
-                                {
-                                    if (errorCheck() == stopAllActivity)
-                                        return stopAllActivity;
-                                }
 
                                 //Click on place buy order
-                                mouse.pointCursor(uiElements.placeBuyOrder[0], uiElements.placeBuyOrder[1]);
-                                mouse.leftClick(1, 6);
-                                mouse.leftClick(1, 6);
-
+                                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 0, 1, 6);
                                 //Right click on the field
-                                mouse.pointCursor(uiElements.buyOrderBox[0], uiElements.buyOrderBox[1] + longOrderNameYOffset);
-                                mouse.rightClick(4, 2);
-
+                                mouse.pointAndClick(RIGHT, uiElements.buyOrderBox[0], uiElements.buyOrderBox[1] + longOrderNameYOffset, 0, 4, 2);
                                 //Click on copy
-                                mouse.offsetCursor(uiElements.copyOffset[0], uiElements.copyOffset[1]);
-                                mouse.leftClick(2, 2);
-                                try
-                                {
-                                    temp = Convert.ToDouble(Clipboard.GetTextFromClip());
-                                }
-                                catch
-                                {
-                                    temp = 0;
-                                }
+                                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
 
+                                try {  temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
+                                catch  {  temp = 0; }
 
                                 //If this is the correct item. 
-                                if ((temp - 1000) < bestSellOrderPrice && bestBuyOrderPrice < (temp + 1000))
+                                if (temp < bestSellOrderPrice + 1000 && temp > bestSellOrderPrice - 1000)
                                 {
                                     //Input buy order price.
                                     int modificationFailCount = 0;
                                     do
                                     {
                                         //Double click to highlight
-                                        wait(4);
-                                        mouse.pointCursor(uiElements.buyOrderBox[0], uiElements.buyOrderBox[1] + longOrderNameYOffset);
-                                        mouse.doubleClick(2, 2);
-                                        new SetClipboardHelper(DataFormats.Text, (bestBuyOrderPrice + .01).ToString()).Go();
-                                        mouse.rightClick(2, 2);
-                                        mouse.offsetCursor(uiElements.pasteOffset[0], uiElements.pasteOffset[1]);
-                                        mouse.leftClick(2);
-                                        new SetClipboardHelper(DataFormats.Text, "0").Go();
+                                        mouse.pointAndClick(DOUBLE, uiElements.buyOrderBox[0], uiElements.buyOrderBox[1] + longOrderNameYOffset, 4, 2, 2);
+                                        Clipboard.setClip((bestBuyOrderPrice + .01).ToString());
+                                        mouse.click(RIGHT, 2, 2);
+                                        mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
+                                        Clipboard.setClip("0");
 
                                         ++modificationFailCount;
-                                    } while (verifyNewBuyOrderInput(bestBuyOrderPrice, out lastOrderModified, ref longOrderNameYOffset) == false && modificationFailCount < 10);
+                                    } while (verifyNewOrderInput(uiElements.buyOrderBox, bestBuyOrderPrice, out lastOrderModified, ref longOrderNameYOffset) == false && modificationFailCount < 10);
 
                                     if (modificationFailCount == 10)
-                                    {
                                         temp = 0;
-                                    }
                                     if (offsetFlag == 1)
-                                        offsetYModifier = 15;
+                                        itemSoldOutModifier = 15;
                                     //Input buy order quantity.
                                     if (lastOrderModified)
                                     {
@@ -344,19 +283,15 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                                         do
                                         {
                                             //Double click to highlight
-                                            wait(4);
-                                            mouse.pointCursor(uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset - offsetYModifier);
-                                            mouse.doubleClick(6, 1);
-                                            mouse.doubleClick(1, 4);
+                                            mouse.pointAndClick(DOUBLE, uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset - itemSoldOutModifier, 4, 6, 1);
+                                            mouse.click(DOUBLE, 1, 4);
                                             Keyboard.send(buyOrderQuantity.ToString());
 
                                             ++modificationFailCount;
-                                        } while (verifyQuantityInput(ref buyOrderQuantity, out lastOrderModified, (longOrderNameYOffset - offsetYModifier)) == false && modificationFailCount < 10);
+                                        } while (verifyQuantityInput(ref buyOrderQuantity, out lastOrderModified, longOrderNameYOffset - itemSoldOutModifier) == false && modificationFailCount < 10);
 
                                         if (modificationFailCount == 10)
-                                        {
                                             temp = 0;
-                                        }
                                     }
                                 }
                                 else
@@ -369,23 +304,32 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     }
                     else
                     {
-                        //autoSellerListBox.Items.Add(itemName + " not purchased. Item no longer exceeds minimum profit threshhold.");
-                        //autoSellerListBox.Items.Add(bestSellOrderPrice.ToString());
-                        //autoSellerListBox.Items.Add(bestBuyOrderPrice.ToString());
-                        //autoSellerListBox.Items.Add("");
+                        if (!character.tradeQueue.Contains(typeID))
+                            character.tradeQueue.Enqueue(typeID);
+                        logger.autoAdjusterLog(itemName + " not purchased. Item no longer exceeds minimum profit threshhold.");
+                        logger.autoAdjusterLog(bestSellOrderPrice.ToString());
+                        logger.autoAdjusterLog(bestBuyOrderPrice.ToString());
+                        logger.autoAdjusterLog("");
                     }
                     new SetClipboardHelper(DataFormats.Text, "0").Go();
-                }
-                if (lastOrderModified)
-                {
-                    if (confirmOrder(longOrderNameXOffset, longOrderNameYOffset, typeID, 0, 0) == stopAllActivity)
-                        return stopAllActivity;
-                    --openOrders;
-                    lastOrderModified = false;
-                }
-                else
-                {
-                    //autoSellerListBox.Items.Add("Failed to buy item " + itemName);
+
+
+                    if (lastOrderModified)
+                    {
+                        confirmOrder(longOrderNameXOffset, longOrderNameYOffset - itemSoldOutModifier, typeID, 0, 0);
+                        --openOrders;
+                        lastOrderModified = false;
+                    }
+                    else
+                    {
+                        if (activeOrderCheck == 0 || activeOrderCheck == 2)
+                        {
+                            if (!character.tradeQueue.Contains(typeID))
+                                character.tradeQueue.Enqueue(typeID);
+                        }
+                        logger.autoAdjusterLog("Failed to buy item " + itemName);
+                        logger.autoAdjusterLog("");
+                    }
                 }
                 if (activeOrderCheck == 0 || activeOrderCheck == 2)//If a new sell order needs to be placed.
                 {
@@ -395,97 +339,69 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     else
                         offsetYModifier = 0;
 
-                    double temp;
-                    if (errorCheck() == stopAllActivity)
-                        return stopAllActivity;
-                    if (cancelOrder(0, 0, 0) == 0)
-                    {
+                    double temp = 0;
                         do
                         {
-                            temp = 0;
-                            //RClick on current line.
-                            mouse.pointCursor(cursorPosition[0], cursorPosition[1]);
-                            mouse.rightClick(1, 1);
-
-                            //Click on Sell
-                            mouse.pointCursor(cursorPosition[0] + uiElements.itemsSellItemOffset[0], cursorPosition[1] + uiElements.itemsSellItemOffset[1] + offsetYModifier);
-                            mouse.leftClick(1, 1);
-
-                            if (copyFailCounter % 3 == 2)
-                            {
-                                timingMultiplier += timingBackup;
-                            }
-                            if (copyFailCounter % 4 == 3)
-                            {
-                                if (offsetYModifier == 0 && itemType == 0)
-                                {
-                                    offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                                }
-                                else if (itemType == 0)
-                                {
-                                    offsetYModifier = 0;
-                                }
-                            }
-
-                            //Right click on the field
-                            wait(5);
-                            mouse.pointCursor(uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset);
-                            mouse.rightClick(2, 2);
-
-                            //Click on copy
-                            mouse.offsetCursor(uiElements.copyOffset[0], uiElements.copyOffset[1]);
-                            mouse.leftClick(2, 2);
-                            try
-                            {
-                                temp = Convert.ToDouble(Clipboard.GetTextFromClip());
-                            }
-                            catch
+                            if (cancelOrder(0, 0) == 0)
                             {
                                 temp = 0;
-                            }
+                                //RClick on current line.
+                                mouse.pointAndClick(RIGHT, cursorPosition, 0, 1, 1);
+                                mouse.pointAndClick(LEFT, cursorPosition[0] + uiElements.itemsSellItemOffset[0], cursorPosition[1] + uiElements.itemsSellItemOffset[1] + offsetYModifier - contextMenuShift, 0, 1, 1);
 
-                            if (timingMultiplier != autoListerTiming)
-                                timingMultiplier = autoListerTiming;
-
-                            if ((temp - 1000) < bestBuyOrderPrice && bestBuyOrderPrice < (temp + 1000))
-                            {
-                                int modificationFailCount = 0;
-                                do
+                                if (copyFailCounter % 3 == 2)
+                                    timingMultiplier += timingBackup;
+                                if (copyFailCounter % 4 == 3)
                                 {
-                                    //Double click to highlight
-                                    wait(4);
-                                    mouse.pointCursor(uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset);
-                                    mouse.doubleClick(2, 2);
-                                    new SetClipboardHelper(DataFormats.Text, (bestSellOrderPrice - .01).ToString()).Go();
-                                    mouse.rightClick(2, 2);
-                                    mouse.offsetCursor(uiElements.pasteOffset[0], uiElements.pasteOffset[1]);
-                                    mouse.leftClick(2);
-                                    new SetClipboardHelper(DataFormats.Text, "0").Go();
+                                    if (offsetYModifier == 0 && itemType == 0)
+                                        offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
+                                    else if (itemType == 0)
+                                        offsetYModifier = 0;
+                                }
 
-                                    ++modificationFailCount;
-                                } while (verifyNewSellOrderInput(bestSellOrderPrice, out lastOrderModified, longOrderNameYOffset) == false && modificationFailCount < 10);
-                                if (modificationFailCount == 10)
+                                //Right click on the field
+                                mouse.pointAndClick(RIGHT, uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset, 5, 2, 2);
+                                //Click on copy
+                                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
+                                try{ temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
+                                catch{ temp = 0; }
+
+                                if (timingMultiplier != autoListerTiming)
+                                    timingMultiplier = autoListerTiming;
+
+                                if ((temp - 1000) < bestBuyOrderPrice && bestBuyOrderPrice < (temp + 1000))
+                                {
+                                    int modificationFailCount = 0;
+                                    do
+                                    {
+                                        //Double click to highlight
+                                        mouse.pointAndClick(DOUBLE, uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset, 4, 2, 2);
+                                        Clipboard.setClip((bestSellOrderPrice - .01).ToString());
+                                        mouse.click(RIGHT, 2, 2);
+                                        mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
+                                        Clipboard.setClip("0");
+
+                                        ++modificationFailCount;
+                                    } while (verifyNewOrderInput(bestSellOrderPrice, out lastOrderModified, ref longOrderNameYOffset) == false && modificationFailCount < 10);
+                                    if (modificationFailCount == 10)
+                                        temp = 0;
+                                }
+                                else
                                 {
                                     temp = 0;
                                 }
+                                ++copyFailCounter;
                             }
-                            else
-                            {
-                                temp = 0;
-                            }
-                            ++copyFailCounter;
                         } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 6);
-                    }
-                    new SetClipboardHelper(DataFormats.Text, "0").Go();
+                    Clipboard.setClip("0");
                     timingMultiplier = autoListerTiming;
-                    mouse.leftClick(7);
+                    mouse.click(LEFT,7, 0);
 
                     if (lastOrderModified)
                     {
-                        //++SellOrdersCreated;
+                        ++sellOrdersCreated;
                         cursorPosition[1] = cursorPosition[1] - uiElements.itemsLineHeight;
-                        if (confirmOrder(longOrderNameXOffset, longOrderNameYOffset, typeID, 0, 0) == stopAllActivity)
-                            return stopAllActivity;
+                        confirmOrder(longOrderNameXOffset, longOrderNameYOffset, typeID, 0, 0);
                         --openOrders;
                     }
                 }
@@ -497,38 +413,31 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         int getBuyOrderQty(ref double bestBuyOrderPrice, ref double bestSellOrderPrice)
         {
             int i;
-
-            if (bestSellOrderPrice / bestBuyOrderPrice < 1.0736)
-            {
+            if (bestSellOrderPrice / bestBuyOrderPrice < 1.0736) //TODO: FACTOR OUT HARDCODED VALUE
+            {   
                 return -1;
             }
             else
             {
-                for (i = 0; i < 4; ++i)
+                for (i = 0; i < character.quantityThreshHolds.Count; ++i)
                 {
                     if (bestBuyOrderPrice < character.quantityThreshHolds[i][0])
-                    {
                         return character.quantityThreshHolds[i][1];
-                    }
                 }
             }
-            return character.quantityThreshHolds[i][1];
+            return character.quantityThreshHolds[i-1][1];
         }
 
-        private bool verifyNewBuyOrderInput(double desiredInput, out bool lastOrderModified, ref int longOrderNameYOffset)
+        private bool verifyNewOrderInput(double desiredInput, out bool lastOrderModified, ref int longOrderNameYOffset)
         {
             double temp;
 
             //Right click on the field
-            wait(1);
-            mouse.pointCursor(uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset);
-            mouse.rightClick(1, 1);
-
+            mouse.pointAndClick(RIGHT, uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset, 1, 1, 1);
             //Click on copy
-            mouse.offsetCursor(uiElements.copyOffset[0], uiElements.copyOffset[1]);
-            mouse.leftClick(1, 1);
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
 
-            try { temp = Convert.ToDouble(Clipboard.GetTextFromClip()); }
+            try { temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
             catch { temp = -1; }
 
             if (desiredInput - 10000 < temp && temp < desiredInput + 10000 && (temp != desiredInput))
@@ -543,17 +452,18 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             }
         }
 
-        private bool verifyNewSellOrderInput(double desiredInput, out bool lastOrderModified, int longOrderNameYOffset)
+        private bool verifyNewOrderInput(int[] orderBoxCoords, double desiredInput, out bool lastOrderModified, ref int offset)
         {
-            //Right click on the field
-            wait(1);
-            mouse.pointCursor(uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset);
-            mouse.rightClick(1, 1);
+            double temp;
 
+            //Right click on the field
+            mouse.pointAndClick(RIGHT, orderBoxCoords[0], orderBoxCoords[1] + offset, 1, 1, 1);
             //Click on copy
-            mouse.offsetCursor(uiElements.copyOffset[0], uiElements.copyOffset[1]);
-            mouse.leftClick(1, 1);
-            double temp = Convert.ToDouble(Clipboard.GetTextFromClip());
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
+
+            try { temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
+            catch { temp = -1; }
+
             if (desiredInput - 10000 < temp && temp < desiredInput + 10000 && (temp != desiredInput))
             {
                 lastOrderModified = true;
@@ -568,16 +478,14 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
         private bool verifyQuantityInput(ref int quantity, out bool lastOrderModified, int longOrderNameYOffset)
         {
-            //Right click on the field
-            wait(1);
-            mouse.pointCursor(uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset);
-            mouse.rightClick(1, 1);
 
+            //Right click on the field
+            mouse.pointAndClick(RIGHT, uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset, 1, 1, 1);
             //Click on copy
-            mouse.offsetCursor(uiElements.copyOffset[0], uiElements.copyOffset[1]);
-            mouse.leftClick(1, 2);
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 2);
+
             int temp;
-            try { temp = Convert.ToInt32(Clipboard.GetTextFromClip()); }
+            try { temp = Convert.ToInt32(Clipboard.getTextFromClipboard()); }
             catch { temp = -1; }
 
             if (temp == quantity)
@@ -590,6 +498,18 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 lastOrderModified = false;
                 return false;
             }
+        }
+
+        private void resetView(int tradeType)
+        {
+            errorCheck();
+            closeMarketAndItemsWindows();
+
+            if (tradeType == 0)
+                Keyboard.send("{PGUP}");
+            else
+                Keyboard.send("{PGDN}");
+
         }
     }
 }

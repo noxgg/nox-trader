@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.IO;
+using System.Linq;
 
-namespace noxiousET
+namespace noxiousET.src.model.orders
 {
     class OrderManager
     {
@@ -11,8 +11,9 @@ namespace noxiousET
         List<Order>[] orders;
         int buyOrders;
         int sellOrders;
+        int typeID;
 
-        public OrderManager(string filePathAndName, ref StreamReader file)
+        public OrderManager(string filePathAndName, ref StreamReader file, Dictionary<int, int> tradeHistory)
         {
             orders = new List<Order>[2];
             orders[0] = new List<Order>();
@@ -26,6 +27,10 @@ namespace noxiousET
             while ((line = file.ReadLine()) != null)
             {
                 parts = line.Split(',');
+
+                typeID = Convert.ToInt32(parts[1]);
+                if (!tradeHistory.ContainsKey(typeID))
+                    tradeHistory.Add(typeID, typeID);
 
                 if (parts[9].CompareTo("False") == 0) //If this is a sell order
                 {

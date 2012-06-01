@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 
-namespace noxiousET.src.helpers
+namespace noxiousET.src.model.helpers
 {
     static class ProcessKiller
     {

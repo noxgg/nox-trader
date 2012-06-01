@@ -2,14 +2,15 @@
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
-using noxiousET.src.data.characters;
-using noxiousET.src.data.client;
-using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
-using noxiousET.src.data.modules;
-using noxiousET.src.data.io;
+using noxiousET.src.etevent;
+using noxiousET.src.model.data.characters;
+using noxiousET.src.model.data.client;
+using noxiousET.src.model.data.io;
+using noxiousET.src.model.data.modules;
+using noxiousET.src.model.data.paths;
+using noxiousET.src.model.data.uielements;
 
-namespace noxiousET.src.guiInteraction.orders.autoadjuster
+namespace noxiousET.src.model.guiInteraction.orders.autoadjuster
 {
     class AutoAdjuster : OrderBot
     {
@@ -18,27 +19,32 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
         int iterations = 1;//Fix these
         bool launchEVEWhenNearlyDone = false;
 
-        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules): base(clientConfig, uiElements, paths, character, modules)
+        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher) 
+            : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
         {
             numModified = 0;
             numScanned = 0;
         }
 
-        public int execute(bool multiUserMode)
+        public int execute(Character character, bool multiUserMode)
         {
+            this.character = character;
             int sellResult = 0;
             int buyResult = 0;
             numModified = 0;
             numScanned = 0;
-            //excepListBox.Items.Add("Modifying orders...");
-            if (!isEVERunning())
+            if (!isEVERunningForSelectedCharacter())
             {
-                //excepListBox.Items.Add("Failed to modify orders. Could not find EVE.");
+                logger.log("Failed to modify orders for " + character.name + ". Could not find EVE.");
                 return 1;
             }
             else
             {
+                logger.log("Modifying orders for " + character.name + "...");
+                logger.autoAdjusterLog(character.name);
+
                 timingMultiplier = timingBackup;
+                setEVEHandle(character.name);
                 for (int i = 0; i < iterations; ++i)
                 {
                     Stopwatch stopwatch = new Stopwatch();
@@ -75,27 +81,15 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
 
                     if (failCount == 4)
                     {
-                        wait(30);
-                        mouse.pointCursor(uiElements.buySortByType[0], uiElements.buySortByType[1]);
-                        mouse.leftClick(1, 30);
-                        mouse.pointCursor(uiElements.sellSortByType[0], uiElements.sellSortByType[1]);
-                        mouse.leftClick(1);
+                        mouse.pointAndClick(LEFT,uiElements.buySortByType, 30, 1, 30);
+                        mouse.pointAndClick(LEFT, uiElements.sellSortByType, 0, 1, 0);
+
                         if (character.adjustBuys)
                         {
                             if (multiUserMode && i == iterations - 1 && !character.adjustSells)
                                 launchEVEWhenNearlyDone = true;
-                            if ((buyResult = modOrders(uiElements.buyTop, uiElements.buySortByType, 1)) == stopAllActivity)
-                            {
-                                orderAnalyzer.clearLastBuyOrder();
-                                Keyboard.send("{HOME}");
-                                return stopAllActivity;
-                            }
-                            else if (buyResult != 0)
-                            {
-                                orderAnalyzer.clearLastBuyOrder();
-                                Keyboard.send("{HOME}");
-                                return buyResult;
-                            }
+                            buyResult = modOrders(uiElements.buyTop, uiElements.buySortByType, 1);
+                            
                             orderAnalyzer.clearLastBuyOrder();
                             Keyboard.send("{HOME}");
                         }
@@ -103,44 +97,25 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         {
                             if (multiUserMode && i == iterations - 1)
                                 launchEVEWhenNearlyDone = true;
-                            if ((sellResult = modOrders(uiElements.sellTop, uiElements.sellSortByType, 0)) == stopAllActivity)
-                            {
-                                orderAnalyzer.clearLastBuyOrder();
-                                Keyboard.send("{HOME}");
-                                return stopAllActivity;
-                            }
-                            else if (sellResult != 0)
-                            {
-                                orderAnalyzer.clearLastBuyOrder();
-                                Keyboard.send("{HOME}");
-                                return sellResult;
-                            }
+                            sellResult = modOrders(uiElements.sellTop, uiElements.sellSortByType, 0);
+                            
                             orderAnalyzer.clearLastBuyOrder();
                             Keyboard.send("{HOME}");
                         }
                     }
                     stopwatch.Stop();
 
-                    //ListViewItem item = runsStatsListView.Items.Add(run.ToString());
-                    //item.SubItems.Add(numScanned.ToString());
-                    //item.SubItems.Add(numModified.ToString());
-                    //item.SubItems.Add(stopwatch.Elapsed.ToString());
-
-
-
-                    /*if (sellResult != 0 && buyResult != 0)
-                        excepListBox.Items.Add("Failed to complete buy run. Failed to complete sell run.");
+                    if (sellResult != 0 && buyResult != 0)
+                        logger.log("Failed to complete buy run. Failed to complete sell run.");
                     else if (sellResult != 0)
-                        excepListBox.Items.Add("Failed to complete sell run.");
+                        logger.log("Failed to complete sell run.");
                     else if (buyResult != 0)
-                        excepListBox.Items.Add("Failed to complete buy run.");
+                        logger.log("Failed to complete buy run.");
                     else
                     {
-                        excepListBox.Items.Add("Modifications completed successfully.");
-                        if (runMode == 1)
-                            displayExceptions();
-                    }*/
-                    //excepListBox.Items.Add("Scanned " + numScanned + " items and made " + numModified + " modifications in " + stopwatch.Elapsed.ToString());
+                        logger.log("Modifications completed successfully.");
+                    }
+                    logger.log("Scanned " + numScanned + " items and made " + numModified + " modifications in " + stopwatch.Elapsed.ToString());
                     numScanned = numModified = 0;
                 }
                 return 0;
@@ -167,7 +142,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             int offset = uiElements.visLines[orderType];
             int readFailCounter;
             int copyFailCounter;
-            string directory = paths.configPath;
+            string directory = paths.logPath;
             int modificationFailCount = 0;
 
             consecutiveFailures = 0;
@@ -184,108 +159,70 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 }
                 for (int i = 0; i < offset; ++i)
                 {
-                    if (stopCheck() == stopAllActivity)
-                        return stopAllActivity;
                     if (launchEVEWhenNearlyDone && --leftToScan < 18)
-                    {
                         launchEVEWhenNearlyDone = false;
-                        //loginBot.launchEVE();
-                    }
-                    lastTypeID = typeID;
                     if (eveHandle != GetForegroundWindow())
-                    {
-                        SetForegroundWindow(eveHandle);
-                    }
+                        SetForegroundWindow(eveHandle); 
+                    if (Directory.GetFiles(directory).Length > 0)
+                        DirectoryEraser.nuke(directory);
+
+                    lastTypeID = typeID;
                     originalPrice = copyFailCounter = readFailCounter = 0;
                     modifyTo = -1;
 
-                    if (Directory.GetFiles(directory).Length > 0)
-                    {
-                        DirectoryEraser.nuke(directory);
-                    }
                     do
                     {
-                        if (modifyTo == -1 && readFailCounter > 9 && (readFailCounter % 4) == 0)
+                        if (readFailCounter > 9 && (readFailCounter % 4) == 0)
                         {
                             if (lastOrderModified)
                             {
-                                //debugexcepListBox.Items.Add("AConfirming " + typeID);
-                                if (confirmOrder(0, 0, typeID, 1, orderType) == stopAllActivity)
-                                    return stopAllActivity;
+                                errorCheck();
+                                confirmOrder(0, 0, typeID, 1, orderType);
                             }
-                            if (errorCheck() == stopAllActivity)
-                                return stopAllActivity;
+                            else
+                            {
+                                errorCheck();
+                                cancelOrder(0, 0);
+                            }
                         }
-                        if ((modifyTo == -1 || modifyTo == -2) && readFailCounter % 4 == 0) //Try view details again
-                        {
-                            //RClick current line
-                            mouse.pointCursor(cursorPosition[0], cursorPosition[1]);
-                            mouse.doubleClick(1);//View market details
-                        }
+                        if (readFailCounter % 4 == 0 && (modifyTo < 0)) //Try view details again
+                            //Double click on current entry to bring up market details
+                            mouse.pointAndClick(DOUBLE, cursorPosition, 0, 1, 0);
                         //Click on Export Market info
-                        mouse.pointCursor(uiElements.exportItem[0], uiElements.exportItem[1]);
-                        mouse.leftClick(3, 1);
+                        mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 3, 1);
                         modifyTo = orderAnalyzer.getNewPriceForOrder(ref orderSet, ref orderType, 99, ref originalPrice, paths.logPath, ref typeID, character.fileNameTrimLength);//Temp pass run as 999
 
                         if ((readFailCounter % 11) == 0)
-                        {
                             timingMultiplier += timingBackup;
-                        }
                         ++readFailCounter;
                     } while ((modifyTo == -1 || modifyTo == -2) && readFailCounter < 29);
-                    if (timingMultiplier != timingBackup)
-                    {
-                        timingMultiplier = timingBackup;
-                    }
+
+                    timingMultiplier = timingBackup;
                     if (readFailCounter == 29)
-                    {
                         consecutiveFailures++;
-                        //exception.Add("Failed to modify an item. Exceeded retry limit");
-                    }
                     else
                         consecutiveFailures = 0;
+
                     if (consecutiveFailures == 3)
-                    {
                         return 1;
-                    }
-                    if (modifyTo == -1)
-                    {
-                        return 2;
-                    }
-                    if (lastOrderModified)
-                    {
-                        //debugexcepListBox.Items.Add("BConfirming " + lastTypeID);
-                        if (confirmOrder(0, 0, lastTypeID, 1, orderType) == stopAllActivity)
-                            return stopAllActivity;
-                    }
-                    /*if (modifyTo > 0)//If we're going to make a modification, close the window to prevent refresh lag.
-                    {
-                        //Close the market window
-                        pointCursor(element.closeMarketWindow[0], element.closeMarketWindow[1]);
-                        leftClick(5);
-                    }*/
+                    else if (lastOrderModified)
+                        confirmOrder(0, 0, lastTypeID, 1, orderType);
+
                     if (modifyTo > 0)
                     {
                         do
                         {
                             //RClick on current line.
-                            mouse.pointCursor(cursorPosition[0], cursorPosition[1]);
-                            mouse.rightClick(1, 1);
-
+                            mouse.pointAndClick(RIGHT, cursorPosition, 0, 1, 1);
                             //Click on Modify
-                            mouse.pointCursor(cursorPosition[0] + uiElements.modifyOffset[0], cursorPosition[1] + uiElements.modifyOffset[1]);
-                            mouse.leftClick(1, 1);
-
-                            //Right click on the field
-                            mouse.pointCursor(uiElements.modifyOrderBox[0], uiElements.modifyOrderBox[1]);
-                            mouse.rightClick(4, 1);
-
+                            mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 0, 1, 1);
+                            //Right click order box price field
+                            mouse.pointAndClick(RIGHT, uiElements.modifyOrderBox, 0, 4, 1);
                             //Click on copy
-                            mouse.offsetCursor(uiElements.copyOffset[0], uiElements.copyOffset[1]);
-                            mouse.leftClick(1, 1);
+                            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
                             try
                             {
-                                temp = Convert.ToDouble(Clipboard.GetTextFromClip());
+                                temp = Convert.ToDouble(Clipboard.getTextFromClipboard());
                             }
                             catch
                             {
@@ -298,17 +235,14 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                                 do
                                 {
                                     if (modificationFailCount % 2 == 1)
-                                    {
                                         timingMultiplier += timingBackup;
-                                    }
+
                                     //Double click to highlight
-                                    mouse.pointCursor(uiElements.modifyOrderBox[0], uiElements.modifyOrderBox[1]);
-                                    mouse.doubleClick(2, 2);
-                                    Clipboard.setClipboardText(modifyTo.ToString());
-                                    mouse.rightClick(2, 2);
-                                    mouse.offsetCursor(uiElements.pasteOffset[0], uiElements.pasteOffset[1]);
-                                    mouse.leftClick(2);
-                                    Clipboard.setClipboardText("0");
+                                    mouse.pointAndClick(DOUBLE, uiElements.modifyOrderBox, 0, 2, 2);
+                                    Clipboard.setClip(modifyTo.ToString());
+                                    mouse.click(RIGHT, 2, 2);
+                                    mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
+                                    Clipboard.setClip("0");
                                     lastOrderModified = true;
                                     ++modificationFailCount;
                                     copyFailCounter = 10;
@@ -316,23 +250,17 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                                 timingMultiplier = timingBackup;
                                 if (modificationFailCount == 10)
                                 {
-                                    cancelOrder(0, 0, typeID);
+                                    cancelOrder(0, 0);
                                     temp = 0;
-                                }
-                                else
-                                {
+                                } else
                                     ++numModified;
-                                }
-                            }
-                            else
-                            {
+                            } else
                                 temp = 0;
-                            }
                             ++copyFailCounter;
+
                             if (copyFailCounter % 5 == 4)
-                            {
                                 timingMultiplier += timingBackup;
-                            }
+
                         } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 10);
                         new SetClipboardHelper(DataFormats.Text, "0").Go();
                     }
@@ -341,42 +269,28 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         timingMultiplier = timingBackup;
                     }
                     if (copyFailCounter == 10 && modificationFailCount == 10)
-                    {
-                        //exception.Add("Order of price " + originalPrice + " not adjusted. Failed to make modification.");
-
-                    }
+                        logger.logError("Order of price " + originalPrice + " not adjusted. Failed to make modification.");
                     //Get next line
                     ++numScanned;
                     cursorPosition[1] = cursorPosition[1] + uiElements.lineHeight;
                 }
                 if (j == (ceiling - 2))
                 {
-                    mouse.pointCursor(cursorPosition[0], cursorPosition[1] - uiElements.lineHeight);
-                    mouse.leftClick(40, 20);
+                    mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
                     for (int l = 0; l < activeOrders[orderType]; ++l)
-                    {
                         Keyboard.send("{UP}");
-                    }
-                    mouse.pointCursor(sortByType[0], sortByType[1]);
-                    mouse.leftClick(20, 20);
+                    mouse.pointAndClick(LEFT, sortByType, 0, 20, 20);
                 }
                 else if (j < (ceiling - 1))
                 {
-                    mouse.pointCursor(cursorPosition[0], cursorPosition[1] - uiElements.lineHeight);
-                    mouse.leftClick(40, 20);
+                    mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
                     for (int k = 0; k < uiElements.visLines[orderType]; ++k)
-                    {
                         Keyboard.send("{DOWN}");
-
-                    }
                 }
 
             }
             if (lastOrderModified)
-            {
-                if (confirmOrder(0, 0, typeID, 1, orderType) == stopAllActivity)
-                    return stopAllActivity;
-            }
+                confirmOrder(0, 0, typeID, 1, orderType);
             return 0;
         }
 
@@ -386,26 +300,17 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
         {
             double temp;
             //Right click on the field
-            wait(1);
-            mouse.pointCursor(uiElements.modifyOrderBox[0], uiElements.modifyOrderBox[1]);
-            mouse.rightClick(1, 1);
-
+            mouse.pointAndClick(RIGHT, uiElements.modifyOrderBox, 1, 1, 1);
             //Click on copy
-            mouse.pointCursor(Cursor.Position.X + uiElements.copyOffset[0], Cursor.Position.Y + uiElements.copyOffset[1]);
-            mouse.leftClick(1, 1);
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
 
-
-            try { temp = Convert.ToDouble(Clipboard.GetTextFromClip()); }
+            try { temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
             catch { temp = -1; }
 
             if (temp - 10000 < modifyTo && modifyTo < temp + 10000 && (temp < originalPrice - .01 || temp > originalPrice + .01))
-            {
                 return true;
-            }
             else
-            {
                 return false;
-            }
         }
     }
 }

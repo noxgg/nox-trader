@@ -1,6 +1,6 @@
 ﻿using System.Windows.Forms;
 
-namespace noxiousET.src.guiInteraction
+namespace noxiousET.src.model.guiInteraction
 {
     class Keyboard
     {

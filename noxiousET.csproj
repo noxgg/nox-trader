@@ -24,7 +24,7 @@
     <UpdatePeriodically>false</UpdatePeriodically>
     <UpdateRequired>false</UpdateRequired>
     <MapFileExtensions>true</MapFileExtensions>
-    <ApplicationRevision>60</ApplicationRevision>
+    <ApplicationRevision>64</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
@@ -64,6 +64,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.DirectoryServices" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -74,6 +75,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\control\CharacterInfoProvider.cs" />
+    <Compile Include="src\control\ClientConfigInfoProvider.cs" />
+    <Compile Include="src\control\ManualExecution.cs" />
     <Compile Include="src\data\accounts\Account.cs" />
     <Compile Include="src\data\accounts\AccountManager.cs" />
     <Compile Include="src\data\characters\Character.cs" />
@@ -85,6 +89,9 @@
     <Compile Include="src\data\io\TextFileToDictionaryLoader.cs" />
     <Compile Include="src\data\modules\Modules.cs" />
     <Compile Include="src\data\paths\Paths.cs" />
+    <Compile Include="src\EtConstants.cs" />
+    <Compile Include="src\etevent\EventDispatcher.cs" />
+    <Compile Include="src\guiInteraction\orders\autoinvest\AutorInvestor.cs" />
     <Compile Include="src\guiInteraction\PuppetMaster.cs" />
     <Compile Include="src\guiInteraction\Clipboard.cs" />
     <Compile Include="src\guiInteraction\GuiBot.cs" />
@@ -102,17 +109,17 @@
     <Compile Include="src\orders\Order.cs" />
     <Compile Include="src\orders\OrderManager.cs" />
     <Compile Include="src\data\uielements\UiElements.cs" />
-    <Compile Include="src\gui\ETGUI.cs">
+    <Compile Include="src\gui\noxiousETgui.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="src\gui\ETGUI.Designer.cs">
-      <DependentUpon>ETGUI.cs</DependentUpon>
+    <Compile Include="src\gui\noxiousETgui.Designer.cs">
+      <DependentUpon>noxiousETgui.cs</DependentUpon>
     </Compile>
-    <Compile Include="Program.cs" />
+    <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="src\data\io\UiElementsio.cs" />
-    <EmbeddedResource Include="src\gui\ETGUI.resx">
-      <DependentUpon>ETGUI.cs</DependentUpon>
+    <EmbeddedResource Include="src\gui\noxiousETgui.resx">
+      <DependentUpon>noxiousETgui.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -124,7 +131,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="noxiousET_TemporaryKey.pfx" />
+    <None Include="src\noxiousET_TemporaryKey.pfx" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
@@ -157,7 +164,10 @@
       <Install>true</Install>
     </BootstrapperPackage>
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="src\model\" />
+    <Folder Include="src\view\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
