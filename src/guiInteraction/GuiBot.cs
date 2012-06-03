@@ -32,10 +32,10 @@ namespace noxiousET.src.guiInteraction
         protected Mouse mouse;
         protected IntPtr eveHandle;
         protected ErrorParser errorParser;
-        protected int timingMultiplier;
         protected Boolean lastOrderModified = false;
         protected OrderManager orderSet;
         protected EventDispatcher logger;
+        protected int timing;
         protected static readonly int LEFT = (int)Mouse.clickTypes.LEFT;
         protected static readonly int RIGHT = (int)Mouse.clickTypes.RIGHT;
         protected static readonly int DOUBLE = (int)Mouse.clickTypes.DOUBLE;
@@ -43,18 +43,18 @@ namespace noxiousET.src.guiInteraction
         public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, EventDispatcher eventDispatcher)
         {
             this.clientConfig = clientConfig;
-            this.timingMultiplier = clientConfig.timingMultiplier;
             this.uiElements = uiElements;
             this.paths = paths;
             this.character = character;
             this.logger = eventDispatcher;
-            mouse = new Mouse(timingMultiplier);
-            errorParser = new ErrorParser();
+            this.timing = clientConfig.timingMultiplier;
+            this.mouse = new Mouse(clientConfig.timingMultiplier);
+            this.errorParser = new ErrorParser();
         }
 
         protected int errorCheck()
         {
-            mouse.pointAndClick(LEFT, uiElements.errorCheck, 0, 2, 0);
+            mouse.pointAndClick(LEFT, uiElements.errorCheck, 0, 1, 0);
             return 0;
         }
 
@@ -66,7 +66,7 @@ namespace noxiousET.src.guiInteraction
 
         protected void wait(int multiplier)
         {
-            Thread.Sleep(timingMultiplier * multiplier);
+            Thread.Sleep(clientConfig.timingMultiplier * multiplier);
         }
 
         protected bool isEVERunningForSelectedCharacter()
@@ -102,13 +102,14 @@ namespace noxiousET.src.guiInteraction
                 mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
 
                 string fileName;
-
-                var directory = new DirectoryInfo(paths.logPath);
-                var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                StreamReader file;
-
                 try
                 {
+
+                    var directory = new DirectoryInfo(paths.logPath);
+                    var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
+                    StreamReader file;
+
+                
                     fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
                     file = new System.IO.StreamReader(directory.ToString() + fileTemp.ToString());
                     fileName = fileTemp.ToString();
@@ -138,7 +139,8 @@ namespace noxiousET.src.guiInteraction
                         confirmErrorCheck();
                         wait(1);
                         confirmErrorCheck();
-                    } else
+                    }
+                    else
                     {
                         errorCheck();
                         wait(1);
@@ -146,17 +148,21 @@ namespace noxiousET.src.guiInteraction
                     }
                     Clipboard.setClip("0");
                 }
+                else
+                {
+                    errorCheck();
+                }
 
                 //Right click where OK should no longer exist. 
                 mouse.pointAndClick(RIGHT, uiElements.OrderBoxOK, 0, 1, 1);
 
                 //Click on copy
                 mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
-
+                mouse.waitDuration *= 2;
                 result = Clipboard.getTextFromClipboard();
                 ++failCount;
-            } while (string.Compare(result, "0") == 0 && failCount < 9);
-
+            } while (string.Compare(result, "0") == 0 && failCount < 5);
+            mouse.waitDuration = timing;
             lastOrderModified = false;
             if (string.Compare(result, "0") != 0)
             {

@@ -8,6 +8,7 @@ using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
 using noxiousET.src.etevent;
+using System.IO;
 
 namespace noxiousET.src.data
 {
@@ -36,8 +37,9 @@ namespace noxiousET.src.data
             paths = new Paths();
             clientConfig = new ClientConfig();
             this.eventDispatcher = new EventDispatcher();
-            this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);
+            this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);
             this.eventDispatcher.saveAllSettingsRequestHandler += new EventDispatcher.SaveAllSettingsRequestHandler(saveAllSettingsRequestListener);
+            this.eventDispatcher.getTypesFromFileRequestHandler += new EventDispatcher.GetTypesFromFileRequestHandler(getTypeForCharacterFromNewestLogFile);
 
             textFileio = new TextFileio("", ROOT_CONFIG_FILENAME);
 
@@ -151,24 +153,25 @@ namespace noxiousET.src.data
             else
                 throw new Exception("Invalid integer value for given character data key");
         }
-        private void getTypeForCharacterFromNewestLogFile(Character character)
+        private void getTypeForCharacterFromNewestLogFile(object o, String name)
         {
+            Character character = characterManager.getCharacter(name);
             String fileName;
-            fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
-            String[] result = marketOrderio.readFirstEntry(paths.logPath, fileName);
-            int typeid = Convert.ToInt32(result[2]);
-            if (modules.typeNames.ContainsKey(typeid))
+            while (Directory.GetFiles(paths.logPath).Length > 0)
             {
-                if (!character.tradeQueue.Contains(typeid))
+                fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
+                String[] result = marketOrderio.readFirstEntry(paths.logPath, fileName);
+                int typeid = Convert.ToInt32(result[2]);
+                if (modules.typeNames.ContainsKey(typeid))
                 {
-                    character.tradeQueue.Enqueue(typeid);
-                    eventDispatcher.log("Added " + modules.typeNames[typeid] + " to queue for " + character.name);
-                }
-                if (!character.tradeHistory.ContainsKey(typeid))
-                {
-                    character.tradeHistory.Add(typeid, typeid);
+                    if (!character.tradeQueue.Contains(typeid))
+                    {
+                        character.tradeQueue.Enqueue(typeid);
+                        eventDispatcher.log("Added " + modules.typeNames[typeid] + " to queue for " + character.name);
+                    }
                 }
             }
+            characterManager.save(name);
         }
     }
 }

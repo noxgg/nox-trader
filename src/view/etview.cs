@@ -9,7 +9,7 @@ using noxiousET.src.etevent;
 //TODO: Margin trading scam? Order creation flags. Max order setting. Buying an item with no sell orders shifts buy order quantity box up.
 namespace noxiousET
 {
-    partial class noxiousETgui : Form
+    partial class etview : Form
     {
         CharacterInfoProvider characterInfoProvider;
         ClientConfigInfoProvider clientConfigInfoProvider;
@@ -20,9 +20,9 @@ namespace noxiousET
         delegate void AutoAdjusterListenerCallback(object o, string s);
         delegate void AutoListerListenerCallback(object o, string s);
 
-        
 
-        public noxiousETgui(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, AutomationRequester manualExecution, EventDispatcher eventDispatcher)
+
+        public etview(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, AutomationRequester manualExecution, EventDispatcher eventDispatcher)
         {
             InitializeComponent();
             this.characterInfoProvider = characterInfoProvider;
@@ -91,7 +91,7 @@ namespace noxiousET
 
         private void initializeConfigView()
         {
-            String [] paths = clientConfigInfoProvider.getPaths();
+            String[] paths = clientConfigInfoProvider.getPaths();
             logPathTB.Text = paths[0];
             clientPathTB.Text = paths[1];
             configPathTB.Text = paths[2];
@@ -141,7 +141,7 @@ namespace noxiousET
 
         private void noxiousET_load(object sender, EventArgs e)
         {
-            
+
         }
 
         private void charactersLB_SelectedIndexChanged(object sender, EventArgs e)
@@ -278,6 +278,11 @@ namespace noxiousET
         private void saveAllSettingsB_Click(object sender, System.EventArgs e)
         {
             eventDispatcher.saveAllSettingsRequest();
+        }
+
+        private void getTypeB_Click(object sender, EventArgs e)
+        {
+            eventDispatcher.getTypesFromFileRequest((String)charactersLB.SelectedItem);
         }
     }
 }

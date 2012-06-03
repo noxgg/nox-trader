@@ -66,6 +66,8 @@ namespace noxiousET.src.helpers
                 return 8;
             else if (message.Contains("connection to the server was closed"))
                 return 9;
+            else if (message.Contains("You are about to throw away the following items:"))
+                return 10;
             else
                 return 0;
         }

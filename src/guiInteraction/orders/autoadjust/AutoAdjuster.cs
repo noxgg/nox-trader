@@ -18,12 +18,19 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
         int numScanned;
         int iterations = 1;//Fix these
         bool launchEVEWhenNearlyDone = false;
+        private int freeOrders;
 
         public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher) 
             : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
         {
             numModified = 0;
             numScanned = 0;
+            freeOrders = 0;
+        }
+
+        public int getNumberOfFreeOrders()
+        {
+            return freeOrders;
         }
 
         public int execute(Character character, bool multiUserMode)
@@ -35,15 +42,14 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             numScanned = 0;
             if (!isEVERunningForSelectedCharacter())
             {
-                logger.log("Failed to modify orders for " + character.name + ". Could not find EVE.");
+                logger.log(character.name + ": Auto adjuster failed to find client.");
                 return 1;
             }
             else
             {
-                logger.log("Modifying orders for " + character.name + "...");
                 logger.autoAdjusterLog(character.name);
 
-                timingMultiplier = timingBackup;
+                mouse.waitDuration = timing;
                 setEVEHandle(character.name);
                 for (int i = 0; i < iterations; ++i)
                 {
@@ -51,51 +57,44 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                     stopwatch.Start();
                     SetForegroundWindow(eveHandle);
 
-                    int failCount = 0;
                     DirectoryEraser.nuke(paths.logPath);
 
-                    try { orderSet = exportOrders(3, 30); }
-                    catch (Exception e) { throw e; } 
+                    try { orderSet = exportOrders(10, 30); }
+                    catch (Exception e) { throw e; }
+                    freeOrders = orderSet.getNumberOfActiveOrders();
 
                     //Keyboard.send("^(V)");
 
-                    if (failCount == 4)
-                    {
-                        mouse.pointAndClick(LEFT,uiElements.buySortByType, 30, 1, 30);
-                        mouse.pointAndClick(LEFT, uiElements.sellSortByType, 0, 1, 0);
+                    mouse.pointAndClick(LEFT,uiElements.buySortByType, 30, 1, 30);
+                    mouse.pointAndClick(LEFT, uiElements.sellSortByType, 0, 1, 0);
 
-                        if (character.adjustBuys)
-                        {
-                            if (multiUserMode && i == iterations - 1 && !character.adjustSells)
-                                launchEVEWhenNearlyDone = true;
-                            buyResult = modOrders(uiElements.buyTop, uiElements.buySortByType, 1);
+                    if (character.adjustBuys)
+                    {
+                        if (multiUserMode && i == iterations - 1 && !character.adjustSells)
+                            launchEVEWhenNearlyDone = true;
+                        buyResult = modOrders(uiElements.buyTop, uiElements.buySortByType, 1);
                             
-                            orderAnalyzer.clearLastBuyOrder();
-                            Keyboard.send("{HOME}");
-                        }
-                        if (character.adjustSells)
-                        {
-                            if (multiUserMode && i == iterations - 1)
-                                launchEVEWhenNearlyDone = true;
-                            sellResult = modOrders(uiElements.sellTop, uiElements.sellSortByType, 0);
+                        orderAnalyzer.clearLastBuyOrder();
+                        Keyboard.send("{HOME}");
+                    }
+                    if (character.adjustSells)
+                    {
+                        if (multiUserMode && i == iterations - 1)
+                            launchEVEWhenNearlyDone = true;
+                        sellResult = modOrders(uiElements.sellTop, uiElements.sellSortByType, 0);
                             
-                            orderAnalyzer.clearLastBuyOrder();
-                            Keyboard.send("{HOME}");
-                        }
+                        orderAnalyzer.clearLastBuyOrder();
+                        Keyboard.send("{HOME}");
                     }
                     stopwatch.Stop();
 
                     if (sellResult != 0 && buyResult != 0)
-                        logger.log("Failed to complete buy run. Failed to complete sell run.");
+                        logger.log(character.name + ": Auto adjuster failed to complete buy and sell runs.");
                     else if (sellResult != 0)
-                        logger.log("Failed to complete sell run.");
+                        logger.log(character.name + ": Auto adjuster failed to complete sell run.");
                     else if (buyResult != 0)
-                        logger.log("Failed to complete buy run.");
-                    else
-                    {
-                        logger.log("Modifications completed successfully.");
-                    }
-                    logger.log("Scanned " + numScanned + " items and made " + numModified + " modifications in " + stopwatch.Elapsed.ToString());
+                        logger.log(character.name + ": Auto adjuster failed to complete buy run.");
+                    logger.log(character.name + ": AA scanned " + numScanned + ", adjusted " + numModified + " in " + stopwatch.Elapsed.ToString());
                     numScanned = numModified = 0;
                 }
                 return 0;
@@ -157,7 +156,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                             if (lastOrderModified)
                             {
                                 errorCheck();
-                                confirmOrder(fixCoordsForLongTypeName(typeID,uiElements.OrderBoxOK), 1, orderType);
+                                confirmOrder(uiElements.OrderBoxOK, 1, orderType);
                             }
                             else
                             {
@@ -173,11 +172,11 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         modifyTo = orderAnalyzer.getNewPriceForOrder(ref orderSet, ref orderType, 99, ref originalPrice, paths.logPath, ref typeID, character.fileNameTrimLength);//Temp pass run as 999
 
                         if ((readFailCounter % 11) == 0)
-                            timingMultiplier += timingBackup;
+                            mouse.waitDuration *= 2;
                         ++readFailCounter;
                     } while ((modifyTo == -1 || modifyTo == -2) && readFailCounter < 29);
 
-                    timingMultiplier = timingBackup;
+                    mouse.waitDuration = timing;
                     if (readFailCounter == 29)
                         consecutiveFailures++;
                     else
@@ -186,7 +185,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                     if (consecutiveFailures == 3)
                         return 1;
                     else if (lastOrderModified)
-                        confirmOrder(fixCoordsForLongTypeName(typeID, uiElements.OrderBoxOK), 1, orderType);
+                        confirmOrder(uiElements.OrderBoxOK, 1, orderType);
 
                     if (modifyTo > 0)
                     {
@@ -209,14 +208,15 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                                 temp = 0;
                             }
 
+                            if (copyFailCounter > 2)
+                                errorCheck();
+
                             if ((temp - 10000) < originalPrice && originalPrice < (temp + 10000))
                             {
+                                mouse.waitDuration = timing;
                                 modificationFailCount = 0;
                                 do
                                 {
-                                    if (modificationFailCount % 2 == 1)
-                                        timingMultiplier += timingBackup;
-
                                     //Double click to highlight
                                     mouse.pointAndClick(DOUBLE, uiElements.modifyOrderBox, 0, 2, 2);
                                     Clipboard.setClip(modifyTo.ToString());
@@ -226,8 +226,9 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                                     lastOrderModified = true;
                                     ++modificationFailCount;
                                     copyFailCounter = 10;
-                                } while (verifyModifyToInput(modifyTo, temp) == false && modificationFailCount < 10);
-                                timingMultiplier = timingBackup;
+                                    mouse.waitDuration *= 2;
+                                } while (verifyModifyToInput(modifyTo, temp) == false && modificationFailCount < 5);
+                                mouse.waitDuration = timing;
                                 if (modificationFailCount == 10)
                                 {
                                     cancelOrder(0, 0);
@@ -238,16 +239,12 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                                 temp = 0;
                             ++copyFailCounter;
 
-                            if (copyFailCounter % 5 == 4)
-                                timingMultiplier += timingBackup;
+                            mouse.waitDuration *= 2;
 
-                        } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 10);
+                        } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 5);
                         new SetClipboardHelper(DataFormats.Text, "0").Go();
                     }
-                    if (timingMultiplier != timingBackup)
-                    {
-                        timingMultiplier = timingBackup;
-                    }
+                    mouse.waitDuration = timing;
                     if (copyFailCounter == 10 && modificationFailCount == 10)
                         logger.logError("Order of price " + originalPrice + " not adjusted. Failed to make modification.");
                     //Get next line
@@ -270,7 +267,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
 
             }
             if (lastOrderModified)
-                confirmOrder(fixCoordsForLongTypeName(typeID, uiElements.OrderBoxOK), 1, orderType);
+                confirmOrder(uiElements.OrderBoxOK, 1, orderType);
             return 0;
         }
 

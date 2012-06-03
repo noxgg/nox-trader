@@ -65,7 +65,7 @@ namespace noxiousET.src.orders
         {
             for (int i = 0; i < orders[orderType].Count(); ++i)
             {
-                if (typeID.CompareTo(orders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (Convert.ToInt32(typeID) == orders[orderType][i].getTypeID()) //If this element is the target sell order.
                 {
                     listPosition = i;
                     return Convert.ToString(orders[orderType][i].getOrderID());
@@ -76,20 +76,20 @@ namespace noxiousET.src.orders
         }
 
         //Returns 0 if there is no active order, 1 for active sell order, 2 for active buy order, 3 for both
-        public int checkForActiveOrders(ref string typeID)
+        public int checkForActiveOrders(int typeID)
         {
             bool sellOrderExists = false;
             bool buyOrderExists = false;
             for (int i = 0; i < orders[0].Count(); ++i)
             {
-                if (typeID.CompareTo(orders[0][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID == orders[0][i].getTypeID()) //If this element is the target sell order.
                 {
                     sellOrderExists = true;
                 }
             }
             for (int i = 0; i < orders[1].Count(); ++i)
             {
-                if (typeID.CompareTo(orders[1][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID == orders[1][i].getTypeID()) //If this element is the target sell order.
                 {
                     buyOrderExists = true;
                 }

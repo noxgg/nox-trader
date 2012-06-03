@@ -166,7 +166,7 @@ namespace noxiousET.src.orders
             //Now update last order to be the current order. 
             lastOrderTypeID = string.Copy(parts[2]);
 
-            int activeOrderCheck = orders.checkForActiveOrders(ref parts[2]);
+            int activeOrderCheck = orders.checkForActiveOrders(Convert.ToInt32(parts[2]));
 
             if (activeOrderCheck == 3) //If there is no reason to do anything, because there are currently both sell and buy orders, do nothing.
             {

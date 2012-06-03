@@ -20,23 +20,32 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         private int buyOrdersCreated = 0;
         private int sellOrdersCreated = 0;
         private int result = 0;
-        private int autoListerTiming;
         private static readonly int TRITANIUM_TYPE_ID = 34;
+        private int freeOrders;
 
         public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher)
             : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
         {
+            freeOrders = 0;
+        }
+
+        public int getNumberOfFreeOrders()
+        {
+            return freeOrders;
         }
 
         public int execute(Character character)
         {
+            sellOrdersCreated = 0;
+            buyOrdersCreated = 0;
+            result = 0;
             this.character = character;
-            autoListerTiming = timingBackup * 3;
-            timingMultiplier = timingBackup; //TODO Sync with client setting
+            mouse.waitDuration = timing; //TODO Sync with client setting
             if (!isEVERunningForSelectedCharacter())
             {
                 return 1;
             }
+
             else
             {
                 Stopwatch stopwatch = new Stopwatch();
@@ -45,33 +54,34 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 SetForegroundWindow(eveHandle);
                 DirectoryEraser.nuke(paths.logPath);
 
-                logger.log("Automatically placing orders for " + character.name + "...");
                 logger.autoListerLog(character.name);
 
                 try { orderSet = exportOrders(3, 30); }
-                catch (Exception e) { throw e; } 
+                catch (Exception e) { throw e; }
+                freeOrders = orderSet.getNumberOfActiveOrders();
 
+                openOrders = character.maximumOrders - orderSet.getNumberOfActiveOrders();
                 new SetClipboardHelper(DataFormats.Text, "0").Go();
 
                 closeMarketAndItemsWindows();
                 if (character.tradeItems)
                 {
                     terminalItemID = 5321;
-                    wait(20);
+                    wait(5);
                     Keyboard.send("{PGUP}");
-                    wait(20);
-                    timingMultiplier = timingMultiplier * 3;
+                    wait(40);
                     result = autoList(0);
                     
                     if (result == 1)
                     {
-                        timingMultiplier = autoListerTiming;
+                        mouse.waitDuration = timing;
                         orderAnalyzer.clearLastBuyOrder();
                         Keyboard.send("{PGUP}");
+                        freeOrders -= (buyOrdersCreated + sellOrdersCreated);
                         return 1;
                     }
 
-                    timingMultiplier = timingBackup;
+                    mouse.waitDuration = timing;
                     orderAnalyzer.clearLastBuyOrder();
                     wait(1);
                     Keyboard.send("{PGUP}");
@@ -82,19 +92,19 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 if (character.tradeShips)
                 {
                     terminalItemID = 2078;
-                    wait(20);
+                    wait(5);
                     Keyboard.send("{PGDN}");
-                    wait(20);
-                    timingMultiplier = timingMultiplier * 3;
+                    wait(40);
                     result = autoList(1);
                     if (result == 1)
                     {
-                        timingMultiplier = autoListerTiming;
+                        mouse.waitDuration = timing;
                         orderAnalyzer.clearLastBuyOrder();
                         Keyboard.send("{PGDN}");
+                        freeOrders -= (buyOrdersCreated + sellOrdersCreated);
                         return 1;
                     }
-                    timingMultiplier = timingBackup;
+                    mouse.waitDuration = timing;
                     orderAnalyzer.clearLastBuyOrder();
                     wait(1);
                     Keyboard.send("{PGDN}");
@@ -103,9 +113,9 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 }
                 cancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
                 stopwatch.Stop();
-                logger.log("Automatic order creation completed.");
-                logger.log("Created " + sellOrdersCreated + " sell orders and " + buyOrdersCreated + " buy orders in " + stopwatch.Elapsed.ToString());
+                logger.log(character.name + ": AL made " + sellOrdersCreated + " sells, " + buyOrdersCreated + " buys in " + stopwatch.Elapsed.ToString());
             }
+            freeOrders -= (buyOrdersCreated + sellOrdersCreated);
             return 0;
         }
 
@@ -151,6 +161,15 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 {
                     if ((activeOrderCheck == -1 || activeOrderCheck == -2)) //Try view details again
                     {
+                        if (readFailCounter > 2)
+                        {
+                            if (getError() == 10)
+                            {
+                                errorCheck();
+                                mouse.pointAndClick(LEFT, uiElements.itemsTop, 1, 1, 1);
+                            }
+                            errorCheck();
+                        }
                         //RClick current line
                         mouse.pointAndClick(RIGHT, cursorPosition, 1, 1, 1);
                         //View details
@@ -158,10 +177,8 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
                         if (itemType == 0)
                             offsetYModifier = (offsetYModifier == 0 && readFailCounter != 8) ? uiElements.itemsViewModuleDetailExtraOffset : 0;
-                        if (readFailCounter % 4 == 3)
-                            timingMultiplier += timingBackup;
-                        if (readFailCounter % 3 == 2)
-                            errorCheck();
+                        if (readFailCounter % 2 == 1)
+                            mouse.waitDuration *= 2;
                     }
                     //Click on Export Market info
                     mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
@@ -179,7 +196,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                         wait(10);
                         activeOrderCheck = -1;
                     }
-                } while ((activeOrderCheck == -1 || activeOrderCheck == -2) && readFailCounter < 17);
+                } while ((activeOrderCheck == -1 || activeOrderCheck == -2) && readFailCounter < 8);
 
                 if (readFailCounter >= 17)
                 {
@@ -188,7 +205,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 }
                 else
                     consecutiveFailures = 0;
-                timingMultiplier = timingBackup;
+                mouse.waitDuration = timing;
                 if ((activeOrderCheck == -1 || activeOrderCheck == -2) && consecutiveFailures == 3)
                 {
                     return 1;
@@ -324,7 +341,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                                 mouse.pointAndClick(LEFT, cursorPosition[0] + uiElements.itemsSellItemOffset[0], cursorPosition[1] + uiElements.itemsSellItemOffset[1] + offsetYModifier - contextMenuShift, 0, 1, 1);
 
                                 if (copyFailCounter % 3 == 2)
-                                    timingMultiplier += timingBackup;
+                                    mouse.waitDuration *= 2;
                                 if (copyFailCounter % 4 == 3)
                                 {
                                     if (offsetYModifier == 0 && itemType == 0)
@@ -340,9 +357,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                                 try{ temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
                                 catch{ temp = 0; }
 
-                                if (timingMultiplier != autoListerTiming)
-                                    timingMultiplier = autoListerTiming;
-
+                                mouse.waitDuration = timing;
                                 if ((temp - 1000) < bestBuyOrderPrice && bestBuyOrderPrice < (temp + 1000))
                                 {
                                     int modificationFailCount = 0;
@@ -368,7 +383,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                             }
                         } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 6);
                     Clipboard.setClip("0");
-                    timingMultiplier = autoListerTiming;
+                    mouse.waitDuration = timing;
                     mouse.click(LEFT,7, 0);
 
                     if (lastOrderModified)

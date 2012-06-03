@@ -1,17 +1,21 @@
 ﻿using System;
+using System.Diagnostics;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
+using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
 using noxiousET.src.etevent;
-using noxiousET.src.data.io;
-///
+
 namespace noxiousET.src.guiInteraction.orders.autoinvester
 {
     class AutoInvestor : OrderBot
     {
         MarketOrderio marketOrderio;
+        private int ordersCreated;
+        private int itemsScanned;
+
         public AutoInvestor(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher)
             : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
         {
@@ -22,6 +26,8 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
         public void execute(Character character)
         {
             this.character = character;
+            itemsScanned = 0;
+            ordersCreated = 0;
             if (character.tradeQueue.Count > 0)
             {
                 try
@@ -30,8 +36,12 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                     if (orderSet.getNumberOfActiveOrders() >= character.maximumOrders)
                         return;
                     orderAnalyzer.orderSet = this.orderSet;
-                    //prepareEnvironment();
+                    prepareEnvironment();
+                    Stopwatch stopwatch = new Stopwatch();
+                    stopwatch.Start();
                     createInvestments();
+                    stopwatch.Stop();
+                    logger.log(character.name + ": AI scanned " + itemsScanned + " and made " + ordersCreated + " buys " + stopwatch.Elapsed.ToString());
                 }
                 catch (Exception e)
                 {
@@ -84,13 +94,18 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 {
                     result = Convert.ToDouble(Clipboard.getTextFromClipboard());
                     if (result < sellPrice + 1000 && result > sellPrice - 1000)
+                    {
+                        mouse.waitDuration = timing;
                         return;
+                    }
                 }
                 catch
                 {
+                    mouse.waitDuration *= 2;
                     result = 0;
                 }
             }
+            mouse.waitDuration = timing;
             throw new Exception("Could not open buy window");
 
         }
@@ -106,43 +121,64 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             for (int i = 0; i < queueSize; i++)
             {
                 currentItem = character.tradeQueue.Peek();
-                try
-                {
-                    inputValue(uiElements.marketSearchInputBox, modules.typeNames[currentItem]);
-                    marketOrderio.fileName = executeQueryAndExportResult(modules.typeNames[currentItem]);
-                    orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(currentItem), Convert.ToString(character.stationid));
-                    
-                    quantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
-                    if (!orderAnalyzer.isSomeBuyOwned() && quantity > 0)
-                    {
-                        openAndIdentifyBuyWindow(currentItem, orderAnalyzer.getSellPrice());
-                        //Input price
-                        inputValue(fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
-                        //Input quantity
-                        inputValue(fixCoordsForLongTypeName(currentItem, uiElements.buyOrderQtyBox), Convert.ToString(quantity));
-                        //confirmOrder(fixCoordsForLongTypeName(currentItem, uiElements.OrderBoxOK), 1, 1);
-                        character.tradeQueue.Dequeue();//Removed it from the queue if we made an order
-                        freeOrders--;
-                    }
-                    else
-                    {
-                        character.tradeQueue.Enqueue(character.tradeQueue.Dequeue()); //Move this item to the end of the line.
-                    }
-                }
-                catch (Exception e)
-                {
+                if (orderSet.existsOrderOfType(currentItem, 1))
+                    //If there's already an active buy order this typeid doesn't belong in the queue.
+                    character.tradeQueue.Dequeue();
+                else if (orderSet.existsOrderOfType(currentItem, 0))
+                    //If there is no active buy order, but there is an active sell order, move this item to
+                    //end of queue (this is a possible error state [if the autolister failed to make a buy
+                    //order, or if the autolister failed to enqueue an item that wasn't profitable anymore]
+                    //but it could just be that the autolister still needs to make a new buy order for an
+                    //item in the character's inventory)
                     character.tradeQueue.Enqueue(character.tradeQueue.Dequeue());
-                    logger.log(e.Message);
-                }
+                else
+                {
+                    try
+                    {
+                        //execute a query for the target item
+                        inputValue(uiElements.marketSearchInputBox, modules.typeNames[currentItem]);
+                        marketOrderio.fileName = executeQueryAndExportResult(modules.typeNames[currentItem]);
+                        orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(currentItem), Convert.ToString(character.stationid));
+                        //Uses data from orderAnalyzer.analyzeInvestment to decide if a buy order should be made
+                        quantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
+                        
+                        if (!orderAnalyzer.isSomeBuyOwned() && quantity > 0)
+                        {
+                            openAndIdentifyBuyWindow(currentItem, orderAnalyzer.getSellPrice());
+                            //Input price
+                            inputValue(fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
+                            //Input quantity
+                            inputValue(fixCoordsForLongTypeName(currentItem, uiElements.buyOrderQtyBox), Convert.ToString(quantity));
+                            confirmOrder(fixCoordsForLongTypeName(currentItem, uiElements.OrderBoxOK), 1, 1);
+                            character.tradeQueue.Dequeue();
+                            freeOrders--;
+                            ordersCreated++;
+                        }
+                        else
+                        {
+                            //Move this item to the end of the line. Maybe it will become a
+                            //profitable investment again later
+                            character.tradeQueue.Enqueue(character.tradeQueue.Dequeue());
+                        }
 
-                if (freeOrders == 0)
-                    return;
+                    }
+                    catch (Exception e)
+                    {
+                        //If an error occured at any stage, just move item to end of the line and move on.
+                        character.tradeQueue.Enqueue(character.tradeQueue.Dequeue());
+                        logger.log(e.Message);
+                    }
+                    itemsScanned++;
+                    if (freeOrders == 0)
+                        return;
+                }
             }
+            return;
         }
 
         private void inputValue(int[] coords, string value)
         {
-            for (int i = 0; i < 6; i++)
+            for (int i = 0; i < 4; i++)
             {
                 mouse.pointAndClick(DOUBLE, coords, 4, 2, 2);
                 Clipboard.setClip(value);
@@ -150,7 +186,9 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
                 if (verifyInput(coords, value))
                     return;
+                mouse.waitDuration *= 2;
             }
+            mouse.waitDuration = timing;
             throw new Exception("Failed to input value " + value);
         }
 
@@ -186,7 +224,9 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
                 if (fileName != null && fileName.Contains(targetTypeName))
                     return fileName;
+                mouse.waitDuration *= 2;
             }
+            mouse.waitDuration = timing;
             throw new Exception("Could not export query result");
         }
     }

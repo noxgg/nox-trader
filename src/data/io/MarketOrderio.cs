@@ -38,11 +38,14 @@ namespace noxiousET.src.data.io
 
         public String[] readFirstEntry(String path, String fileName)
         {
-            String[] line;
+            this.path = path;
+            this.fileName = fileName;
+            String[] line = new String[14];
             readOpen();
             readLine();
             line = readLine().Split(',');
             readClose();
+            delete();
             return line;
         }
     }

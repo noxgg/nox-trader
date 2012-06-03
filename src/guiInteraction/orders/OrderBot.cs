@@ -11,7 +11,6 @@ namespace noxiousET.src.guiInteraction.orders
     class OrderBot : GuiBot
     {
         protected OrderAnalyzer orderAnalyzer;
-        protected int timingBackup;
         protected int consecutiveFailures;
         protected Modules modules;
 
@@ -20,7 +19,6 @@ namespace noxiousET.src.guiInteraction.orders
         {
             this.modules = modules;
             orderAnalyzer = new OrderAnalyzer(eventDispatcher);
-            timingBackup = timingMultiplier;
             consecutiveFailures = 0;
         }
 

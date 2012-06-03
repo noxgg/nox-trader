@@ -40,14 +40,8 @@ namespace noxiousET.src.guiInteraction.login
 
             this.character = character;
 
-            if (isEVERunningForSelectedCharacter() && waitForEnvironment() == 0 && prepareEnvironment() == 0)
+            if (!(isEVERunningForSelectedCharacter() && waitForEnvironment() == 0 && prepareEnvironment() == 0))
             {
-                logger.log("Logged in as " + character.name);
-            }
-            else
-            {
-                logger.log("Logging in as " + character.name + "...");
-
                 try
                 {
                     launchClient();
@@ -55,11 +49,10 @@ namespace noxiousET.src.guiInteraction.login
                     selectCharacter();
                     waitForEnvironment();
                     prepareEnvironment();
-                    logger.log("Logged in as " + character.name);
                 }
                 catch (Exception e)
                 {
-                    logger.log(e.Message);
+                    logger.log(character.name + e.Message);
                     return 1;
                 }
             }

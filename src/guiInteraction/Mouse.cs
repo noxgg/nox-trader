@@ -16,7 +16,7 @@ namespace noxiousET.src.guiInteraction
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
 
-        private int waitDuration { get;  set; }
+        public int waitDuration { get;  set; }
         public virtual Cursor Cursor { get; set; }
 
         public const int MOUSEEVENTF_LEFTDOWN = 0x02;
@@ -87,7 +87,7 @@ namespace noxiousET.src.guiInteraction
             }
         }
 
-        private void pointCursor(int x, int y)
+        public void pointCursor(int x, int y)
         {
             Cursor.Position = new Point(x, y);
         }

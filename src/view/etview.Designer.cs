@@ -1,6 +1,6 @@
 ﻿namespace noxiousET
 {
-    partial class noxiousETgui
+    partial class etview
     {
         /// <summary>
         /// Required designer variable.
@@ -89,6 +89,7 @@
             this.altab = new System.Windows.Forms.TabPage();
             this.autoListerLB = new System.Windows.Forms.ListBox();
             this.automateB = new System.Windows.Forms.Button();
+            this.getTypeB = new System.Windows.Forms.Button();
             this.clientTabs.SuspendLayout();
             this.homeTab.SuspendLayout();
             this.configTab.SuspendLayout();
@@ -145,6 +146,7 @@
             // configTab
             // 
             this.configTab.BackColor = System.Drawing.Color.Transparent;
+            this.configTab.Controls.Add(this.getTypeB);
             this.configTab.Controls.Add(this.saveAllSettingsB);
             this.configTab.Controls.Add(this.saveSelectedCharacterB);
             this.configTab.Controls.Add(this.panel2);
@@ -162,7 +164,7 @@
             // 
             // saveAllSettingsB
             // 
-            this.saveAllSettingsB.Location = new System.Drawing.Point(214, 387);
+            this.saveAllSettingsB.Location = new System.Drawing.Point(214, 363);
             this.saveAllSettingsB.Name = "saveAllSettingsB";
             this.saveAllSettingsB.Size = new System.Drawing.Size(170, 28);
             this.saveAllSettingsB.TabIndex = 12;
@@ -172,7 +174,7 @@
             // 
             // saveSelectedCharacterB
             // 
-            this.saveSelectedCharacterB.Location = new System.Drawing.Point(214, 349);
+            this.saveSelectedCharacterB.Location = new System.Drawing.Point(214, 332);
             this.saveSelectedCharacterB.Name = "saveSelectedCharacterB";
             this.saveSelectedCharacterB.Size = new System.Drawing.Size(170, 28);
             this.saveSelectedCharacterB.TabIndex = 9;
@@ -701,14 +703,24 @@
             this.automateB.UseVisualStyleBackColor = true;
             this.automateB.Click += new System.EventHandler(this.automateB_Click);
             // 
-            // noxiousETgui
+            // getTypeB
+            // 
+            this.getTypeB.Location = new System.Drawing.Point(214, 394);
+            this.getTypeB.Name = "getTypeB";
+            this.getTypeB.Size = new System.Drawing.Size(170, 28);
+            this.getTypeB.TabIndex = 13;
+            this.getTypeB.Text = "Get Type Log Directory";
+            this.getTypeB.UseVisualStyleBackColor = true;
+            this.getTypeB.Click += new System.EventHandler(this.getTypeB_Click);
+            // 
+            // etview
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(437, 484);
             this.Controls.Add(this.automateB);
             this.Controls.Add(this.clientTabs);
-            this.Name = "noxiousETgui";
+            this.Name = "etview";
             this.Text = "noxiousET - Beta 1.5";
             this.Load += new System.EventHandler(this.noxiousET_load);
             this.clientTabs.ResumeLayout(false);
@@ -793,6 +805,7 @@
         private System.Windows.Forms.ListBox autoAdjusterLB;
         private System.Windows.Forms.TabPage altab;
         private System.Windows.Forms.ListBox autoListerLB;
+        private System.Windows.Forms.Button getTypeB;
 
 
     }

@@ -54,8 +54,14 @@ namespace noxiousET.src.control
                 }
                 if (automatorSuspended && !processExists("taskmgr"))
                 {
-                    automator.Resume();
-                    automatorSuspended = false;
+                    try
+                    {
+                        automator.Resume();
+                        automatorSuspended = false;
+                    }
+                    catch
+                    {
+                    }
                 }
             }
         }

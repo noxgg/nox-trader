@@ -174,5 +174,10 @@ namespace noxiousET.src.data.io
             }
             return null;
         }
+
+        protected void delete()
+        {
+            File.Delete(path + fileName);
+        }
     }
 }

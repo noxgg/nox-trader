@@ -21,6 +21,8 @@ namespace noxiousET.src.etevent
         public event ClientSettingUpdatedHandler clientSettingUpdatedHandler;
         public delegate void SaveAllSettingsRequestHandler(object sourceObject);
         public event SaveAllSettingsRequestHandler saveAllSettingsRequestHandler;
+        public delegate void GetTypesFromFileRequestHandler(object sourceObject, string character);
+        public event GetTypesFromFileRequestHandler getTypesFromFileRequestHandler;
 
         public void log(string message)
         {
@@ -55,6 +57,11 @@ namespace noxiousET.src.etevent
         public void saveAllSettingsRequest()
         {
             this.saveAllSettingsRequestHandler(this);
+        }
+
+        public void getTypesFromFileRequest(String character)
+        {
+            this.getTypesFromFileRequestHandler(this, character);
         }
 	}
 }

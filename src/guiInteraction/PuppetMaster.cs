@@ -53,25 +53,25 @@ namespace noxiousET.src.guiInteraction
             {
                 if (i != 0 && i % characterCount == 0)
                 {
-                    if (random.Next(1, 3) % 3 == 0)
+                    if (random.Next(0, 10) % 3 == 0)
                         Thread.Sleep(random.Next(0, 3600000));
-                    eventDispatcher.log("Starting run #" + i % characterCount);
+                    eventDispatcher.log("Starting run #" + (i / characterCount) + 1);
                 }
                 character = characterManager.getCharacter(queue.Dequeue());
                 characterManager.selected = character.name;
                 result = loginBot.login(character);
                 if (result == 0)
                 {
-                    autoInvestor.execute(character);
-                    //if (character.autoAdjustsPerAutoList > 0 && (Math.Floor((Double)(i / characterCount)) % character.autoAdjustsPerAutoList) == 0)
-                      //  autoLister.execute(character);
-                    //autoAdjuster.execute(character, true);
+                    autoAdjuster.execute(character, true);
+                    if (autoAdjuster.getNumberOfFreeOrders() > 5)
+                        autoLister.execute(character);
+                    if (autoLister.getNumberOfFreeOrders() > 5)
+                        autoInvestor.execute(character);
                     characterManager.save(character.name);
-
-                    queue.Enqueue(character.name);
-                    if (queue.Count > 1)
-                        autoAdjuster.killClient();
                 }
+                queue.Enqueue(character.name);
+                if (queue.Count > 1)
+                    autoAdjuster.killClient();
             }
             return 0;
         }
