@@ -9,6 +9,7 @@ namespace noxiousET.src.control
         PuppetMaster puppetMaster;
         Thread automator;
         Thread executor;
+        Process[] processes;
 
         public AutomationRequester(PuppetMaster puppetMaster)
         {
@@ -47,11 +48,6 @@ namespace noxiousET.src.control
                     automator.Suspend();
                     automatorSuspended = true;
                 }
-                if (processExists("calc"))
-                {
-                    automator.Abort();
-                    Thread.CurrentThread.Abort();
-                }
                 if (automatorSuspended && !processExists("taskmgr"))
                 {
                     try
@@ -68,17 +64,11 @@ namespace noxiousET.src.control
 
         private bool processExists(string processName)
         {
-            try
+            processes = Process.GetProcessesByName(processName);
+            foreach (Process p in processes)
             {
-                foreach (Process p in Process.GetProcesses())
-                {
-                    if (p.ProcessName == processName)
-                        return true;
-                }
-            }
-            catch
-            {
-                return false;
+                if (p.ProcessName == processName)
+                    return true;
             }
             return false;
         }

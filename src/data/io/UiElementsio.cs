@@ -14,7 +14,7 @@ namespace noxiousET.src.data.io
             load();
         }
 
-        public new int load()
+        public int load()
         {
             try
             {

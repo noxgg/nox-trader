@@ -10,15 +10,13 @@ namespace noxiousET.src.guiInteraction.orders
 {
     class OrderBot : GuiBot
     {
-        protected OrderAnalyzer orderAnalyzer;
         protected int consecutiveFailures;
         protected Modules modules;
 
-        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher)
-            : base(clientConfig, uiElements, paths, character, eventDispatcher)
+        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+            : base(clientConfig, uiElements, paths, character, orderAnalyzer)
         {
             this.modules = modules;
-            orderAnalyzer = new OrderAnalyzer(eventDispatcher);
             consecutiveFailures = 0;
         }
 

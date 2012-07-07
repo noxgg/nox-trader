@@ -1,12 +1,21 @@
-﻿using System.Windows.Forms;
+﻿using System.Threading;
+using System.Windows.Forms;
 
 namespace noxiousET.src.guiInteraction
 {
     class Keyboard
     {
-        public static void send(string s) 
+        private Mutex mutex;
+
+        public Keyboard()
         {
+            this.mutex = new Mutex(false, EtConstants.KB_MOUSE_LOCK);
+        }
+        public void send(string s)
+        {
+            mutex.WaitOne();
             SendKeys.SendWait(s);
+            mutex.ReleaseMutex();
         }
     }
 }

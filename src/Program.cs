@@ -22,7 +22,7 @@ namespace noxiousET
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new etview(characterInfoProvider, clientConfigInfoProvider, manualExecution, dataManager.eventDispatcher));
+            Application.Run(new etview(characterInfoProvider, clientConfigInfoProvider, manualExecution));
         }
     }
 }

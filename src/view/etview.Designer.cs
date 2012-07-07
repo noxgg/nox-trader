@@ -33,6 +33,7 @@
             this.consoleL = new System.Windows.Forms.Label();
             this.consoleLB = new System.Windows.Forms.ListBox();
             this.configTab = new System.Windows.Forms.TabPage();
+            this.getTypeB = new System.Windows.Forms.Button();
             this.saveAllSettingsB = new System.Windows.Forms.Button();
             this.saveSelectedCharacterB = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
@@ -89,7 +90,7 @@
             this.altab = new System.Windows.Forms.TabPage();
             this.autoListerLB = new System.Windows.Forms.ListBox();
             this.automateB = new System.Windows.Forms.Button();
-            this.getTypeB = new System.Windows.Forms.Button();
+            this.unpauseB = new System.Windows.Forms.Button();
             this.clientTabs.SuspendLayout();
             this.homeTab.SuspendLayout();
             this.configTab.SuspendLayout();
@@ -161,6 +162,16 @@
             this.configTab.Size = new System.Drawing.Size(404, 435);
             this.configTab.TabIndex = 1;
             this.configTab.Text = "Config";
+            // 
+            // getTypeB
+            // 
+            this.getTypeB.Location = new System.Drawing.Point(214, 394);
+            this.getTypeB.Name = "getTypeB";
+            this.getTypeB.Size = new System.Drawing.Size(170, 28);
+            this.getTypeB.TabIndex = 13;
+            this.getTypeB.Text = "Get Type Log Directory";
+            this.getTypeB.UseVisualStyleBackColor = true;
+            this.getTypeB.Click += new System.EventHandler(this.getTypeB_Click);
             // 
             // saveAllSettingsB
             // 
@@ -703,25 +714,26 @@
             this.automateB.UseVisualStyleBackColor = true;
             this.automateB.Click += new System.EventHandler(this.automateB_Click);
             // 
-            // getTypeB
+            // unpauseB
             // 
-            this.getTypeB.Location = new System.Drawing.Point(214, 394);
-            this.getTypeB.Name = "getTypeB";
-            this.getTypeB.Size = new System.Drawing.Size(170, 28);
-            this.getTypeB.TabIndex = 13;
-            this.getTypeB.Text = "Get Type Log Directory";
-            this.getTypeB.UseVisualStyleBackColor = true;
-            this.getTypeB.Click += new System.EventHandler(this.getTypeB_Click);
+            this.unpauseB.Location = new System.Drawing.Point(329, 5);
+            this.unpauseB.Name = "unpauseB";
+            this.unpauseB.Size = new System.Drawing.Size(75, 23);
+            this.unpauseB.TabIndex = 2;
+            this.unpauseB.Text = "Unpause";
+            this.unpauseB.UseVisualStyleBackColor = true;
+            this.unpauseB.Click += new System.EventHandler(this.unpauseB_Click);
             // 
             // etview
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(437, 484);
+            this.Controls.Add(this.unpauseB);
             this.Controls.Add(this.automateB);
             this.Controls.Add(this.clientTabs);
             this.Name = "etview";
-            this.Text = "noxiousET - Beta 1.5";
+            this.Text = "noxiousET - Beta 2";
             this.Load += new System.EventHandler(this.noxiousET_load);
             this.clientTabs.ResumeLayout(false);
             this.homeTab.ResumeLayout(false);
@@ -806,6 +818,7 @@
         private System.Windows.Forms.TabPage altab;
         private System.Windows.Forms.ListBox autoListerLB;
         private System.Windows.Forms.Button getTypeB;
+        private System.Windows.Forms.Button unpauseB;
 
 
     }

@@ -13,7 +13,11 @@ namespace noxiousET.src.orders
         int sellOrders;
         int typeID;
 
-        public OrderManager(string filePathAndName, ref StreamReader file, Dictionary<int, int> tradeHistory)
+        public OrderManager()
+        {
+        }
+
+        public void createOrderSet(string filePathAndName, ref StreamReader file, Dictionary<int, int> tradeHistory)
         {
             orders = new List<Order>[2];
             orders[0] = new List<Order>();
@@ -40,7 +44,7 @@ namespace noxiousET.src.orders
                 }
                 else //Otherwise it is a buy order
                 {
-                     Order newOrder;
+                    Order newOrder;
                     try
                     {
                         newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
@@ -50,15 +54,12 @@ namespace noxiousET.src.orders
                         file.Close();
                         return;
                     }
-                        orders[1].Add(newOrder);
+                    orders[1].Add(newOrder);
                     ++buyOrders;
                 }
             }
             file.Close();
             File.Delete(filePathAndName);
-
-
-
         }
 
         public string getOrderIDandListPosition(ref string typeID, ref int orderType, out int listPosition)
@@ -165,7 +166,7 @@ namespace noxiousET.src.orders
             return orders[orderType][listPosition].getRuns();
         }
 
-        public int[] getNumberOfActiveBuysAndActiveSells()
+        public int[] getNumberOfBuysAndSells()
         {
             int[] temp = { sellOrders, buyOrders };
             return temp;

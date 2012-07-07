@@ -9,13 +9,13 @@ using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
+using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autolister
 {
     class AutoLister : OrderBot
     {
         private int terminalItemID = 0;
-        private int[] activeOrders = { 0, 0 };
         private int openOrders = 0;
         private int buyOrdersCreated = 0;
         private int sellOrdersCreated = 0;
@@ -23,8 +23,8 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         private static readonly int TRITANIUM_TYPE_ID = 34;
         private int freeOrders;
 
-        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher)
-            : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
+        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+            : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
         {
             freeOrders = 0;
         }
@@ -56,11 +56,11 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
                 logger.autoListerLog(character.name);
 
-                try { orderSet = exportOrders(3, 30); }
+                try { exportOrders(5, 30); }
                 catch (Exception e) { throw e; }
-                freeOrders = orderSet.getNumberOfActiveOrders();
+                freeOrders = orderAnalyzer.orderSet.getNumberOfActiveOrders();
 
-                openOrders = character.maximumOrders - orderSet.getNumberOfActiveOrders();
+                openOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
                 new SetClipboardHelper(DataFormats.Text, "0").Go();
 
                 closeMarketAndItemsWindows();
@@ -68,7 +68,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 {
                     terminalItemID = 5321;
                     wait(5);
-                    Keyboard.send("{PGUP}");
+                    keyboard.send("{PGUP}");
                     wait(40);
                     result = autoList(0);
                     
@@ -76,7 +76,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     {
                         mouse.waitDuration = timing;
                         orderAnalyzer.clearLastBuyOrder();
-                        Keyboard.send("{PGUP}");
+                        keyboard.send("{PGUP}");
                         freeOrders -= (buyOrdersCreated + sellOrdersCreated);
                         return 1;
                     }
@@ -84,32 +84,32 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     mouse.waitDuration = timing;
                     orderAnalyzer.clearLastBuyOrder();
                     wait(1);
-                    Keyboard.send("{PGUP}");
+                    keyboard.send("{PGUP}");
                     wait(1);
-                    Keyboard.send("{HOME}");
+                    keyboard.send("{HOME}");
                 }
 
                 if (character.tradeShips)
                 {
                     terminalItemID = 2078;
                     wait(5);
-                    Keyboard.send("{PGDN}");
+                    keyboard.send("{PGDN}");
                     wait(40);
                     result = autoList(1);
                     if (result == 1)
                     {
                         mouse.waitDuration = timing;
                         orderAnalyzer.clearLastBuyOrder();
-                        Keyboard.send("{PGDN}");
+                        keyboard.send("{PGDN}");
                         freeOrders -= (buyOrdersCreated + sellOrdersCreated);
                         return 1;
                     }
                     mouse.waitDuration = timing;
                     orderAnalyzer.clearLastBuyOrder();
                     wait(1);
-                    Keyboard.send("{PGDN}");
+                    keyboard.send("{PGDN}");
                     wait(1);
-                    Keyboard.send("{HOME}");
+                    keyboard.send("{HOME}");
                 }
                 cancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
                 stopwatch.Stop();
@@ -183,16 +183,16 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     //Click on Export Market info
                     mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
 
-                    activeOrderCheck = orderAnalyzer.findBestBuyAndSell(ref orderSet, out bestSellOrderPrice, out bestBuyOrderPrice, out itemName, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), character.fileNameTrimLength, ref offsetFlag);
+                    activeOrderCheck = orderAnalyzer.findBestBuyAndSell(out bestSellOrderPrice, out bestBuyOrderPrice, out itemName, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), character.fileNameTrimLength, ref offsetFlag);
                     ++readFailCounter;
 
                     if (typeID == TRITANIUM_TYPE_ID)//Make sure we didn't accidentally open the ship's cargohold.
                     {
                         wait(10);
                         if (itemType == 0)
-                            Keyboard.send("{PGUP}");
+                            keyboard.send("{PGUP}");
                         else
-                            Keyboard.send("{PGDN}");
+                            keyboard.send("{PGDN}");
                         wait(10);
                         activeOrderCheck = -1;
                     }
@@ -276,7 +276,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                                             //Double click to highlight
                                             mouse.pointAndClick(DOUBLE, uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset - itemSoldOutModifier, 4, 6, 1);
                                             mouse.click(DOUBLE, 1, 4);
-                                            Keyboard.send(buyOrderQuantity.ToString());
+                                            keyboard.send(buyOrderQuantity.ToString());
 
                                             ++modificationFailCount;
                                         } while (verifyQuantityInput(ref buyOrderQuantity, out lastOrderModified, longOrderNameYOffset - itemSoldOutModifier) == false && modificationFailCount < 10);
@@ -477,9 +477,9 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             closeMarketAndItemsWindows();
 
             if (tradeType == 0)
-                Keyboard.send("{PGUP}");
+                keyboard.send("{PGUP}");
             else
-                Keyboard.send("{PGDN}");
+                keyboard.send("{PGDN}");
 
         }
     }

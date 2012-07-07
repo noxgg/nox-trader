@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-using System.Windows.Forms;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.io;
@@ -10,6 +9,7 @@ using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
 using noxiousET.src.helpers;
 using noxiousET.src.etevent;
+using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.login
 {
@@ -17,8 +17,9 @@ namespace noxiousET.src.guiInteraction.login
     {
         private PixelReader pixelReader;
 
-        public LoginBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, EventDispatcher eventDispatcher)
-            : base(clientConfig, uiElements, paths, character, eventDispatcher)
+        public LoginBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, OrderAnalyzer orderAnalyzer
+            )
+            : base(clientConfig, uiElements, paths, character, orderAnalyzer)
         {
             pixelReader = new PixelReader(uiElements.loginStage2ActiveCharacter[0] - 5, uiElements.loginStage2ActiveCharacter[1] - 5);
         }
@@ -40,7 +41,7 @@ namespace noxiousET.src.guiInteraction.login
 
             this.character = character;
 
-            if (!(isEVERunningForSelectedCharacter() && waitForEnvironment() == 0 && prepareEnvironment() == 0))
+            if (!isEVERunningForSelectedCharacter())
             {
                 try
                 {
@@ -48,13 +49,16 @@ namespace noxiousET.src.guiInteraction.login
                     enterCredentials();
                     selectCharacter();
                     waitForEnvironment();
-                    prepareEnvironment();
                 }
                 catch (Exception e)
                 {
                     logger.log(character.name + e.Message);
                     return 1;
                 }
+            }
+            else
+            {
+                waitForEnvironment();
             }
             return 0;
         }
@@ -77,17 +81,17 @@ namespace noxiousET.src.guiInteraction.login
             {
                 errorCheck();
                 SetForegroundWindow(eveHandle);
-                ProcessKiller.killProcess("Chrome");
+                //ProcessKiller.killProcess("Chrome");
                 mouse.pointAndClick(RIGHT, uiElements.loginScreenUserName, 0, 10, 2);
                 mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 0, 10, 2);
                 if (Clipboard.getTextFromClipboard().CompareTo("0") != 0)
                 {
                     mouse.pointAndClick(DOUBLE, uiElements.loginScreenUserName, 0, 2, 2);
                     mouse.click(DOUBLE, 2, 2);
-                    Keyboard.send(getLoginText());
+                    keyboard.send(getLoginText());
                     mouse.pointAndClick(DOUBLE, uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1] + 15, 1, 2, 2);
                     mouse.click(DOUBLE, 2, 3);
-                    Keyboard.send(character.account.p);
+                    keyboard.send(character.account.p);
                     mouse.pointAndClick(LEFT, uiElements.loginScreenConnect, 0, 1, 1);
                     mouse.pointAndClick(LEFT, uiElements.loginScreenConnect, 0, 1, 1);
                     return;
@@ -106,7 +110,7 @@ namespace noxiousET.src.guiInteraction.login
                 result = findCharacter();
                 if (result == 0)
                 {
-                    ProcessKiller.killProcess("Chrome");
+                    //ProcessKiller.killProcess("Chrome");
                     return 0;
                 }
                 errorFlag = getError();
@@ -159,20 +163,23 @@ namespace noxiousET.src.guiInteraction.login
 
         private int waitForEnvironment()
         {
-            DirectoryEraser.nuke(paths.logPath);
             setEVEHandle(character.name);
             SetForegroundWindow(eveHandle);
             for (int i = 0; i < 20; i++)
             {
                 mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
-
+                wait(2);
+                Clipboard.setClip("0");
+                wait(2);
                 try
-                { 
-                    orderSet = exportOrders(1, 1);
-                    return 0;
+                {
+                    if (confirmOrder(uiElements.OrderBoxOK, 0, 0) == 0) //TODO refactor this out of here
+                        return 0;
+                    keyboard.send("-1");
                 }
-                catch (Exception e) 
-                { 
+                catch (Exception e)
+                {
+                    keyboard.send("-1");
                 } 
                 Thread.Sleep(1000);
             }
@@ -196,24 +203,6 @@ namespace noxiousET.src.guiInteraction.login
             if (Clipboard.getTextFromClipboard().CompareTo("0") != 0)
                 return true;
             return false;
-        }
-
-        private int prepareEnvironment()
-        {
-            wait(2);
-            Clipboard.setClip("0");
-            wait(2);
-            for (int i = 0; i < 15; ++i)
-            {
-                if (confirmOrder(uiElements.OrderBoxOK, 0,0) == 0) //TODO refactor this out of here
-                    return 0;
-                else
-                {
-                    mouse.pointAndClick(LEFT, uiElements.OrderBoxOK, 0, 1, 1);
-                    Keyboard.send("-1");
-                }
-            }
-            throw new Exception("Error Logging in. Could not prepare environment.");
         }
     }
 }

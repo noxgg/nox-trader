@@ -22,13 +22,13 @@ namespace noxiousET
 
 
 
-        public etview(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, AutomationRequester manualExecution, EventDispatcher eventDispatcher)
+        public etview(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, AutomationRequester manualExecution)
         {
             InitializeComponent();
             this.characterInfoProvider = characterInfoProvider;
             this.clientConfigInfoProvider = clientConfigInfoProvider;
             this.manualExecution = manualExecution;
-            this.eventDispatcher = eventDispatcher;
+            this.eventDispatcher = EventDispatcher.Instance;
             this.eventDispatcher.genericEvent += new EventDispatcher.GenericEventHandler(genericEventListener);
             this.eventDispatcher.genericErrorEvent += new EventDispatcher.GenericErrorEventHandler(genericErrorEventListener);
             this.eventDispatcher.autoAdjusterEvent += new EventDispatcher.AutoAdjusterEventHandler(autoAdjusterListener);
@@ -47,6 +47,7 @@ namespace noxiousET
             else
             {
                 consoleLB.Items.Add(s);
+                consoleLB.SelectedIndex = consoleLB.Items.Count - 1;
             }
         }
 
@@ -283,6 +284,11 @@ namespace noxiousET
         private void getTypeB_Click(object sender, EventArgs e)
         {
             eventDispatcher.getTypesFromFileRequest((String)charactersLB.SelectedItem);
+        }
+
+        private void unpauseB_Click(object sender, EventArgs e)
+        {
+            eventDispatcher.unpauseEvent();
         }
     }
 }

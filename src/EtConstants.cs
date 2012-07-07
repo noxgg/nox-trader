@@ -25,5 +25,8 @@ namespace noxiousET.src
         public const String FILE_NAME_TRIM_LENGTH_KEY = "fileNameTrimLength";
         public const String AUTO_ADJUSTS_PER_AUTO_LIST_KEY = "autoAdjustsPerAutoList";
         public const String LOGIN_COLOR_KEY = "loginColor";
+        public const int SELL = 0;
+        public const int BUY = 1;
+        public const String KB_MOUSE_LOCK = "kbmousemutex";
     }
 }

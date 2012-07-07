@@ -5,9 +5,20 @@ using System.Text;
 
 namespace noxiousET.src.etevent
 {
-	class EventDispatcher
+	public sealed class EventDispatcher
 	{
-        public delegate void GenericEventHandler(object sourceObject, String s);
+	    private static readonly EventDispatcher instance = new EventDispatcher();
+
+        private EventDispatcher()
+        {
+        }
+
+	    public static EventDispatcher Instance
+	    {
+	        get { return instance; }
+	    }
+
+	    public delegate void GenericEventHandler(object sourceObject, String s);
         public event GenericEventHandler genericEvent;
         public delegate void GenericErrorEventHandler(object sourceObject, String e);
         public event GenericErrorEventHandler genericErrorEvent;
@@ -23,6 +34,8 @@ namespace noxiousET.src.etevent
         public event SaveAllSettingsRequestHandler saveAllSettingsRequestHandler;
         public delegate void GetTypesFromFileRequestHandler(object sourceObject, string character);
         public event GetTypesFromFileRequestHandler getTypesFromFileRequestHandler;
+        public delegate void UnpauseEventHandler(object sourceObject);
+        public event UnpauseEventHandler unpauseEventHandler;
 
         public void log(string message)
         {
@@ -62,6 +75,11 @@ namespace noxiousET.src.etevent
         public void getTypesFromFileRequest(String character)
         {
             this.getTypesFromFileRequestHandler(this, character);
+        }
+
+        public void unpauseEvent()
+        {
+            this.unpauseEventHandler(this);
         }
 	}
 }

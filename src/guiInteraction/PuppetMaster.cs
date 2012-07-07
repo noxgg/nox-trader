@@ -8,6 +8,7 @@ using noxiousET.src.guiInteraction.login;
 using noxiousET.src.guiInteraction.orders.autoadjuster;
 using noxiousET.src.guiInteraction.orders.autolister;
 using noxiousET.src.guiInteraction.orders.autoinvester;
+using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction
 {
@@ -20,16 +21,18 @@ namespace noxiousET.src.guiInteraction
         AutoLister autoLister;
         EventDispatcher eventDispatcher;
         AutoInvestor autoInvestor;
+        private OrderAnalyzer orderAnalyzer;
 
         public PuppetMaster(DataManager dataManager)
         {
             this.dataManager = dataManager;
-            this.characterManager = dataManager.characterManager;
-            this.loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.eventDispatcher);
-            this.autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
-            this.autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
-            this.autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, dataManager.eventDispatcher);
-            this.eventDispatcher = dataManager.eventDispatcher;
+            characterManager = dataManager.characterManager;
+            orderAnalyzer = new OrderAnalyzer();
+            loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, orderAnalyzer);
+            autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
+            autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
+            autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
+            eventDispatcher = dataManager.eventDispatcher;
         }
         public int automate(int iterations)
         {
@@ -55,19 +58,25 @@ namespace noxiousET.src.guiInteraction
                 {
                     if (random.Next(0, 10) % 3 == 0)
                         Thread.Sleep(random.Next(0, 3600000));
-                    eventDispatcher.log("Starting run #" + (i / characterCount) + 1);
+                    eventDispatcher.log("Starting run #" + ((i / characterCount) + 1));
                 }
                 character = characterManager.getCharacter(queue.Dequeue());
                 characterManager.selected = character.name;
                 result = loginBot.login(character);
                 if (result == 0)
                 {
-                    autoAdjuster.execute(character, true);
-                    if (autoAdjuster.getNumberOfFreeOrders() > 5)
-                        autoLister.execute(character);
-                    if (autoLister.getNumberOfFreeOrders() > 5)
-                        autoInvestor.execute(character);
+                    autoAdjuster.execute(character);
                     characterManager.save(character.name);
+                    if (autoAdjuster.getNumberOfFreeOrders() > 5)
+                    {
+                        autoLister.execute(character);
+                        characterManager.save(character.name);
+                    }
+                    if (autoLister.getNumberOfFreeOrders() > 5)
+                    {
+                        autoInvestor.execute(character);
+                        characterManager.save(character.name);
+                    }
                 }
                 queue.Enqueue(character.name);
                 if (queue.Count > 1)

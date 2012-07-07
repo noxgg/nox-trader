@@ -12,14 +12,14 @@ namespace noxiousET.src.data.io
 
         }
 
-        public List<String[]> read(String path, String fileName)
+        public new List<String[]> read(String path, String fileName)
         {
             this.path = path;
             this.fileName = fileName;
             return read();
         }
 
-        public List<String[]> read()
+        public new List<String[]> read()
         {
             string line;
             List<String[]> result = new List<String[]>();
@@ -38,6 +38,13 @@ namespace noxiousET.src.data.io
 
         public String[] readFirstEntry(String path, String fileName)
         {
+            String[] line = readFirst(ref path, ref fileName);
+            delete();
+            return line;
+        }
+
+        private String[] readFirst(ref String path, ref String fileName)
+        {
             this.path = path;
             this.fileName = fileName;
             String[] line = new String[14];
@@ -45,8 +52,12 @@ namespace noxiousET.src.data.io
             readLine();
             line = readLine().Split(',');
             readClose();
-            delete();
             return line;
+        }
+
+        public String[] readFirstEntryNoDelete(String path, String fileName)
+        {
+            return readFirst(ref path, ref fileName);
         }
     }
 }

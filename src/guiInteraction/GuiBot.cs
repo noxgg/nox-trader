@@ -30,26 +30,29 @@ namespace noxiousET.src.guiInteraction
         protected UiElements uiElements;
         protected Paths paths;
         protected Mouse mouse;
+        protected Keyboard keyboard;
         protected IntPtr eveHandle;
         protected ErrorParser errorParser;
         protected Boolean lastOrderModified = false;
-        protected OrderManager orderSet;
         protected EventDispatcher logger;
+        protected OrderAnalyzer orderAnalyzer;
         protected int timing;
         protected static readonly int LEFT = (int)Mouse.clickTypes.LEFT;
         protected static readonly int RIGHT = (int)Mouse.clickTypes.RIGHT;
         protected static readonly int DOUBLE = (int)Mouse.clickTypes.DOUBLE;
 
-        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, EventDispatcher eventDispatcher)
+        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, OrderAnalyzer orderAnalyzer)
         {
             this.clientConfig = clientConfig;
             this.uiElements = uiElements;
             this.paths = paths;
             this.character = character;
-            this.logger = eventDispatcher;
-            this.timing = clientConfig.timingMultiplier;
-            this.mouse = new Mouse(clientConfig.timingMultiplier);
-            this.errorParser = new ErrorParser();
+            logger = EventDispatcher.Instance;
+            timing = clientConfig.timingMultiplier;
+            mouse = new Mouse(clientConfig.timingMultiplier);
+            this.keyboard = new Keyboard();
+            errorParser = new ErrorParser();
+            this.orderAnalyzer = orderAnalyzer;
         }
 
         protected int errorCheck()
@@ -82,17 +85,16 @@ namespace noxiousET.src.guiInteraction
 
         protected int getError()
         {
-            string message;
             mouse.pointAndClick(RIGHT, uiElements.parseErrorMessage, 0, 1, 1);
             mouse.offsetAndClick(LEFT, uiElements.parseErrorMessageCopyOffset, 0, 1, 1);
-            message = Clipboard.getTextFromClipboard();
+            string message = Clipboard.getTextFromClipboard();
 
             if (string.Compare(message, "0") != 0)
                 return errorParser.parse(message);
             return 0;
         }
 
-        protected OrderManager exportOrders(int tries, int waitMultiplier)
+        protected void exportOrders(int tries, int waitMultiplier)
         {
             for (int i = 0; i < tries; i++)
             {
@@ -101,19 +103,14 @@ namespace noxiousET.src.guiInteraction
                 errorCheck();
                 mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
 
-                string fileName;
                 try
                 {
-
                     var directory = new DirectoryInfo(paths.logPath);
                     var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                    StreamReader file;
-
-                
                     fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                    file = new System.IO.StreamReader(directory.ToString() + fileTemp.ToString());
-                    fileName = fileTemp.ToString();
-                    return new OrderManager(directory.ToString() + fileName, ref file, character.tradeHistory);
+                    StreamReader file = new StreamReader(directory.ToString() + fileTemp.ToString());
+                    orderAnalyzer.orderSet.createOrderSet(directory.ToString() + fileTemp.ToString(), ref file, character.tradeHistory);
+                    return;
                 }
                 catch (Exception e)
                 {
@@ -127,14 +124,15 @@ namespace noxiousET.src.guiInteraction
             int failCount = 0;
             string result = "0";
             int errorFlag = 0;
+            Clipboard.setClip("0");
             do
             {
                 mouse.pointAndClick(LEFT, coords, 1, 1, 1);
-                if (confirmationType == 1 && failCount > 3)
+                if (confirmationType == 1 && failCount > 1)
                 {
                     errorFlag = getError();
                     //If the error is 'above regional average' and this is a sell order || it is below/buy
-                    if (errorFlag == 1 && buyOrSell == 0 || errorFlag == 2 && buyOrSell == 1)
+                    if (errorFlag == 1 && buyOrSell == EtConstants.SELL || errorFlag == 2 && buyOrSell == EtConstants.BUY)
                     {
                         confirmErrorCheck();
                         wait(1);
@@ -148,17 +146,14 @@ namespace noxiousET.src.guiInteraction
                     }
                     Clipboard.setClip("0");
                 }
-                else
-                {
-                    errorCheck();
-                }
 
                 //Right click where OK should no longer exist. 
                 mouse.pointAndClick(RIGHT, uiElements.OrderBoxOK, 0, 1, 1);
 
                 //Click on copy
                 mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
-                mouse.waitDuration *= 2;
+                if (failCount > 1)
+                    mouse.waitDuration *= 2;
                 result = Clipboard.getTextFromClipboard();
                 ++failCount;
             } while (string.Compare(result, "0") == 0 && failCount < 5);
@@ -177,6 +172,39 @@ namespace noxiousET.src.guiInteraction
         {
             ProcessKiller.killProcessByHandle(eveHandle);
             return 0;
+        }
+        
+        protected void inputValue(int tries, double timingScaleFactor, int[] coords, string value)
+        {
+            for (int i = 0; i < tries; i++)
+            {
+                mouse.pointAndClick(DOUBLE, coords, 4, 2, 2);
+                Clipboard.setClip(value);
+                mouse.click(RIGHT, 2, 2);
+                mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
+                if (verifyInput(coords, value))
+                    return;
+                mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+            }
+            mouse.waitDuration = timing;
+            throw new Exception("Failed to input value " + value);
+        }
+
+        private bool verifyInput(int[] coords, string desiredValue)
+        {
+            mouse.pointAndClick(RIGHT, coords, 1, 1, 1);
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 1, 1, 1);
+
+            try
+            {
+                if (desiredValue.Equals(Clipboard.getTextFromClipboard()))
+                    return true;
+            }
+            catch
+            {
+                return false;
+            }
+            return false;
         }
     }
 }

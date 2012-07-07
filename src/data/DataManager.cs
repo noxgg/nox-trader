@@ -9,6 +9,7 @@ using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
 using noxiousET.src.etevent;
 using System.IO;
+using noxiousET.src.orders;
 
 namespace noxiousET.src.data
 {
@@ -29,14 +30,13 @@ namespace noxiousET.src.data
         private const String ROOT_CONFIG_FILENAME = "last.ini";
         private const String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.dat";
         private const String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.dat";
-        private const String IGNORE_ERROR_CHECK_TYPE_IDS_FILENAME = "ignoreErrorCheckTypeIDs.dat";
         private const String TYPE_NAMES_FILENAME = "typeNames.dat";
 
         public DataManager()
         {
             paths = new Paths();
             clientConfig = new ClientConfig();
-            this.eventDispatcher = new EventDispatcher();
+            this.eventDispatcher = EventDispatcher.Instance;
             this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);
             this.eventDispatcher.saveAllSettingsRequestHandler += new EventDispatcher.SaveAllSettingsRequestHandler(saveAllSettingsRequestListener);
             this.eventDispatcher.getTypesFromFileRequestHandler += new EventDispatcher.GetTypesFromFileRequestHandler(getTypeForCharacterFromNewestLogFile);
@@ -55,7 +55,7 @@ namespace noxiousET.src.data
             clientConfig.yResolution = Convert.ToInt32(config[line++]);
 
             accountManager = new AccountManager();
-            characterManager = new CharacterManager(paths, accountManager, eventDispatcher);
+            characterManager = new CharacterManager(paths, accountManager);
 
             int length = config.Count - line;
             String[] characters = new String[length];

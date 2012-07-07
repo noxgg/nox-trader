@@ -9,6 +9,7 @@ using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
+using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autoadjuster
 {
@@ -16,16 +17,15 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
     {
         int numModified;
         int numScanned;
-        int iterations = 1;//Fix these
-        bool launchEVEWhenNearlyDone = false;
         private int freeOrders;
+        private MarketOrderio marketOrderio;
+        private String fileName;
 
-        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, EventDispatcher eventDispatcher) 
-            : base(clientConfig, uiElements, paths, character, modules, eventDispatcher)
+        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+            : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
         {
-            numModified = 0;
-            numScanned = 0;
-            freeOrders = 0;
+            this.marketOrderio = new MarketOrderio();
+            marketOrderio.path = paths.logPath;
         }
 
         public int getNumberOfFreeOrders()
@@ -33,261 +33,212 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             return freeOrders;
         }
 
-        public int execute(Character character, bool multiUserMode)
+        public void execute(Character character)
         {
+            if (!character.adjustBuys && !character.adjustSells)
+                return;
             this.character = character;
-            int sellResult = 0;
-            int buyResult = 0;
-            numModified = 0;
-            numScanned = 0;
-            if (!isEVERunningForSelectedCharacter())
-            {
-                logger.log(character.name + ": Auto adjuster failed to find client.");
-                return 1;
-            }
-            else
-            {
-                logger.autoAdjusterLog(character.name);
 
-                mouse.waitDuration = timing;
-                setEVEHandle(character.name);
-                for (int i = 0; i < iterations; ++i)
-                {
-                    Stopwatch stopwatch = new Stopwatch();
-                    stopwatch.Start();
-                    SetForegroundWindow(eveHandle);
+            prepare();
 
-                    DirectoryEraser.nuke(paths.logPath);
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            if (character.adjustBuys)
+                adjust(EtConstants.BUY, uiElements.buyTop, uiElements.buySortByType);
+            if (character.adjustSells)
+                adjust(EtConstants.SELL, uiElements.sellTop, uiElements.sellSortByType);
+            stopwatch.Stop();
+            logger.log(character.name + ": AA scanned " + numScanned + ", adjusted " + numModified + " in " + stopwatch.Elapsed.ToString());
 
-                    try { orderSet = exportOrders(10, 30); }
-                    catch (Exception e) { throw e; }
-                    freeOrders = orderSet.getNumberOfActiveOrders();
-
-                    //Keyboard.send("^(V)");
-
-                    mouse.pointAndClick(LEFT,uiElements.buySortByType, 30, 1, 30);
-                    mouse.pointAndClick(LEFT, uiElements.sellSortByType, 0, 1, 0);
-
-                    if (character.adjustBuys)
-                    {
-                        if (multiUserMode && i == iterations - 1 && !character.adjustSells)
-                            launchEVEWhenNearlyDone = true;
-                        buyResult = modOrders(uiElements.buyTop, uiElements.buySortByType, 1);
-                            
-                        orderAnalyzer.clearLastBuyOrder();
-                        Keyboard.send("{HOME}");
-                    }
-                    if (character.adjustSells)
-                    {
-                        if (multiUserMode && i == iterations - 1)
-                            launchEVEWhenNearlyDone = true;
-                        sellResult = modOrders(uiElements.sellTop, uiElements.sellSortByType, 0);
-                            
-                        orderAnalyzer.clearLastBuyOrder();
-                        Keyboard.send("{HOME}");
-                    }
-                    stopwatch.Stop();
-
-                    if (sellResult != 0 && buyResult != 0)
-                        logger.log(character.name + ": Auto adjuster failed to complete buy and sell runs.");
-                    else if (sellResult != 0)
-                        logger.log(character.name + ": Auto adjuster failed to complete sell run.");
-                    else if (buyResult != 0)
-                        logger.log(character.name + ": Auto adjuster failed to complete buy run.");
-                    logger.log(character.name + ": AA scanned " + numScanned + ", adjusted " + numModified + " in " + stopwatch.Elapsed.ToString());
-                    numScanned = numModified = 0;
-                }
-                return 0;
-
-            }
         }
 
-        //Try setting orders remotely to reduce lag
-        //TODO When the GUI throws an error after editing the last item before a scrolling action, the scrolling action doesn't happen because the warning check
-        //occurs after the scrolling action.
-        //Returns 0 if successful.
-        //Returns 1 if it can't find client.
-        //returns 2 if it hangs on order export.
-        private int modOrders(int[] topLine, int[] sortByType, int orderType)
+        private void adjust(int typeToAdjust, int[] topLineCoords, int[] sortByTypeCoords)
         {
+            int[] cursorPosition = new int[2];
+            int visibleLines = uiElements.visLines[typeToAdjust];
+            int currentTypeId = 5321;
+            bool modifiedOnLastIteration = false;
 
-            int typeID = 0;
-            int lastTypeID = 0;
-            int[] cursorPosition = { 0, 0 };
-            int[] activeOrders = orderSet.getNumberOfActiveBuysAndActiveSells();
-            double modifyTo;
-            double originalPrice;
-            double temp;
-            int offset = uiElements.visLines[orderType];
-            int readFailCounter;
-            int copyFailCounter;
-            string directory = paths.logPath;
-            int modificationFailCount = 0;
-
-            consecutiveFailures = 0;
-
-            int ceiling = Convert.ToInt32(Math.Ceiling(Convert.ToDouble(activeOrders[orderType]) / Convert.ToDouble(uiElements.visLines[orderType])));
-            for (int j = 0; j < ceiling; ++j)
+            int ceiling = Convert.ToInt32(Math.Ceiling(orderAnalyzer.orderSet.getNumberOfBuysAndSells()[typeToAdjust] / Convert.ToDouble(uiElements.visLines[typeToAdjust])));
+            for (int i = 0; i < ceiling; ++i)
             {
-                cursorPosition[0] = topLine[0];
-                cursorPosition[1] = topLine[1];
-                int leftToScan = activeOrders[orderType];
-                if (j == (ceiling - 1)) //This is the final iteration, so don't go all the way down the list.
-                {
-                    offset = (activeOrders[orderType] % uiElements.visLines[orderType]);
-                }
-                for (int i = 0; i < offset; ++i)
-                {
-                    if (launchEVEWhenNearlyDone && --leftToScan < 18)
-                        launchEVEWhenNearlyDone = false;
-                    if (eveHandle != GetForegroundWindow())
-                        SetForegroundWindow(eveHandle); 
-                    if (Directory.GetFiles(directory).Length > 0)
-                        DirectoryEraser.nuke(directory);
+                cursorPosition[0] = topLineCoords[0];
+                cursorPosition[1] = topLineCoords[1];
 
-                    lastTypeID = typeID;
-                    originalPrice = copyFailCounter = readFailCounter = 0;
-                    modifyTo = -1;
-
-                    do
+                for (int j = 0; j < visibleLines; j++)
+                {
+                    try
                     {
-                        if (readFailCounter > 9 && (readFailCounter % 4) == 0)
+                        if (eveHandle != GetForegroundWindow())
+                            SetForegroundWindow(eveHandle);
+
+                        marketOrderio.fileName = executeQueryAndExportResult(3, 2, cursorPosition, ref currentTypeId);
+                        orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(character.stationid));
+                        currentTypeId = orderAnalyzer.getTypeId();
+                        if (modifiedOnLastIteration)
                         {
-                            if (lastOrderModified)
-                            {
-                                errorCheck();
-                                confirmOrder(uiElements.OrderBoxOK, 1, orderType);
-                            }
-                            else
-                            {
-                                errorCheck();
-                                cancelOrder(0, 0);
-                            }
+                            confirmOrder(uiElements.OrderBoxOK, 1, typeToAdjust);
+                            modifiedOnLastIteration = false;
+                            ++numModified;
                         }
-                        if (readFailCounter % 4 == 0 && (modifyTo < 0)) //Try view details again
-                            //Double click on current entry to bring up market details
-                            mouse.pointAndClick(DOUBLE, cursorPosition, 0, 1, 0);
-                        //Click on Export Market info
-                        mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 3, 1);
-                        modifyTo = orderAnalyzer.getNewPriceForOrder(ref orderSet, ref orderType, 99, ref originalPrice, paths.logPath, ref typeID, character.fileNameTrimLength);//Temp pass run as 999
-
-                        if ((readFailCounter % 11) == 0)
-                            mouse.waitDuration *= 2;
-                        ++readFailCounter;
-                    } while ((modifyTo == -1 || modifyTo == -2) && readFailCounter < 29);
-
-                    mouse.waitDuration = timing;
-                    if (readFailCounter == 29)
-                        consecutiveFailures++;
-                    else
-                        consecutiveFailures = 0;
-
-                    if (consecutiveFailures == 3)
-                        return 1;
-                    else if (lastOrderModified)
-                        confirmOrder(uiElements.OrderBoxOK, 1, orderType);
-
-                    if (modifyTo > 0)
-                    {
-                        do
+                        if ((!orderAnalyzer.isBestOrderOwned(typeToAdjust) && shouldAdjustOrder(ref typeToAdjust)) || 
+                            (orderAnalyzer.isBestOrderOwned(typeToAdjust) && isAnOverbid(typeToAdjust)))
                         {
-                            //RClick on current line.
-                            mouse.pointAndClick(RIGHT, cursorPosition, 0, 1, 1);
-                            //Click on Modify
-                            mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 0, 1, 1);
-                            //Right click order box price field
-                            mouse.pointAndClick(RIGHT, uiElements.modifyOrderBox, 0, 4, 1);
-                            //Click on copy
-                            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
-                            try
-                            {
-                                temp = Convert.ToDouble(Clipboard.getTextFromClipboard());
-                            }
-                            catch
-                            {
-                                temp = 0;
-                            }
-
-                            if (copyFailCounter > 2)
-                                errorCheck();
-
-                            if ((temp - 10000) < originalPrice && originalPrice < (temp + 10000))
-                            {
-                                mouse.waitDuration = timing;
-                                modificationFailCount = 0;
-                                do
-                                {
-                                    //Double click to highlight
-                                    mouse.pointAndClick(DOUBLE, uiElements.modifyOrderBox, 0, 2, 2);
-                                    Clipboard.setClip(modifyTo.ToString());
-                                    mouse.click(RIGHT, 2, 2);
-                                    mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
-                                    Clipboard.setClip("0");
-                                    lastOrderModified = true;
-                                    ++modificationFailCount;
-                                    copyFailCounter = 10;
-                                    mouse.waitDuration *= 2;
-                                } while (verifyModifyToInput(modifyTo, temp) == false && modificationFailCount < 5);
-                                mouse.waitDuration = timing;
-                                if (modificationFailCount == 10)
-                                {
-                                    cancelOrder(0, 0);
-                                    temp = 0;
-                                } else
-                                    ++numModified;
-                            } else
-                                temp = 0;
-                            ++copyFailCounter;
-
-                            mouse.waitDuration *= 2;
-
-                        } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 5);
-                        new SetClipboardHelper(DataFormats.Text, "0").Go();
+                            openAndIdentifyModifyWindow(8, 1.1, cursorPosition, orderAnalyzer.getOwnedPrice(typeToAdjust));
+                            inputValue(5, 2, uiElements.modifyOrderBox, Convert.ToString(orderAnalyzer.getPrice(typeToAdjust) + outbid(typeToAdjust)));
+                            modifiedOnLastIteration = true;
+                        }
+                        ++numScanned;
+                        cursorPosition[1] += uiElements.lineHeight;
                     }
-                    mouse.waitDuration = timing;
-                    if (copyFailCounter == 10 && modificationFailCount == 10)
-                        logger.logError("Order of price " + originalPrice + " not adjusted. Failed to make modification.");
-                    //Get next line
-                    ++numScanned;
-                    cursorPosition[1] = cursorPosition[1] + uiElements.lineHeight;
+                    catch (Exception e)
+                    {
+                        cursorPosition[1] += uiElements.lineHeight;
+                        logger.log(e.Message);
+                        errorCheck();
+                    }
                 }
-                if (j == (ceiling - 2))
+                if (i == (ceiling - 2))
                 {
                     mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
-                    for (int l = 0; l < activeOrders[orderType]; ++l)
-                        Keyboard.send("{UP}");
-                    mouse.pointAndClick(LEFT, sortByType, 0, 20, 20);
+                    for (int l = 0; l < orderAnalyzer.orderSet.getNumberOfBuysAndSells()[typeToAdjust]; ++l)
+                        keyboard.send("{UP}");
+                    mouse.pointAndClick(LEFT, sortByTypeCoords, 0, 20, 20);
                 }
-                else if (j < (ceiling - 1))
+                else if (i < (ceiling - 1))
                 {
                     mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
-                    for (int k = 0; k < uiElements.visLines[orderType]; ++k)
-                        Keyboard.send("{DOWN}");
+                    for (int k = 0; k < uiElements.visLines[typeToAdjust]; ++k)
+                        keyboard.send("{DOWN}");
                 }
 
             }
             if (lastOrderModified)
-                confirmOrder(uiElements.OrderBoxOK, 1, orderType);
-            return 0;
+                confirmOrder(uiElements.OrderBoxOK, 1, typeToAdjust);
         }
 
-
-
-        private bool verifyModifyToInput(double modifyTo, double originalPrice)
+        private Boolean isAnOverbid(int typeToAdjust)
         {
-            double temp;
-            //Right click on the field
-            mouse.pointAndClick(RIGHT, uiElements.modifyOrderBox, 1, 1, 1);
-            //Click on copy
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
-
-            try { temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
-            catch { temp = -1; }
-
-            if (temp - 10000 < modifyTo && modifyTo < temp + 10000 && (temp < originalPrice - .01 || temp > originalPrice + .01))
-                return true;
+            if (typeToAdjust == EtConstants.BUY)
+            {
+                if (orderAnalyzer.getOwnedBuyPrice() - orderAnalyzer.getBuyPrice() >= 1)
+                {
+                    return true;
+                }
+            }
             else
-                return false;
+            {
+                if (orderAnalyzer.getSellPrice() - orderAnalyzer.getOwnedSellPrice() >= 1)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private double outbid(int typeToAdjust)
+        {
+            if (typeToAdjust == EtConstants.BUY)
+                return .01;
+            else
+                return -.01;
+        }
+
+        private void openAndIdentifyModifyWindow(int tries, double timingScaleFactor, int[] coords, double price)
+        {
+            double result;
+            for (int i = 0; i < tries; i++)
+            {
+                mouse.pointAndClick(RIGHT, coords, 1, 1, 1);
+                mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 1, 1, 1);
+                mouse.pointAndClick(RIGHT, uiElements.modifyOrderBox, 1, 1, 1);
+                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 1, 1, 1);
+                try
+                {
+                    result = Convert.ToDouble(Clipboard.getTextFromClipboard());
+                    if (result < price + 1000 && result > price - 1000)
+                    {
+                        mouse.waitDuration = timing;
+                        return;
+                    }
+                }
+                catch
+                {
+                    mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                    result = 0;
+                }
+                mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+            }
+            mouse.waitDuration = timing;
+            throw new Exception("Could not find modification window.");
+        }
+
+        private bool shouldAdjustOrder(ref int typeToAdjust)
+        {
+            if (typeToAdjust == EtConstants.SELL)
+            {
+                if (orderAnalyzer.getSellPrice() > (orderAnalyzer.getBuyPrice() + (orderAnalyzer.getOwnedSellPrice() - orderAnalyzer.getBuyPrice()) / 2))
+                    return true;
+            }
+            else
+            {
+                if (orderAnalyzer.getSellPrice() < 0 || orderAnalyzer.getBuyPrice() < (orderAnalyzer.getSellPrice() - (orderAnalyzer.getSellPrice() - orderAnalyzer.getOwnedBuyPrice()) / 2))
+                    return true;
+            }
+            logger.autoListerLog("AL not adjusting " + modules.typeNames[Convert.ToInt32(orderAnalyzer.getTypeId())]);
+            logger.autoListerLog("Best Sell: " + orderAnalyzer.getBuyPrice());
+            logger.autoListerLog("Best Buy: " + orderAnalyzer.getSellPrice());
+            if (typeToAdjust == EtConstants.SELL)
+                logger.autoListerLog("Target sell order: " + orderAnalyzer.getOwnedSellPrice());
+            else
+                logger.autoListerLog("Target buy order: " + orderAnalyzer.getOwnedBuyPrice());
+            return false;
+        }
+
+        private String executeQueryAndExportResult(int tries, double timingScaleFactor, int[] cursorPosition, ref int lastTypeId)
+        {
+            DirectoryEraser.nuke(paths.logPath);
+            if (marketOrderio.getNumberOfFilesInDirectory(paths.logPath) != 0)
+                throw new Exception("Could not clean log path directory");
+            int i;
+            for (i = 0; i < tries; i++)
+            {
+                mouse.pointAndClick(DOUBLE, cursorPosition, 0, 1, 0);
+                mouse.pointAndClick(LEFT, uiElements.exportItem, 5, 1, 5);
+                fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
+                if (fileName != null && Convert.ToInt32(marketOrderio.readFirstEntryNoDelete(paths.logPath, fileName)[2]) != lastTypeId)
+                {
+                    logger.log("Iterations " + i);
+                    return fileName;
+                }
+                errorCheck();
+                mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+            }
+            logger.log("Iterations ran out of tries @ " + i);
+            mouse.waitDuration = timing;
+            throw new Exception("Could not export query result");
+        }
+
+        private void prepare()
+        {
+            freeOrders = 0;
+            try
+            {
+                setEVEHandle(character.name);
+                SetForegroundWindow(eveHandle);
+                DirectoryEraser.nuke(paths.logPath);
+                exportOrders(3, 30);
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+            numModified = 0;
+            numScanned = 0;
+            fileName = null;
+            mouse.pointAndClick(LEFT, uiElements.sellSortByType, 40, 0, 0);
+            mouse.pointAndClick(LEFT, uiElements.buySortByType, 40, 0, 0);
+            freeOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
         }
     }
 }

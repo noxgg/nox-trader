@@ -20,7 +20,7 @@ namespace noxiousET.src.data.characters
         private static readonly string tradeQueueFileName = "Queue.dat";
         private static readonly string tradeHistoryFileName = "History.dat";
 
-        public CharacterManager(Paths paths, AccountManager accountManager, EventDispatcher eventDispatcher)
+        public CharacterManager(Paths paths, AccountManager accountManager)
         {
             this.paths = paths;
             this.accountManager = accountManager;
@@ -29,7 +29,7 @@ namespace noxiousET.src.data.characters
             inactive = new List<String>();
             selected = null;
             textFileio = new TextFileio(paths.configPath, null);
-            this.eventDispatcher = eventDispatcher;
+            this.eventDispatcher = EventDispatcher.Instance;
             this.eventDispatcher.characterSettingUpdatedHandler += new EventDispatcher.CharacterSettingUpdatedHandler(characterSettingUpdatedListener);
         }
 
