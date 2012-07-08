@@ -34,13 +34,11 @@
 
         public int[] loginScreenUserName { set; get; }
         public int[] loginScreenPW { set; get; }
-        public int[] loginScreenConnect { set; get; }
-        public int[] loginVerify { set; get; }
-        public int[] loginStage2 { set; get; }
+        public int[] selectCharacterScreenIdentification { set; get; }
 
-        public int[] loginStage2ActiveCharacter { set; get; }
-        public int[] loginStage2Alt1 { set; get; }
-        public int[] loginStage2Alt2 { set; get; }
+        public int[] selectCharacterActive { set; get; }
+        public int[] selectCharacterAlt1 { set; get; }
+        public int[] selectCharacterAlt2 { set; get; }
 
         public int[] parseErrorMessage { set; get; }
         public int[] parseErrorMessageCopyOffset { set; get; }
@@ -94,13 +92,11 @@
 
             loginScreenUserName = new int[2] { 1226, 1246 };
             loginScreenPW = new int[2] { 1226, 1264 };
-            loginScreenConnect = new int[2] { 1280, 1289 };
-            loginVerify = new int[2] { 1274, 717 };
-            loginStage2 = new int[2] { 1079, 500 };
 
-            loginStage2ActiveCharacter = new int[2] { 235, 454 };
-            loginStage2Alt1 = new int[2] { 138, 791 };
-            loginStage2Alt2 = new int[2] { 343, 791 };
+            selectCharacterScreenIdentification = new int[2] { 1079, 500 };
+            selectCharacterActive = new int[2] { 235, 454 };
+            selectCharacterAlt1 = new int[2] { 138, 791 };
+            selectCharacterAlt2 = new int[2] { 343, 791 };
 
             parseErrorMessage = new int[2] { 1300, 735 };
             parseErrorMessageCopyOffset = new int[2] { 23, 13 };

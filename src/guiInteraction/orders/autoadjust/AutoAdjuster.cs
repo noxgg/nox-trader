@@ -209,6 +209,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 if (fileName != null && Convert.ToInt32(marketOrderio.readFirstEntryNoDelete(paths.logPath, fileName)[2]) != lastTypeId)
                 {
                     logger.log("Iterations " + i);
+                    mouse.waitDuration = timing;
                     return fileName;
                 }
                 errorCheck();

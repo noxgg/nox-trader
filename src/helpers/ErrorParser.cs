@@ -69,7 +69,7 @@ namespace noxiousET.src.helpers
             else if (message.Contains("You are about to throw away the following items:"))
                 return 10;
             else
-                return 0;
+                return 69;
         }
     }
 }

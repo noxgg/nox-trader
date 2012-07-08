@@ -40,6 +40,8 @@ namespace noxiousET.src.guiInteraction
         protected static readonly int LEFT = (int)Mouse.clickTypes.LEFT;
         protected static readonly int RIGHT = (int)Mouse.clickTypes.RIGHT;
         protected static readonly int DOUBLE = (int)Mouse.clickTypes.DOUBLE;
+        protected Boolean shortCopyPasteMenu = false;
+        private int shortCopyPasteAdjustment = 0;
 
         public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, OrderAnalyzer orderAnalyzer)
         {
@@ -85,6 +87,7 @@ namespace noxiousET.src.guiInteraction
 
         protected int getError()
         {
+            Clipboard.setClip("0");
             mouse.pointAndClick(RIGHT, uiElements.parseErrorMessage, 0, 1, 1);
             mouse.offsetAndClick(LEFT, uiElements.parseErrorMessageCopyOffset, 0, 1, 1);
             string message = Clipboard.getTextFromClipboard();
@@ -176,14 +179,18 @@ namespace noxiousET.src.guiInteraction
         
         protected void inputValue(int tries, double timingScaleFactor, int[] coords, string value)
         {
+            shortCopyPasteAdjustment = shortCopyPasteMenu ? uiElements.lineHeight : 0;
             for (int i = 0; i < tries; i++)
             {
                 mouse.pointAndClick(DOUBLE, coords, 4, 2, 2);
                 Clipboard.setClip(value);
                 mouse.click(RIGHT, 2, 2);
-                mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
+                mouse.offsetAndClick(LEFT, uiElements.pasteOffset[0], uiElements.pasteOffset[1] - shortCopyPasteAdjustment, 0, 2, 0);
                 if (verifyInput(coords, value))
+                {
+                    mouse.waitDuration = timing;
                     return;
+                }
                 mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
             }
             mouse.waitDuration = timing;
@@ -192,12 +199,14 @@ namespace noxiousET.src.guiInteraction
 
         private bool verifyInput(int[] coords, string desiredValue)
         {
+            Clipboard.setClip("");
             mouse.pointAndClick(RIGHT, coords, 1, 1, 1);
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 1, 1, 1);
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset[0], uiElements.copyOffset[1] - shortCopyPasteAdjustment, 1, 1, 1);
 
             try
             {
-                if (desiredValue.Equals(Clipboard.getTextFromClipboard()))
+                if (desiredValue.Equals(Clipboard.getTextFromClipboard()) || 
+                    (desiredValue == character.account.p && desiredValue.Length == Clipboard.getTextFromClipboard().Length))
                     return true;
             }
             catch

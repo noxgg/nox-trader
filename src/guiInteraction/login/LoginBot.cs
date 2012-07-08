@@ -21,7 +21,7 @@ namespace noxiousET.src.guiInteraction.login
             )
             : base(clientConfig, uiElements, paths, character, orderAnalyzer)
         {
-            pixelReader = new PixelReader(uiElements.loginStage2ActiveCharacter[0] - 5, uiElements.loginStage2ActiveCharacter[1] - 5);
+            pixelReader = new PixelReader(uiElements.selectCharacterActive[0] - 5, uiElements.selectCharacterActive[1] - 5);
         }
 
         private int launchClient()
@@ -77,27 +77,45 @@ namespace noxiousET.src.guiInteraction.login
                 throw new Exception("Error logging in. Could not find client.");
             Clipboard.setClip("0");
             errorCheck();
-            for (int i = 0; i < 25; ++i)
+            for (int i = 0; i < 10; ++i)
             {
-                errorCheck();
-                SetForegroundWindow(eveHandle);
-                //ProcessKiller.killProcess("Chrome");
-                mouse.pointAndClick(RIGHT, uiElements.loginScreenUserName, 0, 10, 2);
-                mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 0, 10, 2);
-                if (Clipboard.getTextFromClipboard().CompareTo("0") != 0)
+                try
                 {
-                    mouse.pointAndClick(DOUBLE, uiElements.loginScreenUserName, 0, 2, 2);
-                    mouse.click(DOUBLE, 2, 2);
-                    keyboard.send(getLoginText());
-                    mouse.pointAndClick(DOUBLE, uiElements.loginScreenUserName[0], uiElements.loginScreenUserName[1] + 15, 1, 2, 2);
-                    mouse.click(DOUBLE, 2, 3);
-                    keyboard.send(character.account.p);
-                    mouse.pointAndClick(LEFT, uiElements.loginScreenConnect, 0, 1, 1);
-                    mouse.pointAndClick(LEFT, uiElements.loginScreenConnect, 0, 1, 1);
+                    errorCheck();
+                    SetForegroundWindow(eveHandle);
+                    //ProcessKiller.killProcess("Chrome");
+                    shortCopyPasteMenu = true;
+                    inputValue(5, 1, uiElements.loginScreenUserName, character.account.l);
+                    inputValue(5, 1, uiElements.loginScreenPW, character.account.p);
+                    keyboard.send("{ENTER}");
+                    shortCopyPasteMenu = false;
+                    Thread.Sleep(5000);
+                    identifyCharacterSelectionWindow();
                     return;
                 }
+                catch
+                {
+
+                }
             }
+            shortCopyPasteMenu = false;
             throw new Exception("Error logging in. Failed to enter credentials.");
+        }
+
+        private void identifyCharacterSelectionWindow()
+        {
+            for (int i = 0; i < 20; ++i)
+            {
+                if (getError() > 0)
+                    throw new Exception("Found error message");
+                Clipboard.setClip("");
+                mouse.pointAndClick(RIGHT, uiElements.selectCharacterScreenIdentification, 5, 5, 10);
+                mouse.offsetAndClick(LEFT, uiElements.copyOffset[0], uiElements.copyOffset[1] - uiElements.lineHeight, 5, 5, 5);
+                if (Clipboard.getTextFromClipboard().CompareTo("") != 0)
+                    return;
+                Thread.Sleep(1000);
+            }
+            throw new Exception("Error logging in. Could not find character select screen.");
         }
 
         private int selectCharacter()
@@ -127,35 +145,35 @@ namespace noxiousET.src.guiInteraction.login
 
         private int findCharacter()
         {
-            wait(200);
             if (pixelReader.checkForTarget(character.loginColor))
             {
                 //pick this character if it is the right one.
-                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
+                mouse.pointAndClick(LEFT, uiElements.selectCharacterActive, 0, 10, 2);
                 return 0;
             }
 
             //select alt2
-            mouse.pointAndClick(LEFT, uiElements.loginStage2Alt2, 0, 10, 2);
-            wait(200);
+            mouse.pointAndClick(LEFT, uiElements.selectCharacterAlt2, 0, 10, 2);
+            wait(5);
 
             if (pixelReader.checkForTarget(character.loginColor))
             {
                 //pick this character if it is the right one.
-                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
+                mouse.pointAndClick(LEFT, uiElements.selectCharacterActive, 0, 10, 2);
                 return 0;
             }
             //Select alt1
-            mouse.pointAndClick(LEFT, uiElements.loginStage2Alt1, 0, 10, 2);
-            wait(200);
+            mouse.pointAndClick(LEFT, uiElements.selectCharacterAlt1, 0, 10, 2);
+            wait(5);
 
             //Check new character
             if (pixelReader.checkForTarget(character.loginColor))
             {
                 //pick this character if it is the right one.
-                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
+                mouse.pointAndClick(LEFT, uiElements.selectCharacterActive, 0, 10, 2);
                 return 0;
             }
+            wait(5);
             return 1;
         }
 
@@ -167,7 +185,7 @@ namespace noxiousET.src.guiInteraction.login
             SetForegroundWindow(eveHandle);
             for (int i = 0; i < 20; i++)
             {
-                mouse.pointAndClick(LEFT, uiElements.loginStage2ActiveCharacter, 0, 10, 2);
+                mouse.pointAndClick(LEFT, uiElements.selectCharacterActive, 0, 10, 2);
                 wait(2);
                 Clipboard.setClip("0");
                 wait(2);
