@@ -58,6 +58,13 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             int visibleLines = uiElements.visLines[typeToAdjust];
             int currentTypeId = 5321;
             bool modifiedOnLastIteration = false;
+            Stopwatch metricsProvider = new Stopwatch();
+            long metricsModifiedSum = 0;
+            long metricsNotModifiedSum = 0;
+            long metricsModifiedAvg = 0;
+            long metricsNotModifiedAvg = 0;
+            long metricsModifiedCount = 0;
+            long metricsNotModifiedCount = 0;
 
             int ceiling = Convert.ToInt32(Math.Ceiling(orderAnalyzer.orderSet.getNumberOfBuysAndSells()[typeToAdjust] / Convert.ToDouble(uiElements.visLines[typeToAdjust])));
             for (int i = 0; i < ceiling; ++i)
@@ -67,6 +74,8 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
 
                 for (int j = 0; j < visibleLines; j++)
                 {
+                    metricsProvider.Reset();
+                    metricsProvider.Start();
                     try
                     {
                         if (eveHandle != GetForegroundWindow())
@@ -97,9 +106,25 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         logger.log(e.Message);
                         errorCheck();
                     }
+                    metricsProvider.Stop();
+                    if (modifiedOnLastIteration == true)
+                    {
+                        metricsModifiedCount++;
+                        metricsModifiedSum += metricsProvider.ElapsedMilliseconds;
+                        metricsModifiedAvg = metricsModifiedSum / metricsModifiedCount;
+                        logger.log("Modified Average = " + metricsModifiedAvg + " over " + metricsModifiedCount + " iterations.");
+                    }
+                    else
+                    {
+                        metricsNotModifiedCount++;
+                        metricsNotModifiedSum += metricsProvider.ElapsedMilliseconds;
+                        metricsNotModifiedAvg = metricsNotModifiedSum / metricsNotModifiedCount;
+                        logger.log("Not modified Average = " + metricsNotModifiedAvg + " over " + metricsNotModifiedCount + " iterations.");
+                    }
                 }
                 if (i == (ceiling - 2))
                 {
+                    errorCheck();
                     mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
                     for (int l = 0; l < orderAnalyzer.orderSet.getNumberOfBuysAndSells()[typeToAdjust]; ++l)
                         keyboard.send("{UP}");
@@ -107,6 +132,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 }
                 else if (i < (ceiling - 1))
                 {
+                    errorCheck();
                     mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
                     for (int k = 0; k < uiElements.visLines[typeToAdjust]; ++k)
                         keyboard.send("{DOWN}");
@@ -152,7 +178,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 mouse.pointAndClick(RIGHT, coords, 1, 1, 1);
                 mouse.offsetAndClick(LEFT, uiElements.modifyOffset, 1, 1, 1);
                 mouse.pointAndClick(RIGHT, uiElements.modifyOrderBox, 1, 1, 1);
-                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 1, 1, 1);
+                mouse.offsetAndClick(LEFT, uiElements.copyOffset[0] + uiElements.confirmingOrderAdjustment, uiElements.copyOffset[1], 1, 1, 1);
                 try
                 {
                     result = Convert.ToDouble(Clipboard.getTextFromClipboard());

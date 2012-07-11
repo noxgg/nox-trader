@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using noxiousET.src.data.accounts;
 using noxiousET.src.data.characters;
@@ -27,7 +27,10 @@ namespace noxiousET.src.data
         private MarketOrderio marketOrderio;
         private UiElementsio uiElementsio;
 
+
+        private string configFileName;
         private const String ROOT_CONFIG_FILENAME = "last.ini";
+        private const String ROOT_CONFIG_FILENAME_ALT = "lastmba.ini";
         private const String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.dat";
         private const String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.dat";
         private const String TYPE_NAMES_FILENAME = "typeNames.dat";
@@ -41,8 +44,29 @@ namespace noxiousET.src.data
             this.eventDispatcher.saveAllSettingsRequestHandler += new EventDispatcher.SaveAllSettingsRequestHandler(saveAllSettingsRequestListener);
             this.eventDispatcher.getTypesFromFileRequestHandler += new EventDispatcher.GetTypesFromFileRequestHandler(getTypeForCharacterFromNewestLogFile);
 
-            textFileio = new TextFileio("", ROOT_CONFIG_FILENAME);
+            accountManager = new AccountManager();
+            characterManager = new CharacterManager(paths, accountManager);
+            modules = new Modules();
+            uiElements = new UiElements();
 
+            try
+            {
+                configFileName = ROOT_CONFIG_FILENAME;
+                initialize();
+            }
+            catch
+            {
+                configFileName = ROOT_CONFIG_FILENAME_ALT;
+                initialize();
+            }
+
+            marketOrderio = new MarketOrderio();
+        }
+
+        private void initialize()
+        {
+
+            textFileio = new TextFileio("", configFileName);
             List<String> config = textFileio.read();
 
             int line = 0;
@@ -54,9 +78,6 @@ namespace noxiousET.src.data
             clientConfig.xResolution = Convert.ToInt32(config[line++]);
             clientConfig.yResolution = Convert.ToInt32(config[line++]);
 
-            accountManager = new AccountManager();
-            characterManager = new CharacterManager(paths, accountManager);
-
             int length = config.Count - line;
             String[] characters = new String[length];
             for (int i = 0; i < length; i++)
@@ -65,18 +86,13 @@ namespace noxiousET.src.data
             }
             characterManager.load(characters);
 
-            modules = new Modules();
-
             String fileName = Convert.ToString(clientConfig.xResolution) + "x" + Convert.ToString(clientConfig.yResolution) + ".ini";
-            uiElements = new UiElements();
             uiElementsio = new UiElementsio(paths.configPath, fileName, uiElements);
 
             textFileToDictionaryLoader = new TextFileToDictionaryLoader(paths.configPath, FITTABLE_MODULE_TYPE_IDS_FILENAME);
             modules.fittableModuleTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine();
             modules.longNameTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine(paths.configPath, LONG_NAME_TYPE_IDS_FILENAME);
             modules.typeNames = textFileToDictionaryLoader.loadIntKeyStringValue(paths.configPath, TYPE_NAMES_FILENAME);
-
-            marketOrderio = new MarketOrderio();
         }
 
         public void savePathAndClientSettings()
@@ -96,7 +112,7 @@ namespace noxiousET.src.data
                 settings.Add(s);
             }
 
-            textFileio.save(settings, "", ROOT_CONFIG_FILENAME);
+            textFileio.save(settings, "", configFileName);
         }
 
         private void saveAllSettingsRequestListener(object o)

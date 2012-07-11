@@ -85,10 +85,12 @@ namespace noxiousET.src.guiInteraction.login
                     SetForegroundWindow(eveHandle);
                     //ProcessKiller.killProcess("Chrome");
                     shortCopyPasteMenu = true;
+                    confirmingOrderInput = false;
                     inputValue(5, 1, uiElements.loginScreenUserName, character.account.l);
                     inputValue(5, 1, uiElements.loginScreenPW, character.account.p);
                     keyboard.send("{ENTER}");
                     shortCopyPasteMenu = false;
+                    confirmingOrderInput = true;
                     Thread.Sleep(5000);
                     identifyCharacterSelectionWindow();
                     return;
@@ -99,6 +101,7 @@ namespace noxiousET.src.guiInteraction.login
                 }
             }
             shortCopyPasteMenu = false;
+            confirmingOrderInput = true;
             throw new Exception("Error logging in. Failed to enter credentials.");
         }
 

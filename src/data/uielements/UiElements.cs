@@ -58,6 +58,8 @@
         public int[] marketSearchResult { set; get; }
         public int[] marketSearchExecute { set; get; }
 
+        public int confirmingOrderAdjustment { set; get; }
+
         public UiElements() 
         {
             closeMarketWindow = new int[2] { 1721, 10 };
@@ -117,6 +119,8 @@
             marketSearchInputBox = new int[2] { 1300, 735 };
             marketSearchResult = new int[2] { 1300, 735 };
             marketSearchExecute = new int[2] { 1300, 735 };
+
+            confirmingOrderAdjustment = 55;
         }
 
     };

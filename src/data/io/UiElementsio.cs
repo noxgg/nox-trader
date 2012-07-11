@@ -92,6 +92,8 @@ namespace noxiousET.src.data.io
                 uiElements.closeItems[1] = readLineAsInt();
                 uiElements.confirmationCopyOffset[0] = readLineAsInt();
                 uiElements.confirmationCopyOffset[1] = readLineAsInt();
+                uiElements.pasteOffset[0] = readLineAsInt();
+                uiElements.pasteOffset[1] = readLineAsInt();
                 uiElements.endOfItemsList = readLineAsInt();
                 uiElements.itemsMenuTouchesBottomOfScreen = readLineAsInt();
                 uiElements.bringMarketWindowToFront[0] = readLineAsInt();
@@ -104,6 +106,7 @@ namespace noxiousET.src.data.io
                 uiElements.marketSearchResult[1] = readLineAsInt();
                 uiElements.marketSearchExecute[0] = readLineAsInt();
                 uiElements.marketSearchExecute[1] = readLineAsInt();
+                uiElements.confirmingOrderAdjustment = readLineAsInt();
 
                 readClose();
 

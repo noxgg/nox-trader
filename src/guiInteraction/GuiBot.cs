@@ -41,7 +41,9 @@ namespace noxiousET.src.guiInteraction
         protected static readonly int RIGHT = (int)Mouse.clickTypes.RIGHT;
         protected static readonly int DOUBLE = (int)Mouse.clickTypes.DOUBLE;
         protected Boolean shortCopyPasteMenu = false;
+        protected Boolean confirmingOrderInput = true;
         private int shortCopyPasteAdjustment = 0;
+        private int confirmingOrderAdjustment = 0;
 
         public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, OrderAnalyzer orderAnalyzer)
         {
@@ -180,12 +182,13 @@ namespace noxiousET.src.guiInteraction
         protected void inputValue(int tries, double timingScaleFactor, int[] coords, string value)
         {
             shortCopyPasteAdjustment = shortCopyPasteMenu ? uiElements.lineHeight : 0;
+            confirmingOrderAdjustment = confirmingOrderInput ? uiElements.confirmingOrderAdjustment : 0;
             for (int i = 0; i < tries; i++)
             {
                 mouse.pointAndClick(DOUBLE, coords, 4, 2, 2);
                 Clipboard.setClip(value);
                 mouse.click(RIGHT, 2, 2);
-                mouse.offsetAndClick(LEFT, uiElements.pasteOffset[0], uiElements.pasteOffset[1] - shortCopyPasteAdjustment, 0, 2, 0);
+                mouse.offsetAndClick(LEFT, uiElements.pasteOffset[0] + confirmingOrderAdjustment, uiElements.pasteOffset[1] - shortCopyPasteAdjustment, 0, 2, 0);
                 if (verifyInput(coords, value))
                 {
                     mouse.waitDuration = timing;
@@ -201,7 +204,7 @@ namespace noxiousET.src.guiInteraction
         {
             Clipboard.setClip("");
             mouse.pointAndClick(RIGHT, coords, 1, 1, 1);
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset[0], uiElements.copyOffset[1] - shortCopyPasteAdjustment, 1, 1, 1);
+            mouse.offsetAndClick(LEFT, uiElements.copyOffset[0] + confirmingOrderAdjustment, uiElements.copyOffset[1] - shortCopyPasteAdjustment, 1, 1, 1);
 
             try
             {
