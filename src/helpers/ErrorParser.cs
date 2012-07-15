@@ -68,6 +68,8 @@ namespace noxiousET.src.helpers
                 return 9;
             else if (message.Contains("You are about to throw away the following items:"))
                 return 10;
+            else if (message.Contains("There were no buy or sell orders found."))
+                return 11;
             else
                 return 69;
         }

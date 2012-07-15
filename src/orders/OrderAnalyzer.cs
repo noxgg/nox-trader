@@ -20,7 +20,7 @@ namespace noxiousET.src.orders
         private double sellPrice;
         private double ownedBuyPrice;
         private double ownedSellPrice;
-        private string typeId;
+        private string typeid;
 
         public OrderAnalyzer()
         {
@@ -50,12 +50,9 @@ namespace noxiousET.src.orders
             int i = 0;
             int orderDataCount = orderData.Count;
             String[] order = i < orderDataCount ? orderData[i++] : null;
-            if (typeid.CompareTo(order[2]) != 0)
-            {
-                typeid = order[2];
+            this.typeid = order[2];
+            if (typeid.CompareTo(this.typeid) != 0)
                 throw new Exception("Wrong typeid");
-            }
-            this.typeId = typeid;
             someSellOwned = orderSet.existsOrderOfType(Convert.ToInt32(typeid), 0);
             someBuyOwned = orderSet.existsOrderOfType(Convert.ToInt32(typeid), 1);
             //Find first order at target station
@@ -159,7 +156,7 @@ namespace noxiousET.src.orders
 
         public int getTypeId()
         {
-            return Convert.ToInt32(typeId);
+            return Convert.ToInt32(typeid);
         }
 
         public double getBuyPrice()

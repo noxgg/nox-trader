@@ -93,7 +93,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         if ((!orderAnalyzer.isBestOrderOwned(typeToAdjust) && shouldAdjustOrder(ref typeToAdjust)) || 
                             (orderAnalyzer.isBestOrderOwned(typeToAdjust) && isAnOverbid(typeToAdjust)))
                         {
-                            openAndIdentifyModifyWindow(8, 1.1, cursorPosition, orderAnalyzer.getOwnedPrice(typeToAdjust));
+                            openAndIdentifyModifyWindow(10, 1.2, cursorPosition, orderAnalyzer.getOwnedPrice(typeToAdjust));
                             inputValue(5, 2, uiElements.modifyOrderBox, Convert.ToString(orderAnalyzer.getPrice(typeToAdjust) + outbid(typeToAdjust)));
                             modifiedOnLastIteration = true;
                         }

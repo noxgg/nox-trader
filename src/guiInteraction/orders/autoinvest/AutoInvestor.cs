@@ -169,6 +169,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                             character.tradeQueue.Dequeue();
                             freeOrders--;
                             ordersCreated++;
+                            shouldIterateThroughExistingQueryResult = false;
                         }
                         else
                         {
@@ -182,14 +183,16 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                     catch (Exception e)
                     {
                         //If an error occured at any stage, just move item to end of the line and move on.
-                        if (modules.typeNames[orderAnalyzer.getTypeId()].Contains(modules.typeNames[currentItem]))
+                        if (modules.typeNames[orderAnalyzer.getTypeId()].Contains(modules.typeNames[currentItem]) && existingQueryResultIteration < 10)
                         {
                             shouldIterateThroughExistingQueryResult = true;
                             ++existingQueryResultIteration;
                         }
                         else
                         {
+                            shouldIterateThroughExistingQueryResult = false;
                             character.tradeQueue.Enqueue(character.tradeQueue.Dequeue());
+                            existingQueryResultIteration = 0;
                         }
                         logger.log(e.Message);
                     }

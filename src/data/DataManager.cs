@@ -185,6 +185,10 @@ namespace noxiousET.src.data
                         character.tradeQueue.Enqueue(typeid);
                         eventDispatcher.log("Added " + modules.typeNames[typeid] + " to queue for " + character.name);
                     }
+                    if (!character.tradeHistory.ContainsKey(typeid))
+                    {
+                        character.tradeHistory.Add(typeid, typeid);
+                    }
                 }
             }
             characterManager.save(name);
