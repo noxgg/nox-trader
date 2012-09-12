@@ -21,7 +21,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         private int sellOrdersCreated = 0;
         private int result = 0;
         private static readonly int TRITANIUM_TYPE_ID = 34;
-        private int freeOrders;
+        public int freeOrders {set; get;}
 
         public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
             : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
@@ -134,7 +134,6 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             int longOrderNameXOffset = 0;
             int longOrderNameYOffset = 0;
             int offsetFlag = 0;
-            int contextMenuShift = 0;
             int itemSoldOutModifier = 0;
 
 
@@ -144,10 +143,19 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             cursorPosition[1] = uiElements.itemsTop[1];
             consecutiveFailures = 0;
             wait(10);
-            while (openOrders > 0 && cursorPosition[1] <= uiElements.endOfItemsList)
+            while (openOrders > 0 && consecutiveFailures < 5)
             {
+                if (cursorPosition[1] > uiElements.itemsTop[1] + uiElements.lineHeight * 19)
+                {
+                    cursorPosition[1] -= uiElements.lineHeight;
+                    mouse.pointAndClick(LEFT, cursorPosition, 40,1,40);
+                    for (int k = 0; k < 19; ++k)
+                        keyboard.send("{DOWN}");
+                    wait(20);
+                    cursorPosition[1] = uiElements.itemsTop[1];
+                }
+
                 bestSellOrderPrice = bestBuyOrderPrice = readFailCounter = copyFailCounter = buyOrderQuantity = longOrderNameXOffset = longOrderNameYOffset = offsetFlag = itemSoldOutModifier = 0;
-                contextMenuShift = cursorPosition[1] > uiElements.itemsMenuTouchesBottomOfScreen ? cursorPosition[1] - uiElements.itemsMenuTouchesBottomOfScreen : 0;
                 activeOrderCheck = -1;
 
                 if (itemType == 0)
@@ -173,7 +181,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                         //RClick current line
                         mouse.pointAndClick(RIGHT, cursorPosition, 1, 1, 1);
                         //View details
-                        mouse.offsetAndClick(LEFT, uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] + offsetYModifier - contextMenuShift, 0, 2, 1);
+                        mouse.offsetAndClick(LEFT, uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] + offsetYModifier, 0, 2, 1);
 
                         if (itemType == 0)
                             offsetYModifier = (offsetYModifier == 0 && readFailCounter != 8) ? uiElements.itemsViewModuleDetailExtraOffset : 0;
@@ -185,17 +193,6 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
                     activeOrderCheck = orderAnalyzer.findBestBuyAndSell(out bestSellOrderPrice, out bestBuyOrderPrice, out itemName, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), character.fileNameTrimLength, ref offsetFlag);
                     ++readFailCounter;
-
-                    if (typeID == TRITANIUM_TYPE_ID)//Make sure we didn't accidentally open the ship's cargohold.
-                    {
-                        wait(10);
-                        if (itemType == 0)
-                            keyboard.send("{PGUP}");
-                        else
-                            keyboard.send("{PGDN}");
-                        wait(10);
-                        activeOrderCheck = -1;
-                    }
                 } while ((activeOrderCheck == -1 || activeOrderCheck == -2) && readFailCounter < 8);
 
                 if (readFailCounter >= 17)
@@ -222,8 +219,11 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 }
 
                 offsetYModifier = 0;
-                if (activeOrderCheck == 0 || activeOrderCheck == 1)//If a new buy order needs to be placed.
+                if ((activeOrderCheck == 0 || activeOrderCheck == 1) && character.adjustBuys)//If a new buy order needs to be placed.
                 {
+                    if (!character.tradeHistory.ContainsKey(typeID))
+                        character.tradeHistory.Add(typeID, typeID);
+
                     double temp;
                     buyOrderQuantity = getBuyOrderQty(bestBuyOrderPrice, bestSellOrderPrice);
 
@@ -338,7 +338,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                                 temp = 0;
                                 //RClick on current line.
                                 mouse.pointAndClick(RIGHT, cursorPosition, 0, 1, 1);
-                                mouse.pointAndClick(LEFT, cursorPosition[0] + uiElements.itemsSellItemOffset[0], cursorPosition[1] + uiElements.itemsSellItemOffset[1] + offsetYModifier - contextMenuShift, 0, 1, 1);
+                                mouse.pointAndClick(LEFT, cursorPosition[0] + uiElements.itemsSellItemOffset[0], cursorPosition[1] + uiElements.itemsSellItemOffset[1] + offsetYModifier, 0, 1, 1);
 
                                 if (copyFailCounter % 3 == 2)
                                     mouse.waitDuration *= 2;

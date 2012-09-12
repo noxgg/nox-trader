@@ -85,6 +85,7 @@
             this.configPathTB = new System.Windows.Forms.TextBox();
             this.clientPathTB = new System.Windows.Forms.TextBox();
             this.resolutionTab = new System.Windows.Forms.TabPage();
+            this.knownItemsListBox = new System.Windows.Forms.ListBox();
             this.aalogTab = new System.Windows.Forms.TabPage();
             this.autoAdjusterLB = new System.Windows.Forms.ListBox();
             this.altab = new System.Windows.Forms.TabPage();
@@ -98,6 +99,7 @@
             this.settingsPanel.SuspendLayout();
             this.resolutionPanel.SuspendLayout();
             this.panel1.SuspendLayout();
+            this.resolutionTab.SuspendLayout();
             this.aalogTab.SuspendLayout();
             this.altab.SuspendLayout();
             this.SuspendLayout();
@@ -659,12 +661,22 @@
             // resolutionTab
             // 
             this.resolutionTab.BackColor = System.Drawing.Color.Transparent;
+            this.resolutionTab.Controls.Add(this.knownItemsListBox);
             this.resolutionTab.Location = new System.Drawing.Point(4, 22);
             this.resolutionTab.Name = "resolutionTab";
             this.resolutionTab.Padding = new System.Windows.Forms.Padding(3);
             this.resolutionTab.Size = new System.Drawing.Size(404, 435);
             this.resolutionTab.TabIndex = 2;
             this.resolutionTab.Text = "Elements";
+            // 
+            // knownItemsListBox
+            // 
+            this.knownItemsListBox.FormattingEnabled = true;
+            this.knownItemsListBox.Location = new System.Drawing.Point(3, 6);
+            this.knownItemsListBox.Name = "knownItemsListBox";
+            this.knownItemsListBox.Size = new System.Drawing.Size(395, 420);
+            this.knownItemsListBox.TabIndex = 0;
+            this.knownItemsListBox.SelectedIndexChanged += new System.EventHandler(this.knownItemsListBox_SelectedIndexChanged);
             // 
             // aalogTab
             // 
@@ -748,6 +760,7 @@
             this.resolutionPanel.PerformLayout();
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
+            this.resolutionTab.ResumeLayout(false);
             this.aalogTab.ResumeLayout(false);
             this.altab.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -819,6 +832,7 @@
         private System.Windows.Forms.ListBox autoListerLB;
         private System.Windows.Forms.Button getTypeB;
         private System.Windows.Forms.Button unpauseB;
+        private System.Windows.Forms.ListBox knownItemsListBox;
 
 
     }

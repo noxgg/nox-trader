@@ -67,12 +67,9 @@ namespace noxiousET.src.guiInteraction
                 {
                     autoAdjuster.execute(character);
                     characterManager.save(character.name);
-                    if (autoAdjuster.getNumberOfFreeOrders() > 5)
-                    {
                         autoLister.execute(character);
                         characterManager.save(character.name);
-                    }
-                    if (autoLister.getNumberOfFreeOrders() > 5)
+                    if (autoLister.getNumberOfFreeOrders() > 3);
                     {
                         autoInvestor.execute(character);
                         characterManager.save(character.name);

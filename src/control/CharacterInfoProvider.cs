@@ -3,16 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using noxiousET.src.data.characters;
+using noxiousET.src.data.modules;
 
 namespace noxiousET.src.control
 {
     class CharacterInfoProvider
     {
         CharacterManager characterManager;
+        Modules modules;
 
-        public CharacterInfoProvider(CharacterManager characterManager)
+        public CharacterInfoProvider(CharacterManager characterManager, Modules modules)
         {
             this.characterManager = characterManager;
+            this.modules = modules;
         }
 
         public List<String> getCharacterList()
@@ -28,6 +31,11 @@ namespace noxiousET.src.control
         public String[] getCharacterInfo(String character)
         {
             return characterManager.convertCharacterToStringArray(characterManager.getCharacter(character));
+        }
+
+        public List<String> getCharacterKnownItems(String character)
+        {
+            return modules.getAlphabetizedItemNames(characterManager.getCharacter(character).tradeHistory.Values);
         }
 
         public void setSelectedCharacter(String character)

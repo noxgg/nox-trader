@@ -43,7 +43,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
-            if (character.adjustBuys)
+            if(character.adjustBuys)
                 adjust(EtConstants.BUY, uiElements.buyTop, uiElements.buySortByType);
             if (character.adjustSells)
                 adjust(EtConstants.SELL, uiElements.sellTop, uiElements.sellSortByType);
@@ -128,6 +128,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                     mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
                     for (int l = 0; l < orderAnalyzer.orderSet.getNumberOfBuysAndSells()[typeToAdjust]; ++l)
                         keyboard.send("{UP}");
+                    wait(20);
                     mouse.pointAndClick(LEFT, sortByTypeCoords, 0, 20, 20);
                 }
                 else if (i < (ceiling - 1))
@@ -136,11 +137,13 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                     mouse.pointAndClick(LEFT, cursorPosition[0], cursorPosition[1] - uiElements.lineHeight, 0, 40, 20);
                     for (int k = 0; k < uiElements.visLines[typeToAdjust]; ++k)
                         keyboard.send("{DOWN}");
+                    wait(20);
                 }
 
             }
             if (lastOrderModified)
                 confirmOrder(uiElements.OrderBoxOK, 1, typeToAdjust);
+            wait(20);
         }
 
         private Boolean isAnOverbid(int typeToAdjust)
@@ -232,11 +235,18 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 mouse.pointAndClick(DOUBLE, cursorPosition, 0, 1, 0);
                 mouse.pointAndClick(LEFT, uiElements.exportItem, 5, 1, 5);
                 fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
-                if (fileName != null && Convert.ToInt32(marketOrderio.readFirstEntryNoDelete(paths.logPath, fileName)[2]) != lastTypeId)
+                try
                 {
-                    logger.log("Iterations " + i);
-                    mouse.waitDuration = timing;
-                    return fileName;
+                    if (fileName != null && Convert.ToInt32(marketOrderio.readFirstEntryNoDelete(paths.logPath, fileName)[2]) != lastTypeId)
+                    {
+                        logger.log("Iterations " + i);
+                        mouse.waitDuration = timing;
+                        return fileName;
+                    }
+                }
+                catch (NullReferenceException e)
+                {
+                    logger.log(e.Message);
                 }
                 errorCheck();
                 mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);

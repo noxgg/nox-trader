@@ -50,7 +50,10 @@ namespace noxiousET.src.data.io
             String[] line = new String[14];
             readOpen();
             readLine();
-            line = readLine().Split(',');
+            if (line != null)
+            {
+                line = readLine().Split(',');
+            }
             readClose();
             return line;
         }

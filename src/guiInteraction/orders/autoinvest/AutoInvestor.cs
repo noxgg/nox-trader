@@ -81,7 +81,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 {
                     mouse.pointAndClick(LEFT, uiElements.bringMarketWindowToFront, 50, 1, 50);
                     mouse.pointAndClick(LEFT, uiElements.marketSearchTab, 1, 1, 1);
-                    inputValue(5, 2, uiElements.marketSearchInputBox, "test");
+                    inputValue(5, 2, uiElements.marketSearchInputBox, "wolff");
                 }
                 else
                 {
@@ -153,7 +153,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                     {
                         if (!shouldIterateThroughExistingQueryResult)
                             inputValue(5, 2, uiElements.marketSearchInputBox, modules.typeNames[currentItem]);
-                        marketOrderio.fileName = executeQueryAndExportResult(5, 2, modules.typeNames[currentItem], existingQueryResultIteration);
+                        marketOrderio.fileName = executeQueryAndExportResult(5, 1.2, modules.typeNames[currentItem], existingQueryResultIteration);
                         orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(currentItem), Convert.ToString(character.stationid));
                         //Uses data from orderAnalyzer.analyzeInvestment to decide if a buy order should be made
                         quantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
@@ -182,11 +182,20 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                     }
                     catch (Exception e)
                     {
-                        //If an error occured at any stage, just move item to end of the line and move on.
-                        if (modules.typeNames[orderAnalyzer.getTypeId()].Contains(modules.typeNames[currentItem]) && existingQueryResultIteration < 10)
+                        if (existingQueryResultIteration < 5)
                         {
                             shouldIterateThroughExistingQueryResult = true;
                             ++existingQueryResultIteration;
+                        }
+                        else
+                        {
+                            shouldIterateThroughExistingQueryResult = false;
+                            existingQueryResultIteration = 0;
+                        }
+                        
+                        //If an error occured at any stage, just move item to end of the line and move on.
+                        if (modules.typeNames[orderAnalyzer.getTypeId()].Contains(modules.typeNames[currentItem]) && currentItem != orderAnalyzer.getTypeId() && existingQueryResultIteration < 5)
+                        {
                         }
                         else
                         {
@@ -219,8 +228,17 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 mouse.pointAndClick(LEFT, uiElements.exportItem, 10, 1, 10);
                 fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
                 if (fileName != null && fileName.Contains(targetTypeName))
+                {
+                    mouse.waitDuration = timing;
                     return fileName;
+                }
                 mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                if (i > 2)
+                {
+                    if (getError() == 11)
+                        existingQueryResultIteration++;
+                    errorCheck();
+                }
             }
             mouse.waitDuration = timing;
             throw new Exception("Could not export query result");

@@ -14,5 +14,16 @@ namespace noxiousET.src.data.modules
             fittableModuleTypeIDs = new Dictionary<int, int>();
             typeNames = new Dictionary<int, string>();
         }
+
+        public List<string> getAlphabetizedItemNames(ICollection<int> typeids)
+        {
+            List<string> names = new List<string>();
+            foreach (int typeid in typeids)
+            {
+                names.Add(typeNames[typeid]);
+            }
+            names.Sort();
+            return names;
+        }
     }
 }

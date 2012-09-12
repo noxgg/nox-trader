@@ -21,6 +21,7 @@ namespace noxiousET.src.orders
         private double ownedBuyPrice;
         private double ownedSellPrice;
         private string typeid;
+        private int[] terminalItemIDs = { 5321, 2078 };
 
         public OrderAnalyzer()
         {
@@ -248,10 +249,15 @@ namespace noxiousET.src.orders
             line = file.readLine();
             parts = line.Split(',');
 
-            if (Convert.ToInt32(parts[2]) == terminalItemID)//There are no more items to scan.
+            if (terminalItemIDs[0] == (Convert.ToInt32(parts[2])) || terminalItemIDs[1] == (Convert.ToInt32(parts[2])))//There are no more items to scan.
             {
-                file.close();
-                return -4;
+                if (Convert.ToInt32(parts[2]) == terminalItemID)
+                {
+                    file.close();
+                    return -4;
+                }
+                else
+                    return -1;
             }
 
             typeID = Convert.ToInt32(parts[2]);

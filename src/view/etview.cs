@@ -4,6 +4,7 @@ using System.Windows.Forms;
 using noxiousET.src;
 using noxiousET.src.control;
 using noxiousET.src.etevent;
+using noxiousET.src.guiInteraction;
 
 
 //TODO: Margin trading scam? Order creation flags. Max order setting. Buying an item with no sell orders shifts buy order quantity box up.
@@ -19,8 +20,6 @@ namespace noxiousET
         delegate void ErrorEventListenerCallback(object o, string s);
         delegate void AutoAdjusterListenerCallback(object o, string s);
         delegate void AutoListerListenerCallback(object o, string s);
-
-
 
         public etview(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, AutomationRequester manualExecution)
         {
@@ -117,13 +116,14 @@ namespace noxiousET
                     charactersLB.SelectedIndex = 0;
                 else
                     charactersLB.SelectedIndex = charactersLB.Items.IndexOf(selected);
-                displayCharacterInfo(characterInfoProvider.getCharacterInfo((String)charactersLB.SelectedItem));
+                displayCharacterInfo(characterInfoProvider.getCharacterInfo((String)charactersLB.SelectedItem),
+                    characterInfoProvider.getCharacterKnownItems((String)charactersLB.SelectedItem));
             }
 
 
         }
 
-        private void displayCharacterInfo(String[] characterInfo)
+        private void displayCharacterInfo(String[] characterInfo, List<String> items)
         {
             int i = 0;
             nameTB.Text = (String)charactersLB.SelectedItem;
@@ -134,10 +134,16 @@ namespace noxiousET
             fileNameTrimLengthTB.Text = characterInfo[i++];
             itemsCB.Checked = Convert.ToBoolean(characterInfo[i++]);
             shipsCB.Checked = Convert.ToBoolean(characterInfo[i++]);
-            aabuyCB.Checked = Convert.ToBoolean(characterInfo[i++]);
             aasellCB.Checked = Convert.ToBoolean(characterInfo[i++]);
+            aabuyCB.Checked = Convert.ToBoolean(characterInfo[i++]);
             maximumOrdersTB.Text = characterInfo[i++];
             loginColorTB.Text = characterInfo[i++];
+
+            knownItemsListBox.Items.Clear();
+            foreach (String s in items)
+            {
+                knownItemsListBox.Items.Add(s);
+            }
         }
 
         private void noxiousET_load(object sender, EventArgs e)
@@ -147,7 +153,8 @@ namespace noxiousET
 
         private void charactersLB_SelectedIndexChanged(object sender, EventArgs e)
         {
-            displayCharacterInfo(characterInfoProvider.getCharacterInfo((String)charactersLB.SelectedItem));
+            displayCharacterInfo(characterInfoProvider.getCharacterInfo((String)charactersLB.SelectedItem),
+                characterInfoProvider.getCharacterKnownItems((String)charactersLB.SelectedItem));
             characterInfoProvider.setSelectedCharacter((String)charactersLB.SelectedItem);
         }
 
@@ -289,6 +296,11 @@ namespace noxiousET
         private void unpauseB_Click(object sender, EventArgs e)
         {
             eventDispatcher.unpauseEvent();
+        }
+
+        private void knownItemsListBox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            noxiousET.src.guiInteraction.Clipboard.setClip(knownItemsListBox.SelectedItem.ToString());
         }
     }
 }

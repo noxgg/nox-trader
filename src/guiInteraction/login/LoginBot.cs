@@ -102,6 +102,7 @@ namespace noxiousET.src.guiInteraction.login
             }
             shortCopyPasteMenu = false;
             confirmingOrderInput = true;
+            ProcessKiller.killProcess("EXEFile");
             throw new Exception("Error logging in. Failed to enter credentials.");
         }
 
@@ -118,6 +119,7 @@ namespace noxiousET.src.guiInteraction.login
                     return;
                 Thread.Sleep(1000);
             }
+            ProcessKiller.killProcess("EXEFile");
             throw new Exception("Error logging in. Could not find character select screen.");
         }
 
@@ -143,6 +145,7 @@ namespace noxiousET.src.guiInteraction.login
                     return 1;
                 }
             }
+            ProcessKiller.killProcess("EXEFile");
             throw new Exception("Error logging in. Could not find character select screen.");
         }
 
@@ -204,6 +207,7 @@ namespace noxiousET.src.guiInteraction.login
                 } 
                 Thread.Sleep(1000);
             }
+            ProcessKiller.killProcess("EXEFile");
             throw new Exception("Error Logging in. Failed to find environment.");
         }
 

@@ -16,7 +16,7 @@ namespace noxiousET
         {
             DataManager dataManager = new DataManager();
             PuppetMaster puppetMaster = new PuppetMaster(dataManager);
-            CharacterInfoProvider characterInfoProvider = new CharacterInfoProvider(dataManager.characterManager);
+            CharacterInfoProvider characterInfoProvider = new CharacterInfoProvider(dataManager.characterManager, dataManager.modules);
             ClientConfigInfoProvider clientConfigInfoProvider = new ClientConfigInfoProvider(dataManager.paths, dataManager.clientConfig);
             AutomationRequester manualExecution = new AutomationRequester(puppetMaster);
 
