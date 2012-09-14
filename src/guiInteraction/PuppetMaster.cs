@@ -33,7 +33,16 @@ namespace noxiousET.src.guiInteraction
             autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
             autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
             eventDispatcher = dataManager.eventDispatcher;
+            eventDispatcher.getTypesFromQuickbarRequestHandler += new EventDispatcher.GetTypesFromQuickbarRequestHandler(getTypeForCharacterFromQuickbar);
+            
         }
+
+
+        private void getTypeForCharacterFromQuickbar(object o, String name, String firstItemId, String lastItemId)
+        {
+            autoInvestor.getTypeForCharacterFromQuickbar(characterManager.getCharacter(name), firstItemId, lastItemId);
+        }
+
         public int automate(int iterations)
         {
             int result = 0;
@@ -65,11 +74,17 @@ namespace noxiousET.src.guiInteraction
                 result = loginBot.login(character);
                 if (result == 0)
                 {
+                    autoInvestor.prepEnvironment();
+                    autoInvestor.execute(character);
+                    characterManager.save(character.name);
+
+
+
                     autoAdjuster.execute(character);
                     characterManager.save(character.name);
                         autoLister.execute(character);
                         characterManager.save(character.name);
-                    if (autoLister.getNumberOfFreeOrders() > 3);
+                    if (autoLister.getNumberOfFreeOrders() > 3)
                     {
                         autoInvestor.execute(character);
                         characterManager.save(character.name);

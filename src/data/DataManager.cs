@@ -169,6 +169,7 @@ namespace noxiousET.src.data
             else
                 throw new Exception("Invalid integer value for given character data key");
         }
+        //TODO DEPRECIATE
         private void getTypeForCharacterFromNewestLogFile(object o, String name)
         {
             Character character = characterManager.getCharacter(name);

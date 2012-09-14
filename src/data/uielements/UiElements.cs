@@ -53,12 +53,13 @@
         public int endOfItemsList { set; get; }
         public int itemsMenuTouchesBottomOfScreen { set; get; }
         public int[] bringMarketWindowToFront { set; get; }
-        public int[] marketSearchTab { set; get; }
-        public int[] marketSearchInputBox { set; get; }
-        public int[] marketSearchResult { set; get; }
-        public int[] marketSearchExecute { set; get; }
-
+        public int[] marketWindowQuickbarFirstRow { set; get; }
+        public int[] marketWindowQuickbarScrollbarTop { set; get; }
+        public int[] marketWindowQuickbarScrollbarBottom { set; get; }
+        public int marketWindowQuickbarVisibleRows { set; get; }
+        public int[] marketWindowQuickbarScrollbarUnfixedPosition { set; get; }
         public int confirmingOrderAdjustment { set; get; }
+
 
         public UiElements() 
         {
@@ -115,10 +116,11 @@
 
 
             bringMarketWindowToFront = new int[2] { 1300, 735 };
-            marketSearchTab = new int[2] { 1300, 735 };
-            marketSearchInputBox = new int[2] { 1300, 735 };
-            marketSearchResult = new int[2] { 1300, 735 };
-            marketSearchExecute = new int[2] { 1300, 735 };
+            marketWindowQuickbarFirstRow = new int[2] { 1300, 735 };
+            marketWindowQuickbarScrollbarTop= new int[2] { 0, 0 };
+            marketWindowQuickbarScrollbarBottom = new int[2] { 0, 0 };
+            marketWindowQuickbarVisibleRows = 15;
+            marketWindowQuickbarScrollbarUnfixedPosition = new int[2] { 469, 200 };
 
             confirmingOrderAdjustment = 55;
         }

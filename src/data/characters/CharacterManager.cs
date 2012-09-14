@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using noxiousET.src.data.accounts;
 using noxiousET.src.data.io;
@@ -109,7 +110,7 @@ namespace noxiousET.src.data.characters
 
             textFileio.save(characterData, paths.configPath, name + ".ini");
 
-            saveTradeHistory(character.name, character.tradeHistory);
+            saveTradeHistory(character.name, character.tradeHistory.Keys);
             saveTradeQueue(character.name, character.tradeQueue.ToArray());
         }
 
@@ -164,11 +165,9 @@ namespace noxiousET.src.data.characters
         {
             Dictionary<int, int> tradeHistory = new Dictionary<int, int>();
             List<String> fileData = textFileio.read(paths.configPath + Paths.characterDataSubDir, name + tradeHistoryFileName);
-            int n = 0;
             foreach (String s in fileData)
             {
-                n = Convert.ToInt32(s);
-                tradeHistory.Add(n, n);
+                tradeHistory.Add(int.Parse(s), int.Parse(s));
             }
 
             return tradeHistory;
@@ -184,10 +183,10 @@ namespace noxiousET.src.data.characters
             textFileio.save(data, paths.configPath + Paths.characterDataSubDir, name + tradeQueueFileName);
         }
 
-        private void saveTradeHistory(String name, Dictionary<int, int> tradeHistory)
+        private void saveTradeHistory(String name, ICollection<int> tradeHistory)
         {
             List<Object> data = new List<Object>();
-            foreach (int n in tradeHistory.Keys)
+            foreach (int n in tradeHistory)
                 data.Add(n);
             textFileio.save(data, paths.configPath + Paths.characterDataSubDir, name + tradeHistoryFileName);
         }

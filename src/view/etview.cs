@@ -300,7 +300,13 @@ namespace noxiousET
 
         private void knownItemsListBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            noxiousET.src.guiInteraction.Clipboard.setClip(knownItemsListBox.SelectedItem.ToString());
+            if (knownItemsListBox.SelectedItem != null)
+                noxiousET.src.guiInteraction.Clipboard.setClip(knownItemsListBox.SelectedItem.ToString());
+        }
+
+        private void fetchItemsFromQuickbarButton_Click(object sender, EventArgs e)
+        {
+            eventDispatcher.getTypesFromQuickbarRequest((String)charactersLB.SelectedItem, firstItemTextbox.Text, lastItemTextbox.Text);
         }
     }
 }

@@ -55,6 +55,17 @@ namespace noxiousET.src.guiInteraction
                 wait(after);
         }
 
+        public void drag(int[] startCoords, int[]endCoords, int before, int between, int after)
+        {
+            pointCursor(startCoords);
+            wait(before);
+            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
+            wait(between);
+            pointCursor(endCoords);
+            wait(after);
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+        }
+
         public void pointAndClick(int clickType, int xPoint, int yPoint, int before, int between, int after)
         {
             pointAndClick(clickType, new int[] { xPoint, yPoint }, before, between, after);

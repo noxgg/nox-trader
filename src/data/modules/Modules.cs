@@ -25,5 +25,24 @@ namespace noxiousET.src.data.modules
             names.Sort();
             return names;
         }
+
+        public List<int> getTypeIdsAlphabetizedByItemName(ICollection<int> typeids)
+        {
+            List<string> names = new List<string>();
+            Dictionary<string, int> reverseTypeNames = new Dictionary<string, int>();
+            foreach (int typeid in typeids)
+            {
+                names.Add(typeNames[typeid]);
+                reverseTypeNames.Add(typeNames[typeid], typeid);
+            }
+            names.Sort();
+
+            List<int> sortedTypeIds = new List<int>();
+            foreach (string s in names)
+            {
+                sortedTypeIds.Add(reverseTypeNames[s]);
+            }
+            return sortedTypeIds;
+        }
     }
 }

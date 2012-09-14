@@ -98,14 +98,15 @@ namespace noxiousET.src.data.io
                 uiElements.itemsMenuTouchesBottomOfScreen = readLineAsInt();
                 uiElements.bringMarketWindowToFront[0] = readLineAsInt();
                 uiElements.bringMarketWindowToFront[1] = readLineAsInt();
-                uiElements.marketSearchTab[0] = readLineAsInt();
-                uiElements.marketSearchTab[1] = readLineAsInt();
-                uiElements.marketSearchInputBox[0] = readLineAsInt();
-                uiElements.marketSearchInputBox[1] = readLineAsInt();
-                uiElements.marketSearchResult[0] = readLineAsInt();
-                uiElements.marketSearchResult[1] = readLineAsInt();
-                uiElements.marketSearchExecute[0] = readLineAsInt();
-                uiElements.marketSearchExecute[1] = readLineAsInt();
+                uiElements.marketWindowQuickbarFirstRow[0] = readLineAsInt();
+                uiElements.marketWindowQuickbarFirstRow[1] = readLineAsInt();
+                uiElements.marketWindowQuickbarScrollbarTop[0] = readLineAsInt();
+                uiElements.marketWindowQuickbarScrollbarTop[1] = readLineAsInt();
+                uiElements.marketWindowQuickbarScrollbarBottom[0] = readLineAsInt();
+                uiElements.marketWindowQuickbarScrollbarBottom[1] = readLineAsInt();
+                uiElements.marketWindowQuickbarVisibleRows = readLineAsInt();
+                uiElements.marketWindowQuickbarScrollbarUnfixedPosition[0] = readLineAsInt();
+                uiElements.marketWindowQuickbarScrollbarUnfixedPosition[1] = readLineAsInt();
                 uiElements.confirmingOrderAdjustment = readLineAsInt();
 
                 readClose();

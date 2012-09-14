@@ -33,8 +33,9 @@ namespace noxiousET.src.orders
                 parts = line.Split(',');
 
                 typeID = Convert.ToInt32(parts[1]);
-                if (!tradeHistory.ContainsKey(typeID))
-                    tradeHistory.Add(typeID, typeID);
+                //TODO DEPRECIATE?
+                //if (!tradeHistory.ContainsKey(typeID))
+                //    tradeHistory.Add(typeID, typeID);
 
                 if (parts[9].CompareTo("False") == 0) //If this is a sell order
                 {

@@ -85,6 +85,9 @@
             this.configPathTB = new System.Windows.Forms.TextBox();
             this.clientPathTB = new System.Windows.Forms.TextBox();
             this.resolutionTab = new System.Windows.Forms.TabPage();
+            this.lastItemTextbox = new System.Windows.Forms.TextBox();
+            this.firstItemTextbox = new System.Windows.Forms.TextBox();
+            this.fetchItemsFromQuickbarButton = new System.Windows.Forms.Button();
             this.knownItemsListBox = new System.Windows.Forms.ListBox();
             this.aalogTab = new System.Windows.Forms.TabPage();
             this.autoAdjusterLB = new System.Windows.Forms.ListBox();
@@ -661,6 +664,9 @@
             // resolutionTab
             // 
             this.resolutionTab.BackColor = System.Drawing.Color.Transparent;
+            this.resolutionTab.Controls.Add(this.lastItemTextbox);
+            this.resolutionTab.Controls.Add(this.firstItemTextbox);
+            this.resolutionTab.Controls.Add(this.fetchItemsFromQuickbarButton);
             this.resolutionTab.Controls.Add(this.knownItemsListBox);
             this.resolutionTab.Location = new System.Drawing.Point(4, 22);
             this.resolutionTab.Name = "resolutionTab";
@@ -669,12 +675,38 @@
             this.resolutionTab.TabIndex = 2;
             this.resolutionTab.Text = "Elements";
             // 
+            // lastItemTextbox
+            // 
+            this.lastItemTextbox.Location = new System.Drawing.Point(262, 8);
+            this.lastItemTextbox.Name = "lastItemTextbox";
+            this.lastItemTextbox.Size = new System.Drawing.Size(100, 20);
+            this.lastItemTextbox.TabIndex = 3;
+            this.lastItemTextbox.Text = "20060";
+            // 
+            // firstItemTextbox
+            // 
+            this.firstItemTextbox.Location = new System.Drawing.Point(156, 8);
+            this.firstItemTextbox.Name = "firstItemTextbox";
+            this.firstItemTextbox.Size = new System.Drawing.Size(100, 20);
+            this.firstItemTextbox.TabIndex = 2;
+            this.firstItemTextbox.Text = "12235";
+            // 
+            // fetchItemsFromQuickbarButton
+            // 
+            this.fetchItemsFromQuickbarButton.Location = new System.Drawing.Point(6, 6);
+            this.fetchItemsFromQuickbarButton.Name = "fetchItemsFromQuickbarButton";
+            this.fetchItemsFromQuickbarButton.Size = new System.Drawing.Size(144, 23);
+            this.fetchItemsFromQuickbarButton.TabIndex = 1;
+            this.fetchItemsFromQuickbarButton.Text = "Fetch Items From Quickbar";
+            this.fetchItemsFromQuickbarButton.UseVisualStyleBackColor = true;
+            this.fetchItemsFromQuickbarButton.Click += new System.EventHandler(this.fetchItemsFromQuickbarButton_Click);
+            // 
             // knownItemsListBox
             // 
             this.knownItemsListBox.FormattingEnabled = true;
-            this.knownItemsListBox.Location = new System.Drawing.Point(3, 6);
+            this.knownItemsListBox.Location = new System.Drawing.Point(3, 32);
             this.knownItemsListBox.Name = "knownItemsListBox";
-            this.knownItemsListBox.Size = new System.Drawing.Size(395, 420);
+            this.knownItemsListBox.Size = new System.Drawing.Size(395, 394);
             this.knownItemsListBox.TabIndex = 0;
             this.knownItemsListBox.SelectedIndexChanged += new System.EventHandler(this.knownItemsListBox_SelectedIndexChanged);
             // 
@@ -761,6 +793,7 @@
             this.panel1.ResumeLayout(false);
             this.panel1.PerformLayout();
             this.resolutionTab.ResumeLayout(false);
+            this.resolutionTab.PerformLayout();
             this.aalogTab.ResumeLayout(false);
             this.altab.ResumeLayout(false);
             this.ResumeLayout(false);
@@ -833,6 +866,9 @@
         private System.Windows.Forms.Button getTypeB;
         private System.Windows.Forms.Button unpauseB;
         private System.Windows.Forms.ListBox knownItemsListBox;
+        private System.Windows.Forms.Button fetchItemsFromQuickbarButton;
+        private System.Windows.Forms.TextBox lastItemTextbox;
+        private System.Windows.Forms.TextBox firstItemTextbox;
 
 
     }
