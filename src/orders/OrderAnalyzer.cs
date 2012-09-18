@@ -224,9 +224,8 @@ namespace noxiousET.src.orders
                 return bestSellOwned;
         }
 
-        public double findBestBuyAndSell(out double bestSellOrderPrice, out double bestBuyOrderPrice, out string itemName, out int typeID, string path, ref int terminalItemID, string stationID, int fileNameTrimLength, ref int offsetFlag)
+        public double findBestBuyAndSell(out double bestSellOrderPrice, out double bestBuyOrderPrice, out int typeID, string path, ref int terminalItemID, string stationID, ref int offsetFlag)
         {
-            itemName = "";
             bestBuyOrderPrice = bestSellOrderPrice = 0;
             typeID = 0;
 
@@ -237,8 +236,7 @@ namespace noxiousET.src.orders
             string[] topSellOrder = { "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1" };
             string[] topBuyOrder = { "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1" };
             int[] numOfActiveOrders = orderSet.getNumberOfBuysAndSells();
-            itemName = file.getItemName(fileNameTrimLength);
-            if (itemName.CompareTo("[Parse Error]") == 0)//If we're still looking at the buy orders file, return as if it were a previous order.
+            if (file.getFileName().Contains("My Orders"))//If we're still looking at the buy orders file, return as if it were a previous order.
             {
                 file.close();
                 return -2;

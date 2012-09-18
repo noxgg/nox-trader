@@ -6,7 +6,8 @@ namespace noxiousET.src.data.characters
 {
     class Character
     {
-        public String name { set; get;  }
+        public String name { set; get; }
+        public String id { set; get; }
         public Account account { set; get; }
         public Boolean tradeItems { set; get; }
         public Boolean tradeShips { set; get; }
@@ -14,8 +15,6 @@ namespace noxiousET.src.data.characters
         public Boolean adjustBuys { set; get; }
         public int maximumOrders { set; get; }
         public int stationid { set; get; }
-        public int fileNameTrimLength { set; get; }
-        public int autoAdjustsPerAutoList { set; get; }
         public List<int[]> quantityThreshHolds { set; get; }
         public int loginColor { set; get; }
         public Queue<int> tradeQueue { set; get; }
@@ -25,23 +24,6 @@ namespace noxiousET.src.data.characters
         {
             this.name = name;
             this.quantityThreshHolds = new List<int[]>();
-        }
-
-        public Character(String name, Account account, Boolean tradeItems, Boolean tradeShips, Boolean adjustSells, Boolean adjustBuys, int maximumOrders,
-            int stationid, int fileNameTrimLength, int autoAdjustsPerAutoList, List<int[]> quantityThreshHolds, int loginColors)
-        {
-            this.name = name;
-            this.account = account;
-            this.tradeItems = tradeItems;
-            this.tradeShips = tradeShips;
-            this.adjustSells = adjustSells;
-            this.adjustBuys = adjustBuys;
-            this.maximumOrders = maximumOrders;
-            this.stationid = stationid;
-            this.fileNameTrimLength = fileNameTrimLength;
-            this.autoAdjustsPerAutoList = autoAdjustsPerAutoList;
-            this.quantityThreshHolds = quantityThreshHolds;
-            this.loginColor = loginColors;
         }
     }
 }

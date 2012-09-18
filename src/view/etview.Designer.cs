@@ -37,12 +37,10 @@
             this.saveAllSettingsB = new System.Windows.Forms.Button();
             this.saveSelectedCharacterB = new System.Windows.Forms.Button();
             this.panel2 = new System.Windows.Forms.Panel();
-            this.autoAdjustsPerAutoListL = new System.Windows.Forms.Label();
-            this.autoAdjustsPerAutoListTB = new System.Windows.Forms.TextBox();
+            this.characterIdLabel = new System.Windows.Forms.Label();
+            this.characterIdTB = new System.Windows.Forms.TextBox();
             this.maximumOrdersL = new System.Windows.Forms.Label();
             this.maximumOrdersTB = new System.Windows.Forms.TextBox();
-            this.fileNameTrimLengthL = new System.Windows.Forms.Label();
-            this.fileNameTrimLengthTB = new System.Windows.Forms.TextBox();
             this.stationidL = new System.Windows.Forms.Label();
             this.stationidTB = new System.Windows.Forms.TextBox();
             this.loginColorL = new System.Windows.Forms.Label();
@@ -62,7 +60,9 @@
             this.passwordTB = new System.Windows.Forms.TextBox();
             this.nameTB = new System.Windows.Forms.TextBox();
             this.loginTB = new System.Windows.Forms.TextBox();
+            this.accountIdLabel = new System.Windows.Forms.Label();
             this.charactersL = new System.Windows.Forms.Label();
+            this.accountIdTB = new System.Windows.Forms.TextBox();
             this.charactersLB = new System.Windows.Forms.ListBox();
             this.settingsPanel = new System.Windows.Forms.Panel();
             this.timingL = new System.Windows.Forms.Label();
@@ -77,10 +77,11 @@
             this.yResolutionTB = new System.Windows.Forms.TextBox();
             this.xResolutionTB = new System.Windows.Forms.TextBox();
             this.panel1 = new System.Windows.Forms.Panel();
+            this.eveSettingsTB = new System.Windows.Forms.TextBox();
+            this.eveSettingsLabel = new System.Windows.Forms.Label();
             this.configPathL = new System.Windows.Forms.Label();
             this.logPathL = new System.Windows.Forms.Label();
             this.EVEPathL = new System.Windows.Forms.Label();
-            this.pathsL = new System.Windows.Forms.Label();
             this.logPathTB = new System.Windows.Forms.TextBox();
             this.configPathTB = new System.Windows.Forms.TextBox();
             this.clientPathTB = new System.Windows.Forms.TextBox();
@@ -201,14 +202,14 @@
             // panel2
             // 
             this.panel2.BackColor = System.Drawing.Color.Gainsboro;
-            this.panel2.Controls.Add(this.autoAdjustsPerAutoListL);
-            this.panel2.Controls.Add(this.autoAdjustsPerAutoListTB);
+            this.panel2.Controls.Add(this.characterIdLabel);
+            this.panel2.Controls.Add(this.characterIdTB);
             this.panel2.Controls.Add(this.maximumOrdersL);
             this.panel2.Controls.Add(this.maximumOrdersTB);
-            this.panel2.Controls.Add(this.fileNameTrimLengthL);
-            this.panel2.Controls.Add(this.fileNameTrimLengthTB);
+            this.panel2.Controls.Add(this.accountIdLabel);
             this.panel2.Controls.Add(this.stationidL);
             this.panel2.Controls.Add(this.stationidTB);
+            this.panel2.Controls.Add(this.accountIdTB);
             this.panel2.Controls.Add(this.loginColorL);
             this.panel2.Controls.Add(this.loginColorTB);
             this.panel2.Controls.Add(this.alsellCB);
@@ -231,27 +232,27 @@
             this.panel2.Size = new System.Drawing.Size(181, 297);
             this.panel2.TabIndex = 8;
             // 
-            // autoAdjustsPerAutoListL
+            // characterIdLabel
             // 
-            this.autoAdjustsPerAutoListL.AutoSize = true;
-            this.autoAdjustsPerAutoListL.Location = new System.Drawing.Point(4, 208);
-            this.autoAdjustsPerAutoListL.Name = "autoAdjustsPerAutoListL";
-            this.autoAdjustsPerAutoListL.Size = new System.Drawing.Size(78, 13);
-            this.autoAdjustsPerAutoListL.TabIndex = 28;
-            this.autoAdjustsPerAutoListL.Text = "Adjusts per List";
+            this.characterIdLabel.AutoSize = true;
+            this.characterIdLabel.Location = new System.Drawing.Point(12, 208);
+            this.characterIdLabel.Name = "characterIdLabel";
+            this.characterIdLabel.Size = new System.Drawing.Size(67, 13);
+            this.characterIdLabel.TabIndex = 28;
+            this.characterIdLabel.Text = "Character ID";
             // 
-            // autoAdjustsPerAutoListTB
+            // characterIdTB
             // 
-            this.autoAdjustsPerAutoListTB.Location = new System.Drawing.Point(80, 205);
-            this.autoAdjustsPerAutoListTB.Name = "autoAdjustsPerAutoListTB";
-            this.autoAdjustsPerAutoListTB.Size = new System.Drawing.Size(87, 20);
-            this.autoAdjustsPerAutoListTB.TabIndex = 27;
-            this.autoAdjustsPerAutoListTB.TextChanged += new System.EventHandler(this.autoAdjustsPerAutoListTB_TextChanged);
+            this.characterIdTB.Location = new System.Drawing.Point(80, 205);
+            this.characterIdTB.Name = "characterIdTB";
+            this.characterIdTB.Size = new System.Drawing.Size(87, 20);
+            this.characterIdTB.TabIndex = 27;
+            this.characterIdTB.TextChanged += new System.EventHandler(this.characterIdTB_TextChanged);
             // 
             // maximumOrdersL
             // 
             this.maximumOrdersL.AutoSize = true;
-            this.maximumOrdersL.Location = new System.Drawing.Point(21, 182);
+            this.maximumOrdersL.Location = new System.Drawing.Point(21, 156);
             this.maximumOrdersL.Name = "maximumOrdersL";
             this.maximumOrdersL.Size = new System.Drawing.Size(61, 13);
             this.maximumOrdersL.TabIndex = 26;
@@ -259,28 +260,11 @@
             // 
             // maximumOrdersTB
             // 
-            this.maximumOrdersTB.Location = new System.Drawing.Point(80, 179);
+            this.maximumOrdersTB.Location = new System.Drawing.Point(80, 153);
             this.maximumOrdersTB.Name = "maximumOrdersTB";
             this.maximumOrdersTB.Size = new System.Drawing.Size(87, 20);
             this.maximumOrdersTB.TabIndex = 25;
             this.maximumOrdersTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.maximumOrdersTB_KeyUp);
-            // 
-            // fileNameTrimLengthL
-            // 
-            this.fileNameTrimLengthL.AutoSize = true;
-            this.fileNameTrimLengthL.Location = new System.Drawing.Point(19, 156);
-            this.fileNameTrimLengthL.Name = "fileNameTrimLengthL";
-            this.fileNameTrimLengthL.Size = new System.Drawing.Size(63, 13);
-            this.fileNameTrimLengthL.TabIndex = 24;
-            this.fileNameTrimLengthL.Text = "Trim Length";
-            // 
-            // fileNameTrimLengthTB
-            // 
-            this.fileNameTrimLengthTB.Location = new System.Drawing.Point(80, 153);
-            this.fileNameTrimLengthTB.Name = "fileNameTrimLengthTB";
-            this.fileNameTrimLengthTB.Size = new System.Drawing.Size(87, 20);
-            this.fileNameTrimLengthTB.TabIndex = 23;
-            this.fileNameTrimLengthTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.fileNameTrimLengthTB_KeyUp);
             // 
             // stationidL
             // 
@@ -459,6 +443,15 @@
             this.loginTB.TabIndex = 0;
             this.loginTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.loginTB_KeyUp);
             // 
+            // accountIdLabel
+            // 
+            this.accountIdLabel.AutoSize = true;
+            this.accountIdLabel.Location = new System.Drawing.Point(19, 184);
+            this.accountIdLabel.Name = "accountIdLabel";
+            this.accountIdLabel.Size = new System.Drawing.Size(61, 13);
+            this.accountIdLabel.TabIndex = 24;
+            this.accountIdLabel.Text = "Account ID";
+            // 
             // charactersL
             // 
             this.charactersL.AutoSize = true;
@@ -467,6 +460,14 @@
             this.charactersL.Size = new System.Drawing.Size(58, 13);
             this.charactersL.TabIndex = 7;
             this.charactersL.Text = "Characters";
+            // 
+            // accountIdTB
+            // 
+            this.accountIdTB.Location = new System.Drawing.Point(80, 181);
+            this.accountIdTB.Name = "accountIdTB";
+            this.accountIdTB.Size = new System.Drawing.Size(87, 20);
+            this.accountIdTB.TabIndex = 23;
+            this.accountIdTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.accountIdTB_KeyUp);
             // 
             // charactersLB
             // 
@@ -592,10 +593,11 @@
             // panel1
             // 
             this.panel1.BackColor = System.Drawing.Color.Gainsboro;
+            this.panel1.Controls.Add(this.eveSettingsTB);
+            this.panel1.Controls.Add(this.eveSettingsLabel);
             this.panel1.Controls.Add(this.configPathL);
             this.panel1.Controls.Add(this.logPathL);
             this.panel1.Controls.Add(this.EVEPathL);
-            this.panel1.Controls.Add(this.pathsL);
             this.panel1.Controls.Add(this.logPathTB);
             this.panel1.Controls.Add(this.configPathTB);
             this.panel1.Controls.Add(this.clientPathTB);
@@ -604,10 +606,27 @@
             this.panel1.Size = new System.Drawing.Size(181, 106);
             this.panel1.TabIndex = 3;
             // 
+            // eveSettingsTB
+            // 
+            this.eveSettingsTB.Location = new System.Drawing.Point(72, 82);
+            this.eveSettingsTB.Name = "eveSettingsTB";
+            this.eveSettingsTB.Size = new System.Drawing.Size(100, 20);
+            this.eveSettingsTB.TabIndex = 9;
+            this.eveSettingsTB.TextChanged += new System.EventHandler(this.eveSettingsTB_TextChanged);
+            // 
+            // eveSettingsLabel
+            // 
+            this.eveSettingsLabel.AutoSize = true;
+            this.eveSettingsLabel.Location = new System.Drawing.Point(1, 85);
+            this.eveSettingsLabel.Name = "eveSettingsLabel";
+            this.eveSettingsLabel.Size = new System.Drawing.Size(69, 13);
+            this.eveSettingsLabel.TabIndex = 8;
+            this.eveSettingsLabel.Text = "EVE Settings";
+            // 
             // configPathL
             // 
             this.configPathL.AutoSize = true;
-            this.configPathL.Location = new System.Drawing.Point(32, 26);
+            this.configPathL.Location = new System.Drawing.Point(32, 7);
             this.configPathL.Name = "configPathL";
             this.configPathL.Size = new System.Drawing.Size(37, 13);
             this.configPathL.TabIndex = 6;
@@ -616,7 +635,7 @@
             // logPathL
             // 
             this.logPathL.AutoSize = true;
-            this.logPathL.Location = new System.Drawing.Point(39, 78);
+            this.logPathL.Location = new System.Drawing.Point(39, 59);
             this.logPathL.Name = "logPathL";
             this.logPathL.Size = new System.Drawing.Size(30, 13);
             this.logPathL.TabIndex = 5;
@@ -625,41 +644,35 @@
             // EVEPathL
             // 
             this.EVEPathL.AutoSize = true;
-            this.EVEPathL.Location = new System.Drawing.Point(36, 52);
+            this.EVEPathL.Location = new System.Drawing.Point(36, 33);
             this.EVEPathL.Name = "EVEPathL";
             this.EVEPathL.Size = new System.Drawing.Size(33, 13);
             this.EVEPathL.TabIndex = 4;
             this.EVEPathL.Text = "Client";
             // 
-            // pathsL
-            // 
-            this.pathsL.AutoSize = true;
-            this.pathsL.Location = new System.Drawing.Point(4, 4);
-            this.pathsL.Name = "pathsL";
-            this.pathsL.Size = new System.Drawing.Size(34, 13);
-            this.pathsL.TabIndex = 3;
-            this.pathsL.Text = "Paths";
-            // 
             // logPathTB
             // 
-            this.logPathTB.Location = new System.Drawing.Point(72, 75);
+            this.logPathTB.Location = new System.Drawing.Point(72, 56);
             this.logPathTB.Name = "logPathTB";
             this.logPathTB.Size = new System.Drawing.Size(100, 20);
             this.logPathTB.TabIndex = 2;
+            this.logPathTB.TextChanged += new System.EventHandler(this.logPathTB_TextChanged);
             // 
             // configPathTB
             // 
-            this.configPathTB.Location = new System.Drawing.Point(72, 23);
+            this.configPathTB.Location = new System.Drawing.Point(72, 4);
             this.configPathTB.Name = "configPathTB";
             this.configPathTB.Size = new System.Drawing.Size(100, 20);
             this.configPathTB.TabIndex = 1;
+            this.configPathTB.TextChanged += new System.EventHandler(this.configPathTB_TextChanged);
             // 
             // clientPathTB
             // 
-            this.clientPathTB.Location = new System.Drawing.Point(72, 49);
+            this.clientPathTB.Location = new System.Drawing.Point(72, 30);
             this.clientPathTB.Name = "clientPathTB";
             this.clientPathTB.Size = new System.Drawing.Size(100, 20);
             this.clientPathTB.TabIndex = 0;
+            this.clientPathTB.TextChanged += new System.EventHandler(this.clientPathTB_TextChanged);
             // 
             // resolutionTab
             // 
@@ -812,7 +825,6 @@
         private System.Windows.Forms.Label configPathL;
         private System.Windows.Forms.Label logPathL;
         private System.Windows.Forms.Label EVEPathL;
-        private System.Windows.Forms.Label pathsL;
         private System.Windows.Forms.TabPage resolutionTab;
         private System.Windows.Forms.Panel resolutionPanel;
         private System.Windows.Forms.Label yResolutionL;
@@ -836,8 +848,8 @@
         private System.Windows.Forms.TextBox loginTB;
         private System.Windows.Forms.Label charactersL;
         private System.Windows.Forms.ListBox charactersLB;
-        private System.Windows.Forms.Label fileNameTrimLengthL;
-        private System.Windows.Forms.TextBox fileNameTrimLengthTB;
+        private System.Windows.Forms.Label accountIdLabel;
+        private System.Windows.Forms.TextBox accountIdTB;
         private System.Windows.Forms.Label stationidL;
         private System.Windows.Forms.TextBox stationidTB;
         private System.Windows.Forms.Label loginColorL;
@@ -852,8 +864,8 @@
         private System.Windows.Forms.Label tradesL;
         private System.Windows.Forms.Label maximumOrdersL;
         private System.Windows.Forms.TextBox maximumOrdersTB;
-        private System.Windows.Forms.Label autoAdjustsPerAutoListL;
-        private System.Windows.Forms.TextBox autoAdjustsPerAutoListTB;
+        private System.Windows.Forms.Label characterIdLabel;
+        private System.Windows.Forms.TextBox characterIdTB;
         private System.Windows.Forms.Button saveAllSettingsB;
         private System.Windows.Forms.Button saveSelectedCharacterB;
         private System.Windows.Forms.Button automateB;
@@ -869,6 +881,9 @@
         private System.Windows.Forms.Button fetchItemsFromQuickbarButton;
         private System.Windows.Forms.TextBox lastItemTextbox;
         private System.Windows.Forms.TextBox firstItemTextbox;
+        private System.Windows.Forms.Label eveSettingsLabel;
+        private System.Windows.Forms.TextBox configPathTBeveSettingsTB;
+        private System.Windows.Forms.TextBox eveSettingsTB;
 
 
     }

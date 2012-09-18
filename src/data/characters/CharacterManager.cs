@@ -18,8 +18,8 @@ namespace noxiousET.src.data.characters
         private AccountManager accountManager;
         private Paths paths;
         private EventDispatcher eventDispatcher;
-        private static readonly string tradeQueueFileName = "Queue.dat";
-        private static readonly string tradeHistoryFileName = "History.dat";
+        private static readonly string tradeQueueFileName = "Queue.ini";
+        private static readonly string tradeHistoryFileName = "History.ini";
 
         public CharacterManager(Paths paths, AccountManager accountManager)
         {
@@ -62,7 +62,7 @@ namespace noxiousET.src.data.characters
             return result;
         }
 
-        public void load(String[] names)
+        public void load(List<String> names)
         {
             foreach (String n in names)
                 load(n);
@@ -85,27 +85,27 @@ namespace noxiousET.src.data.characters
             List<Object> characterData = new List<Object>();
             Character character = characters[name];
 
-            characterData.Add(character.account.l);
-            characterData.Add(character.account.p);
-            characterData.Add(character.autoAdjustsPerAutoList);
-            characterData.Add(character.stationid);
-            characterData.Add(character.fileNameTrimLength);
-            characterData.Add(character.tradeItems);
-            characterData.Add(character.tradeShips);
-            characterData.Add(character.adjustSells);
-            characterData.Add(character.adjustBuys);
-            characterData.Add(character.maximumOrders);
-            characterData.Add(character.loginColor);
+            characterData.Add(EtConstants.ACCOUNT_LOGIN_KEY + "=" + character.account.l);
+            characterData.Add(EtConstants.ACCOUNT_PASSWORD_KEY + "=" + character.account.p);
+            characterData.Add(EtConstants.ACCOUNT_ID_KEY + "=" + character.account.id);
+            characterData.Add(EtConstants.CHARACTER_ID_KEY + "=" + character.id);
+            characterData.Add(EtConstants.CHARACTER_STATION_ID_KEY + "=" + character.stationid);
+            characterData.Add(EtConstants.CHARACTER_TRADE_SHIPS_KEY + "=" + character.tradeItems);
+            characterData.Add(EtConstants.CHARACTER_TRADE_ITEMS_KEY + "=" + character.tradeShips);
+            characterData.Add(EtConstants.CHARACTER_ADJUST_SELLS_KEY + "=" + character.adjustSells);
+            characterData.Add(EtConstants.CHARACTER_ADJUST_BUYS_KEY + "=" + character.adjustBuys);
+            characterData.Add(EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY + "=" + character.maximumOrders);
+            characterData.Add(EtConstants.CHARACTER_LOGIN_COLOR_KEY + "=" + character.loginColor);
 
             if (this.active.Contains(character.name))
-                characterData.Add(true);
+                characterData.Add(EtConstants.CHARACTER_ACTIVE_STATE + "=" + "true");
             else
-                characterData.Add(false);
+                characterData.Add(EtConstants.CHARACTER_ACTIVE_STATE + "=" + "false");
 
             foreach (int[] i in character.quantityThreshHolds)
             {
-                characterData.Add(i[0]);
-                characterData.Add(i[1]);
+                characterData.Add(EtConstants.CHARACTER_THRESHHOLD_PRICE + "=" + i[0]);
+                characterData.Add(EtConstants.CHARACTER_THRESHHOLD_QUANTITY + "=" + i[1]);
             }
 
             textFileio.save(characterData, paths.configPath, name + ".ini");
@@ -119,28 +119,50 @@ namespace noxiousET.src.data.characters
             List<String> characterData = textFileio.read(paths.configPath, name + ".ini");
             Character character = new Character(name);
 
-            int line = 0;
-            Account account = new Account(characterData[line++], characterData[line++]);
+            Dictionary<string, string> characterSettings = new Dictionary<string,string>();
+            List<int> threshholdPrices = new List<int>();
+            List<int> threshholdQuantities = new List<int>();
+
+            String[] split;
+
+            foreach (string line in characterData)
+            {
+                split = line.Split('=');
+
+                if (split[0].Equals(EtConstants.CHARACTER_THRESHHOLD_PRICE))
+                {
+                    threshholdPrices.Add(int.Parse(split[1]));
+                }
+                else if (split[0].Equals(EtConstants.CHARACTER_THRESHHOLD_QUANTITY))
+                {
+                    threshholdQuantities.Add(int.Parse(split[1]));
+                }
+                else
+                {
+                    characterSettings.Add(split[0], split[1]);
+                }
+            }
+
+            Account account = new Account(characterSettings[EtConstants.ACCOUNT_LOGIN_KEY], characterSettings[EtConstants.ACCOUNT_PASSWORD_KEY], characterSettings[EtConstants.ACCOUNT_ID_KEY]);
             accountManager.addAccount(account);
             character.account = account;
-            character.autoAdjustsPerAutoList = Convert.ToInt32(characterData[line++]);
-            character.stationid = Convert.ToInt32(characterData[line++]);
-            character.fileNameTrimLength = Convert.ToInt32(characterData[line++]);
-            character.tradeItems = Convert.ToBoolean(characterData[line++]);
-            character.tradeShips = Convert.ToBoolean(characterData[line++]);
-            character.adjustSells = Convert.ToBoolean(characterData[line++]);
-            character.adjustBuys = Convert.ToBoolean(characterData[line++]);
-            character.maximumOrders = Convert.ToInt32(characterData[line++]);
-            character.loginColor = Convert.ToInt32(characterData[line++]);
+            character.id = characterSettings[EtConstants.CHARACTER_ID_KEY];
+            character.stationid = Convert.ToInt32(characterSettings[EtConstants.CHARACTER_STATION_ID_KEY]);
+            character.tradeItems = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_TRADE_ITEMS_KEY]);
+            character.tradeShips = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_TRADE_SHIPS_KEY]);
+            character.adjustSells = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_ADJUST_SELLS_KEY]);
+            character.adjustBuys = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_ADJUST_BUYS_KEY]);
+            character.maximumOrders = Convert.ToInt32(characterSettings[EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY]);
+            character.loginColor = Convert.ToInt32(characterSettings[EtConstants.CHARACTER_LOGIN_COLOR_KEY]);
 
-            if (Convert.ToBoolean(characterData[line++]))
+            if (Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_ACTIVE_STATE]))
                 active.Add(name);
             else
                 inactive.Add(name);
 
-            while (line < characterData.Count)
+            for (int i = 0; i < threshholdPrices.Count; i++ )
             {
-                character.quantityThreshHolds.Add(new int[] { Convert.ToInt32(characterData[line++]), Convert.ToInt32(characterData[line++]) });
+                character.quantityThreshHolds.Add(new int[] { threshholdPrices[i], threshholdQuantities[i] });
             }
             characters.Add(name, character);
 
@@ -191,23 +213,22 @@ namespace noxiousET.src.data.characters
             textFileio.save(data, paths.configPath + Paths.characterDataSubDir, name + tradeHistoryFileName);
         }
 
-        public String[] convertCharacterToStringArray(Character character)
+        public Dictionary<String, String> convertCharacterToDictionary(Character character)
         {
-            String[] result = new String[12];
-            int i = 0;
+            Dictionary<String, String> result = new Dictionary<String, String>();
 
-            result[i++] = character.account.l;
-            result[i++] = character.account.p;
-            result[i++] = Convert.ToString(character.autoAdjustsPerAutoList);
-            result[i++] = Convert.ToString(character.stationid);
-            result[i++] = Convert.ToString(character.fileNameTrimLength);
-            result[i++] = Convert.ToString(character.tradeItems);
-            result[i++] = Convert.ToString(character.tradeShips);
-            result[i++] = Convert.ToString(character.adjustBuys);
-            result[i++] = Convert.ToString(character.adjustSells);
-            result[i++] = Convert.ToString(character.maximumOrders);
-            result[i++] = Convert.ToString(character.loginColor);
-            result[i++] = Convert.ToString(active.Contains(character.name));
+            result.Add(EtConstants.ACCOUNT_LOGIN_KEY, character.account.l);
+            result.Add(EtConstants.ACCOUNT_PASSWORD_KEY, character.account.p);
+            result.Add(EtConstants.ACCOUNT_ID_KEY, character.account.id);
+            result.Add(EtConstants.CHARACTER_ID_KEY, character.id);
+            result.Add(EtConstants.CHARACTER_STATION_ID_KEY, Convert.ToString(character.stationid));
+            result.Add(EtConstants.CHARACTER_TRADE_ITEMS_KEY, Convert.ToString(character.tradeItems));
+            result.Add(EtConstants.CHARACTER_TRADE_SHIPS_KEY, Convert.ToString(character.tradeShips));
+            result.Add(EtConstants.CHARACTER_ADJUST_BUYS_KEY, Convert.ToString(character.adjustBuys));
+            result.Add(EtConstants.CHARACTER_ADJUST_SELLS_KEY, Convert.ToString(character.adjustSells));
+            result.Add(EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY, Convert.ToString(character.maximumOrders));
+            result.Add(EtConstants.CHARACTER_LOGIN_COLOR_KEY, Convert.ToString(character.loginColor));
+            result.Add(EtConstants.CHARACTER_ACTIVE_STATE, Convert.ToString(active.Contains(character.name)));
 
             return result;
 
@@ -219,37 +240,37 @@ namespace noxiousET.src.data.characters
             {
                 switch (key)
                 {
-                    case EtConstants.LOGIN_KEY:
+                    case EtConstants.ACCOUNT_LOGIN_KEY:
                         characters[name].account.l = value;
                         break;
-                    case EtConstants.PASSWORD_KEY:
+                    case EtConstants.ACCOUNT_PASSWORD_KEY:
                         characters[name].account.p = value;
                         break;
-                    case EtConstants.TRADE_ITEMS_KEY:
+                    case EtConstants.CHARACTER_TRADE_ITEMS_KEY:
                         characters[name].tradeItems = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.TRADE_SHIPS_KEY:
+                    case EtConstants.CHARACTER_TRADE_SHIPS_KEY:
                         characters[name].tradeShips = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.ADJUST_SELLS_KEY:
+                    case EtConstants.CHARACTER_ADJUST_SELLS_KEY:
                         characters[name].adjustSells = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.ADJUST_BUYS_KEY:
+                    case EtConstants.CHARACTER_ADJUST_BUYS_KEY:
                         characters[name].adjustBuys = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.MAXIMUM_ORDERS_KEY:
+                    case EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY:
                         characters[name].maximumOrders = Convert.ToInt32(value);
                         break;
-                    case EtConstants.STATION_ID_KEY:
+                    case EtConstants.CHARACTER_STATION_ID_KEY:
                         characters[name].stationid = Convert.ToInt32(value);
                         break;
-                    case EtConstants.FILE_NAME_TRIM_LENGTH_KEY:
-                        characters[name].fileNameTrimLength = Convert.ToInt32(value);
+                    case EtConstants.ACCOUNT_ID_KEY:
+                        characters[name].account.id = value;
                         break;
-                    case EtConstants.AUTO_ADJUSTS_PER_AUTO_LIST_KEY:
-                        characters[name].autoAdjustsPerAutoList = Convert.ToInt32(value);
+                    case EtConstants.CHARACTER_ID_KEY:
+                        characters[name].id = value;
                         break;
-                    case EtConstants.LOGIN_COLOR_KEY:
+                    case EtConstants.CHARACTER_LOGIN_COLOR_KEY:
                         characters[name].loginColor = Convert.ToInt32(value);
                         break;
                     default:

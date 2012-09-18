@@ -121,7 +121,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
         private int autoList(int itemType)
         {
-            string itemName;
+            string itemName = "null";
             int typeID = 0;
             int[] cursorPosition = { 0, 0 };
             int offsetYModifier = 0;//When an item is a ship module, it can be fit to the current ship, which causes an extra row in the context menu. This offset jumps over the extra row (offset pulled from elementsXY when needed). 
@@ -171,7 +171,8 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     {
                         if (readFailCounter > 2)
                         {
-                            if (getError() == 10)
+                            int errorCode = getError();
+                            if (errorCode == 10 || errorCode == 12)
                             {
                                 errorCheck();
                                 mouse.pointAndClick(LEFT, uiElements.itemsTop, 1, 1, 1);
@@ -182,7 +183,9 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                         mouse.pointAndClick(RIGHT, cursorPosition, 1, 1, 1);
                         //View details
                         mouse.offsetAndClick(LEFT, uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] + offsetYModifier, 0, 2, 1);
-
+                        //TODO Make variable. Normal click route often causes inadvertant double-clicks on items, causing ships to be assembled and items
+                        //to be fitted. This left-click in a deadzone prevents such double clicks from occuring. 
+                        mouse.pointAndClick(LEFT, 120, 747, 1, 1, 1);
                         if (itemType == 0)
                             offsetYModifier = (offsetYModifier == 0 && readFailCounter != 8) ? uiElements.itemsViewModuleDetailExtraOffset : 0;
                         if (readFailCounter % 2 == 1)
@@ -191,7 +194,9 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     //Click on Export Market info
                     mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
 
-                    activeOrderCheck = orderAnalyzer.findBestBuyAndSell(out bestSellOrderPrice, out bestBuyOrderPrice, out itemName, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), character.fileNameTrimLength, ref offsetFlag);
+                    activeOrderCheck = orderAnalyzer.findBestBuyAndSell(out bestSellOrderPrice, out bestBuyOrderPrice, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), ref offsetFlag);
+                    if (typeID != 0)
+                        itemName = modules.typeNames[typeID];
                     ++readFailCounter;
                 } while ((activeOrderCheck == -1 || activeOrderCheck == -2) && readFailCounter < 8);
 
@@ -219,11 +224,8 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 }
 
                 offsetYModifier = 0;
-                if ((activeOrderCheck == 0 || activeOrderCheck == 1) && character.adjustBuys)//If a new buy order needs to be placed.
+                if ((activeOrderCheck == 0 || activeOrderCheck == 1) && character.adjustBuys && character.tradeHistory.ContainsKey(typeID))//If a new buy order needs to be placed.
                 {
-                    if (!character.tradeHistory.ContainsKey(typeID))
-                        character.tradeHistory.Add(typeID, typeID);
-
                     double temp;
                     buyOrderQuantity = getBuyOrderQty(bestBuyOrderPrice, bestSellOrderPrice);
 
@@ -322,7 +324,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                         logger.autoAdjusterLog("");
                     }
                 }
-                if (activeOrderCheck == 0 || activeOrderCheck == 2)//If a new sell order needs to be placed.
+                if ((activeOrderCheck == 0 || activeOrderCheck == 2) && character.tradeHistory.ContainsKey(typeID))//If a new sell order needs to be placed.
                 {
                     copyFailCounter = 0;
                     if (itemType == 0 && !modules.fittableModuleTypeIDs.ContainsKey(typeID))

@@ -31,9 +31,9 @@ namespace noxiousET.src.data
         private string configFileName;
         private const String ROOT_CONFIG_FILENAME = "last.ini";
         private const String ROOT_CONFIG_FILENAME_ALT = "lastmba.ini";
-        private const String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.dat";
-        private const String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.dat";
-        private const String TYPE_NAMES_FILENAME = "typeNames.dat";
+        private const String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.ini";
+        private const String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.ini";
+        private const String TYPE_NAMES_FILENAME = "typeNames.ini";
 
         public DataManager()
         {
@@ -49,16 +49,9 @@ namespace noxiousET.src.data
             modules = new Modules();
             uiElements = new UiElements();
 
-            try
-            {
+        
                 configFileName = ROOT_CONFIG_FILENAME;
                 initialize();
-            }
-            catch
-            {
-                configFileName = ROOT_CONFIG_FILENAME_ALT;
-                initialize();
-            }
 
             marketOrderio = new MarketOrderio();
         }
@@ -68,23 +61,30 @@ namespace noxiousET.src.data
 
             textFileio = new TextFileio("", configFileName);
             List<String> config = textFileio.read();
+            Dictionary<String, String> configLines = new Dictionary<String, String>();
+            List<String> characterNames = new List<String>();
 
-            int line = 0;
-            paths.logPath = config[line++];
-            paths.clientPath = config[line++];
-            paths.configPath = config[line++];
-            clientConfig.timingMultiplier = Convert.ToInt32(config[line++]);
-            clientConfig.iterations = Convert.ToInt32(config[line++]);
-            clientConfig.xResolution = Convert.ToInt32(config[line++]);
-            clientConfig.yResolution = Convert.ToInt32(config[line++]);
+            String[] parts;
+            foreach (String line in config) {
+                parts = line.Split('=');
+                if (parts[0].Equals(EtConstants.CHARACTER_KEY))
+                    characterNames.Add(parts[1]);
+                else
+                    configLines.Add(parts[0], parts[1]);
 
-            int length = config.Count - line;
-            String[] characters = new String[length];
-            for (int i = 0; i < length; i++)
-            {
-                characters[i] = config[line++];
             }
-            characterManager.load(characters);
+
+
+            paths.logPath = configLines[EtConstants.LOG_PATH_KEY];
+            paths.clientPath = configLines[EtConstants.CLIENT_PATH_KEY];
+            paths.configPath = configLines[EtConstants.CONFIG_PATH_KEY];
+            paths.eveSettingsPath = configLines[EtConstants.EVE_SETTINGS_PATH_KEY];
+            clientConfig.timingMultiplier = Convert.ToInt32(configLines[EtConstants.TIMING_MULTIPLIER_KEY]);
+            clientConfig.iterations = Convert.ToInt32(configLines[EtConstants.ITERATIONS_KEY]);
+            clientConfig.xResolution = Convert.ToInt32(configLines[EtConstants.X_RESOLUTION_KEY]);
+            clientConfig.yResolution = Convert.ToInt32(configLines[EtConstants.Y_RESOLUTION_KEY]);
+
+            characterManager.load(characterNames);
 
             String fileName = Convert.ToString(clientConfig.xResolution) + "x" + Convert.ToString(clientConfig.yResolution) + ".ini";
             uiElementsio = new UiElementsio(paths.configPath, fileName, uiElements);
@@ -99,17 +99,18 @@ namespace noxiousET.src.data
         {
             List<Object> settings = new List<Object>();
 
-            settings.Add(paths.logPath);
-            settings.Add(paths.clientPath);
-            settings.Add(paths.configPath);
-            settings.Add(clientConfig.timingMultiplier);
-            settings.Add(clientConfig.iterations);
-            settings.Add(clientConfig.xResolution);
-            settings.Add(clientConfig.yResolution);
+            settings.Add(EtConstants.LOG_PATH_KEY + "=" + paths.logPath);
+            settings.Add(EtConstants.CLIENT_PATH_KEY + "=" + paths.clientPath);
+            settings.Add(EtConstants.CONFIG_PATH_KEY + "=" + paths.configPath);
+            settings.Add(EtConstants.EVE_SETTINGS_PATH_KEY + "=" + paths.eveSettingsPath);
+            settings.Add(EtConstants.TIMING_MULTIPLIER_KEY + "=" + clientConfig.timingMultiplier);
+            settings.Add(EtConstants.ITERATIONS_KEY + "=" + clientConfig.iterations);
+            settings.Add(EtConstants.X_RESOLUTION_KEY + "=" + clientConfig.xResolution);
+            settings.Add(EtConstants.Y_RESOLUTION_KEY + "=" + clientConfig.yResolution);
 
             foreach (String s in characterManager.getAllCharacterNames())
             {
-                settings.Add(s);
+                settings.Add(EtConstants.CHARACTER_KEY + "=" + s);
             }
 
             textFileio.save(settings, "", configFileName);
@@ -148,6 +149,9 @@ namespace noxiousET.src.data
                     case EtConstants.CLIENT_PATH_KEY:
                         paths.clientPath = value;
                         break;
+                    case EtConstants.EVE_SETTINGS_PATH_KEY:
+                        paths.eveSettingsPath = value;
+                        break;
                     default:
                         eventDispatcher.logError("Attempt to save value for non-existant client data key.");
                         break;
@@ -185,10 +189,6 @@ namespace noxiousET.src.data
                     {
                         character.tradeQueue.Enqueue(typeid);
                         eventDispatcher.log("Added " + modules.typeNames[typeid] + " to queue for " + character.name);
-                    }
-                    if (!character.tradeHistory.ContainsKey(typeid))
-                    {
-                        character.tradeHistory.Add(typeid, typeid);
                     }
                 }
             }

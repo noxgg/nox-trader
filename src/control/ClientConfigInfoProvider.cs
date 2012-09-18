@@ -20,11 +20,12 @@ namespace noxiousET.src.control
 
         public String[] getPaths()
         {
-            String[] result = new String[3];
+            String[] result = new String[4];
 
             result[0] = paths.logPath;
             result[1] = paths.clientPath;
             result[2] = paths.configPath;
+            result[3] = paths.eveSettingsPath;
 
             return result;
         }

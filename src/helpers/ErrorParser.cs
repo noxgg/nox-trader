@@ -70,6 +70,8 @@ namespace noxiousET.src.helpers
                 return 10;
             else if (message.Contains("There were no buy or sell orders found."))
                 return 11;
+            else if (message.Contains("Implants are lost when unplugged and when you die."))
+                return 12;
             else
                 return 69;
         }

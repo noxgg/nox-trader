@@ -216,7 +216,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
 
         private void createInvestments()
         {
-            int currentPosition = 130;
+            int currentPosition = 0;
             int initialPosition = currentPosition;
             int size;
             int freeOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
@@ -236,7 +236,10 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 goToNextQuickbarPage();
             }
             if (size - currentPosition <= visibleRows)
+            {
+                goToNextQuickbarPage();
                 currentOffset = visibleRows - (size - currentPosition);
+            }
             do
             {
                 if (currentPosition == size)
@@ -272,7 +275,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
 
                             if (quantity > 0)
                             {
-                                /*
                                 openAndIdentifyBuyWindow(currentTypeId, orderAnalyzer.getSellPrice());
                                 //Input price
                                 inputValue(5, 2, fixCoordsForLongTypeName(currentTypeId, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
@@ -281,7 +283,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                                 confirmOrder(fixCoordsForLongTypeName(currentTypeId, uiElements.OrderBoxOK), 1, 1);
                                 freeOrders--;
                                 ordersCreated++;
-                                */
                                 //logger.log(modules.typeNames[currentTypeId] + " should create buy order.");
                             }
                             else if (foundTypeName.CompareTo(expectedTypeName) > 0)

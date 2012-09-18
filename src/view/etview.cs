@@ -95,6 +95,7 @@ namespace noxiousET
             logPathTB.Text = paths[0];
             clientPathTB.Text = paths[1];
             configPathTB.Text = paths[2];
+            eveSettingsTB.Text = paths[3];
 
             String[] config = clientConfigInfoProvider.getConfig();
             timingTB.Text = config[0];
@@ -123,21 +124,21 @@ namespace noxiousET
 
         }
 
-        private void displayCharacterInfo(String[] characterInfo, List<String> items)
+        private void displayCharacterInfo(Dictionary<string, string> characterInfo, List<String> items)
         {
             int i = 0;
             nameTB.Text = (String)charactersLB.SelectedItem;
-            loginTB.Text = characterInfo[i++];
-            passwordTB.Text = characterInfo[i++];
-            autoAdjustsPerAutoListTB.Text = characterInfo[i++];
-            stationidTB.Text = characterInfo[i++];
-            fileNameTrimLengthTB.Text = characterInfo[i++];
-            itemsCB.Checked = Convert.ToBoolean(characterInfo[i++]);
-            shipsCB.Checked = Convert.ToBoolean(characterInfo[i++]);
-            aasellCB.Checked = Convert.ToBoolean(characterInfo[i++]);
-            aabuyCB.Checked = Convert.ToBoolean(characterInfo[i++]);
-            maximumOrdersTB.Text = characterInfo[i++];
-            loginColorTB.Text = characterInfo[i++];
+            loginTB.Text = characterInfo[EtConstants.ACCOUNT_LOGIN_KEY];
+            passwordTB.Text = characterInfo[EtConstants.ACCOUNT_PASSWORD_KEY];
+            characterIdTB.Text = characterInfo[EtConstants.CHARACTER_ID_KEY];
+            stationidTB.Text = characterInfo[EtConstants.CHARACTER_STATION_ID_KEY];
+            accountIdTB.Text = characterInfo[EtConstants.ACCOUNT_ID_KEY];
+            itemsCB.Checked = Convert.ToBoolean(characterInfo[EtConstants.CHARACTER_TRADE_ITEMS_KEY]);
+            shipsCB.Checked = Convert.ToBoolean(characterInfo[EtConstants.CHARACTER_TRADE_SHIPS_KEY]);
+            aasellCB.Checked = Convert.ToBoolean(characterInfo[EtConstants.CHARACTER_ADJUST_SELLS_KEY]);
+            aabuyCB.Checked = Convert.ToBoolean(characterInfo[EtConstants.CHARACTER_ADJUST_BUYS_KEY]);
+            maximumOrdersTB.Text = characterInfo[EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY];
+            loginColorTB.Text = characterInfo[EtConstants.CHARACTER_LOGIN_COLOR_KEY];
 
             knownItemsListBox.Items.Clear();
             foreach (String s in items)
@@ -185,57 +186,57 @@ namespace noxiousET
 
         private void loginTB_KeyUp(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.LOGIN_KEY, loginTB.Text);
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.ACCOUNT_LOGIN_KEY, loginTB.Text);
         }
 
         private void passwordTB_KeyUp(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.PASSWORD_KEY, passwordTB.Text);
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.ACCOUNT_PASSWORD_KEY, passwordTB.Text);
         }
 
         private void loginColorTB_KeyUp(object sender, System.EventArgs e)
         {
-            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.LOGIN_COLOR_KEY, loginColorTB.Text);
+            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.CHARACTER_LOGIN_COLOR_KEY, loginColorTB.Text);
         }
 
         private void stationidTB_KeyUp(object sender, System.EventArgs e)
         {
-            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.STATION_ID_KEY, stationidTB.Text);
+            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.CHARACTER_STATION_ID_KEY, stationidTB.Text);
         }
 
-        private void fileNameTrimLengthTB_KeyUp(object sender, System.EventArgs e)
+        private void accountIdTB_KeyUp(object sender, System.EventArgs e)
         {
-            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.FILE_NAME_TRIM_LENGTH_KEY, fileNameTrimLengthTB.Text);
+            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.ACCOUNT_ID_KEY, accountIdTB.Text);
         }
 
         private void maximumOrdersTB_KeyUp(object sender, System.EventArgs e)
         {
-            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.MAXIMUM_ORDERS_KEY, maximumOrdersTB.Text);
+            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY, maximumOrdersTB.Text);
         }
 
-        private void autoAdjustsPerAutoListTB_TextChanged(object sender, System.EventArgs e)
+        private void characterIdTB_TextChanged(object sender, System.EventArgs e)
         {
-            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.AUTO_ADJUSTS_PER_AUTO_LIST_KEY, autoAdjustsPerAutoListTB.Text);
+            characterUpdateIntegerValue((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ID_KEY, characterIdTB.Text);
         }
 
         private void shipsCB_Click(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.TRADE_SHIPS_KEY, Convert.ToString(shipsCB.Checked));
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_TRADE_SHIPS_KEY, Convert.ToString(shipsCB.Checked));
         }
 
         private void itemsCB_Click(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.TRADE_ITEMS_KEY, Convert.ToString(itemsCB.Checked));
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_TRADE_ITEMS_KEY, Convert.ToString(itemsCB.Checked));
         }
 
         private void aabuyCB_Click(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.ADJUST_SELLS_KEY, Convert.ToString(aabuyCB.Checked));
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ADJUST_SELLS_KEY, Convert.ToString(aabuyCB.Checked));
         }
 
         private void aasellCB_Click(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.ADJUST_BUYS_KEY, Convert.ToString(aasellCB.Checked));
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ADJUST_BUYS_KEY, Convert.ToString(aasellCB.Checked));
         }
 
         private void albuyCB_Click(object sender, System.EventArgs e)
@@ -248,19 +249,28 @@ namespace noxiousET
             //characterUpdate((String)charactersLB.SelectedItem, "autoListSells", Convert.ToString(alsellCB.Checked));
         }
 
-        private void configPathTB_LostFocus(object sender, System.EventArgs e)
+        private void configPathTB_TextChanged(object sender, System.EventArgs e)
         {
-            eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.CONFIG_PATH_KEY, configPathTB.Text);
+            if (configPathTB.Text.Length > 0)
+                eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.CONFIG_PATH_KEY, configPathTB.Text);
         }
 
-        private void clientPathTB_LostFocus(object sender, System.EventArgs e)
+        private void clientPathTB_TextChanged(object sender, System.EventArgs e)
         {
-            eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.CLIENT_PATH_KEY, clientPathTB.Text);
+            if (clientPathTB.Text.Length > 0)
+                eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.CLIENT_PATH_KEY, clientPathTB.Text);
         }
 
-        private void logPathTB_LostFocus(object sender, System.EventArgs e)
+        private void logPathTB_TextChanged(object sender, System.EventArgs e)
         {
-            eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.LOG_PATH_KEY, logPathTB.Text);
+            if (logPathTB.Text.Length > 0)
+                eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.LOG_PATH_KEY, logPathTB.Text);
+        }
+
+        private void eveSettingsTB_TextChanged(object sender, System.EventArgs e)
+        {
+            if (eveSettingsTB.Text.Length > 0)
+                eventDispatcher.clientSettingUpdated((String)charactersLB.SelectedItem, EtConstants.EVE_SETTINGS_PATH_KEY, eveSettingsTB.Text);
         }
 
         private void yResolutionTB_TextChanged(object sender, System.EventArgs e)

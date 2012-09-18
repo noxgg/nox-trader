@@ -112,14 +112,14 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         metricsModifiedCount++;
                         metricsModifiedSum += metricsProvider.ElapsedMilliseconds;
                         metricsModifiedAvg = metricsModifiedSum / metricsModifiedCount;
-                        logger.log("Modified Average = " + metricsModifiedAvg + " over " + metricsModifiedCount + " iterations.");
+                        //logger.log("Modified Average = " + metricsModifiedAvg + " over " + metricsModifiedCount + " iterations.");
                     }
                     else
                     {
                         metricsNotModifiedCount++;
                         metricsNotModifiedSum += metricsProvider.ElapsedMilliseconds;
                         metricsNotModifiedAvg = metricsNotModifiedSum / metricsNotModifiedCount;
-                        logger.log("Not modified Average = " + metricsNotModifiedAvg + " over " + metricsNotModifiedCount + " iterations.");
+                        //logger.log("Not modified Average = " + metricsNotModifiedAvg + " over " + metricsNotModifiedCount + " iterations.");
                     }
                 }
                 if (i == (ceiling - 2))
@@ -239,7 +239,6 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 {
                     if (fileName != null && Convert.ToInt32(marketOrderio.readFirstEntryNoDelete(paths.logPath, fileName)[2]) != lastTypeId)
                     {
-                        logger.log("Iterations " + i);
                         mouse.waitDuration = timing;
                         return fileName;
                     }

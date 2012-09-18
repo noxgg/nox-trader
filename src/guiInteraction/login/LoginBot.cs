@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -46,6 +47,7 @@ namespace noxiousET.src.guiInteraction.login
                 try
                 {
                     launchClient();
+                    swapInUserSettings(character);
                     enterCredentials();
                     selectCharacter();
                     waitForEnvironment();
@@ -61,6 +63,20 @@ namespace noxiousET.src.guiInteraction.login
                 waitForEnvironment();
             }
             return 0;
+        }
+
+        private void swapInUserSettings(Character character) {
+            String characterFilePrefix = "core_char_";
+            String userFilePrefix = "core_user_";
+            String fileSuffix = ".dat";
+
+            String source = paths.configPath + Paths.clientSettingsSubDir + characterFilePrefix + character.id + fileSuffix;
+            String destination = paths.eveSettingsPath + characterFilePrefix + character.id + fileSuffix;
+            File.Copy(source, destination, true);
+
+            source = paths.configPath + Paths.clientSettingsSubDir + userFilePrefix + character.account.id + character.name + fileSuffix;
+            destination = paths.eveSettingsPath + userFilePrefix + character.account.id + fileSuffix;
+            File.Copy(source, destination, true);
         }
 
         private void enterCredentials()

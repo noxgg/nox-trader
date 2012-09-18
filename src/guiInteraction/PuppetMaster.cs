@@ -33,8 +33,7 @@ namespace noxiousET.src.guiInteraction
             autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
             autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
             eventDispatcher = dataManager.eventDispatcher;
-            eventDispatcher.getTypesFromQuickbarRequestHandler += new EventDispatcher.GetTypesFromQuickbarRequestHandler(getTypeForCharacterFromQuickbar);
-            
+            eventDispatcher.getTypesFromQuickbarRequestHandler += new EventDispatcher.GetTypesFromQuickbarRequestHandler(getTypeForCharacterFromQuickbar);       
         }
 
 
@@ -63,38 +62,46 @@ namespace noxiousET.src.guiInteraction
             iterations *= queue.Count;
             for (int i = 0; i < iterations; i++)
             {
+                //Take occassional breaks to simulate being a human.
                 if (i != 0 && i % characterCount == 0)
                 {
                     if (random.Next(0, 10) % 3 == 0)
                         Thread.Sleep(random.Next(0, 3600000));
                     eventDispatcher.log("Starting run #" + ((i / characterCount) + 1));
                 }
+
                 character = characterManager.getCharacter(queue.Dequeue());
                 characterManager.selected = character.name;
-                result = loginBot.login(character);
-                if (result == 0)
-                {
-                    autoInvestor.prepEnvironment();
-                    autoInvestor.execute(character);
-                    characterManager.save(character.name);
 
+                automate(character);
 
-
-                    autoAdjuster.execute(character);
-                    characterManager.save(character.name);
-                        autoLister.execute(character);
-                        characterManager.save(character.name);
-                    if (autoLister.getNumberOfFreeOrders() > 3)
-                    {
-                        autoInvestor.execute(character);
-                        characterManager.save(character.name);
-                    }
-                }
                 queue.Enqueue(character.name);
+
                 if (queue.Count > 1)
                     autoAdjuster.killClient();
             }
             return 0;
+        }
+
+        private void automate(Character character)
+        {
+            if (loginBot.login(character) != 0)
+                return;
+
+            autoAdjuster.execute(character);
+            characterManager.save(character.name);
+
+            if (autoAdjuster.getNumberOfFreeOrders() < 5)
+                return;
+
+            autoLister.execute(character);
+            characterManager.save(character.name);
+
+            if (autoLister.getNumberOfFreeOrders() < 5)
+                return;
+
+            autoInvestor.execute(character);
+            characterManager.save(character.name);
         }
     }
 }

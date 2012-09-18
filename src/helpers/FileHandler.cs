@@ -57,25 +57,10 @@ namespace noxiousET.src.helpers
             while (tryFailed < 3);
             return 1;
         }
-        //arg out of range
-        public string getItemName(int fileNameTrimLength)
+
+        public string getFileName()
         {
-            string itemName = fileName;
-            if (itemName.Contains("My Orders"))
-            {
-                return "[Parse Error]";
-            }
-            try
-            {
-                itemName = itemName.Remove(0, fileNameTrimLength);
-                int length = itemName.Length;
-                itemName = itemName.Remove((length - 22), 22);
-            }
-            catch
-            {
-                itemName = "[Parse Error]";
-            }
-            return itemName;
+            return fileName;
         }
     }
 }

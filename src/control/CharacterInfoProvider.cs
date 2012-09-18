@@ -28,9 +28,9 @@ namespace noxiousET.src.control
             return characterManager.selected;
         }
 
-        public String[] getCharacterInfo(String character)
+        public Dictionary<string, string> getCharacterInfo(String character)
         {
-            return characterManager.convertCharacterToStringArray(characterManager.getCharacter(character));
+            return characterManager.convertCharacterToDictionary(characterManager.getCharacter(character));
         }
 
         public List<String> getCharacterKnownItems(String character)
