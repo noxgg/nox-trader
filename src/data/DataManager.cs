@@ -49,9 +49,16 @@ namespace noxiousET.src.data
             modules = new Modules();
             uiElements = new UiElements();
 
-        
+            try
+            {
                 configFileName = ROOT_CONFIG_FILENAME;
                 initialize();
+            }
+            catch (Exception e)
+            {
+                configFileName = ROOT_CONFIG_FILENAME_ALT;
+                initialize();
+            }
 
             marketOrderio = new MarketOrderio();
         }

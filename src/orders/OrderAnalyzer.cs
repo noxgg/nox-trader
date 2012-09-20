@@ -21,6 +21,8 @@ namespace noxiousET.src.orders
         private double ownedBuyPrice;
         private double ownedSellPrice;
         private string typeid;
+        public Boolean noSellsExist { set; get; }
+        public Boolean noBuysExist { set; get; }
         private int[] terminalItemIDs = { 5321, 2078 };
 
         public OrderAnalyzer()
@@ -138,12 +140,19 @@ namespace noxiousET.src.orders
             }
 
             if (sellPrice <= 0 && buyPrice <= 0) //If there are no orders to compare against, return
-                return;
+            {
+                noSellsExist = noBuysExist = true;
+            }
             else if (sellPrice <= 0)//If there are no active sell orders, set sell to 1.5x best buy
+            {
+                noSellsExist = true;
                 sellPrice = buyPrice * 1.5;
+            }
             else if (buyPrice <= 0)//If there are no active buy orders, set buy tp 1/2 best sell
+            {
+                noBuysExist = true;
                 buyPrice = sellPrice / 2;
-            return;
+            }
         }
 
 
@@ -186,6 +195,11 @@ namespace noxiousET.src.orders
         public double getOwnedSellPrice()
         {
             return ownedSellPrice;
+        }
+
+        public void setOwnedBuyPrice(double ownedBuyPrice)
+        {
+            this.ownedBuyPrice = ownedBuyPrice;
         }
 
         public double getOwnedPrice(int type)

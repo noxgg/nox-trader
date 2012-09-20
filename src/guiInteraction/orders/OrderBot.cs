@@ -1,4 +1,5 @@
-﻿using noxiousET.src.etevent;
+﻿using System;
+using noxiousET.src.etevent;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.modules;
@@ -21,19 +22,19 @@ namespace noxiousET.src.guiInteraction.orders
         }
 
         //TODO, merge with confirmOrder
-        protected int cancelOrder(int longOrderXoffset, int longOrderYOffset)
+        protected int cancelOrder(int xOffset, int yOffset)
         {
             int failCount = 0;
             string temp = "0";
             do
             {
-                mouse.pointAndClick(LEFT, uiElements.OrderBoxCancel[0], uiElements.OrderBoxCancel[1] + longOrderYOffset, 1, 1, 1);
+                mouse.pointAndClick(LEFT, uiElements.OrderBoxCancel[0], uiElements.OrderBoxCancel[1] + yOffset, 1, 1, 1);
 
                 if (failCount > 0 && failCount % 3 == 0)
                         errorCheck();
 
                 //Right click where OK should no longer exist.
-                mouse.pointAndClick(RIGHT, uiElements.OrderBoxCancel[0] + longOrderXoffset, uiElements.OrderBoxCancel[1], 0, 1, 1);
+                mouse.pointAndClick(RIGHT, uiElements.OrderBoxCancel[0] + xOffset, uiElements.OrderBoxCancel[1], 0, 1, 1);
                 //Click on copy
                 mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
 
@@ -50,7 +51,7 @@ namespace noxiousET.src.guiInteraction.orders
                 return 1;
         }
 
-        protected int closeMarketAndItemsWindows()
+        protected int closeMarketAndHangarWindows()
         {
             mouse.pointAndClick(LEFT, uiElements.closeMarketWindow, 0, 5, 5);
             mouse.pointAndClick(LEFT, uiElements.closeItems, 0, 5, 0);
@@ -62,6 +63,55 @@ namespace noxiousET.src.guiInteraction.orders
             if (modules.longNameTypeIDs.ContainsKey(typeId))
                 return new int[2] { coords[0], coords[1] + 22 };
             return coords;
+        }
+
+        protected void openAndIdentifyBuyWindow(int currentItem, double sellPrice)
+        {
+            double result;
+            for (int i = 0; i < 7; i++)
+            {
+                cancelOrder(0, 0);
+                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 1, 1, 6);
+                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), 0, 4, 2);
+                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
+
+                try
+                {
+                    result = Convert.ToDouble(Clipboard.getTextFromClipboard());
+                    if (result < sellPrice + 1000 && result > sellPrice - 1000)
+                    {
+                        mouse.waitDuration = timing;
+                        return;
+                    }
+                }
+                catch
+                {
+                    mouse.waitDuration *= 2;
+                    result = 0;
+                }
+                if (i == 6)
+                {
+                    cancelOrder(-53, 51);
+                }
+            }
+            mouse.waitDuration = timing;
+            throw new Exception("Could not open buy window");
+
+        }
+
+        protected void placeBuyOrder(int typeId, int quantity)
+        {
+            int[] quantityCoords = { uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] };
+            Double verificationValue = Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice());
+            if (orderAnalyzer.noSellsExist)
+                quantityCoords[1] -= 15;
+
+            openAndIdentifyBuyWindow(typeId, verificationValue);
+            //Input price
+            inputValue(5, 2, fixCoordsForLongTypeName(typeId, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
+            //Input quantity
+            inputValue(5, 2, fixCoordsForLongTypeName(typeId, quantityCoords), Convert.ToString(quantity));
+            confirmOrder(fixCoordsForLongTypeName(typeId, uiElements.OrderBoxOK), 1, 1);
         }
 
         protected int getBuyOrderQty(double bestBuyOrderPrice, double bestSellOrderPrice)

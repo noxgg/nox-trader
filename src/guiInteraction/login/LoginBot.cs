@@ -213,7 +213,7 @@ namespace noxiousET.src.guiInteraction.login
                 wait(2);
                 try
                 {
-                    if (confirmOrder(uiElements.OrderBoxOK, 0, 0) == 0) //TODO refactor this out of here
+                    if (confirmOrder(uiElements.OrderBoxCancel, 0, 0) == 0) //TODO refactor this out of here
                         return 0;
                     keyboard.send("-1");
                 }

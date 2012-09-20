@@ -44,7 +44,6 @@ namespace noxiousET.src.guiInteraction
 
         public int automate(int iterations)
         {
-            int result = 0;
             Character character;
             Queue<String> queue;
             Random random = new Random((int) DateTime.Now.Ticks & 0x0000FFFF);

@@ -27,7 +27,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
 
         public void getTypeForCharacterFromQuickbar(Character character, String firstItemId, String lastItemId)
         {
-            prepEnvironment();
             this.character = character;
             int previousItemId = int.Parse(firstItemId);
             List<int> newTradeHistory = new List<int>();
@@ -90,28 +89,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 }
 
             }
-        }
-
-        //TODO Pull out to be main environment prep/verification during login process.
-        public void prepEnvironment()
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                try
-                {
-                    mouse.pointAndClick(LEFT, uiElements.marketWindowQuickbarFirstRow, 5, 5, 5);
-                    int[] fixedScrollbarCoords = new int[] { uiElements.marketWindowQuickbarScrollbarTop[0] + 10, uiElements.marketWindowQuickbarScrollbarTop[1] };
-                    mouse.drag(uiElements.marketWindowQuickbarScrollbarUnfixedPosition, fixedScrollbarCoords, 40, 40, 40);
-                    DirectoryEraser.nuke(paths.logPath);
-                    marketOrderio.fileName = executeQueryAndExportResult(2, 1.2, "fdsjkalfakl", 0);
-                    return;
-                }
-                catch (Exception e)
-                {
-                    errorCheck();
-                }
-            }
-            throw new Exception("Failed to prepare environment!");
         }
 
         public void execute(Character character)
@@ -184,35 +161,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
 
         }
 
-        private void openAndIdentifyBuyWindow(int currentItem, double sellPrice)
-        {
-            double result;
-            for (int i = 0; i < 5; i++)
-            {
-                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 1, 1, 6);
-                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), 0, 4, 2);
-                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
-
-                try
-                {
-                    result = Convert.ToDouble(Clipboard.getTextFromClipboard());
-                    if (result < sellPrice + 1000 && result > sellPrice - 1000)
-                    {
-                        mouse.waitDuration = timing;
-                        return;
-                    }
-                }
-                catch
-                {
-                    mouse.waitDuration *= 2;
-                    result = 0;
-                }
-            }
-            mouse.waitDuration = timing;
-            throw new Exception("Could not open buy window");
-
-        }
-
 
         private void createInvestments()
         {
@@ -276,11 +224,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                             if (quantity > 0)
                             {
                                 openAndIdentifyBuyWindow(currentTypeId, orderAnalyzer.getSellPrice());
-                                //Input price
-                                inputValue(5, 2, fixCoordsForLongTypeName(currentTypeId, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
-                                //Input quantity
-                                inputValue(5, 2, fixCoordsForLongTypeName(currentTypeId, uiElements.buyOrderQtyBox), Convert.ToString(quantity));
-                                confirmOrder(fixCoordsForLongTypeName(currentTypeId, uiElements.OrderBoxOK), 1, 1);
+                                placeBuyOrder(currentTypeId, quantity);
                                 freeOrders--;
                                 ordersCreated++;
                                 //logger.log(modules.typeNames[currentTypeId] + " should create buy order.");

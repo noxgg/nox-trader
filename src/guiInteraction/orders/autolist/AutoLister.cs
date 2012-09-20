@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using noxiousET.src.etevent;
 using noxiousET.src.data.characters;
@@ -15,17 +16,25 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 {
     class AutoLister : OrderBot
     {
-        private int terminalItemID = 0;
+        private MarketOrderio marketOrderio;
         private int openOrders = 0;
-        private int buyOrdersCreated = 0;
-        private int sellOrdersCreated = 0;
-        private int result = 0;
-        private static readonly int TRITANIUM_TYPE_ID = 34;
+        private int totalBuyOrdersCreated = 0;
+        private int totalSellOrdersCreated = 0;
+        private int currentBuyOrdersCreated = 0;
+        private int currentSellOrdersCreated = 0;
         public int freeOrders {set; get;}
+        private const int SHIP_TERMINAL_ITEM_ID = 2078;
+        private const int ITEM_TERMINAL_ID = 5321;
+        private const string SHIP_HANGAR_HOTKEY = "{PGDN}";
+        private const string ITEM_HANGAR_HOTKEY = "{PGUP}";
+        private const int TRADE_SHIPS = 1;
+        private const int TRADE_ITEMS = 0;
 
         public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
             : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
         {
+            this.marketOrderio = new MarketOrderio();
+            marketOrderio.path = paths.logPath;
             freeOrders = 0;
         }
 
@@ -34,449 +43,242 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             return freeOrders;
         }
 
-        public int execute(Character character)
+        public void execute(Character character)
         {
-            sellOrdersCreated = 0;
-            buyOrdersCreated = 0;
-            result = 0;
             this.character = character;
-            mouse.waitDuration = timing; //TODO Sync with client setting
             if (!isEVERunningForSelectedCharacter())
-            {
-                return 1;
-            }
+                return;
 
-            else
-            {
-                Stopwatch stopwatch = new Stopwatch();
-                stopwatch.Start();
-                setEVEHandle(character.name);
-                SetForegroundWindow(eveHandle);
-                DirectoryEraser.nuke(paths.logPath);
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
 
-                logger.autoListerLog(character.name);
+            prepare();
 
-                try { exportOrders(5, 30); }
-                catch (Exception e) { throw e; }
-                freeOrders = orderAnalyzer.orderSet.getNumberOfActiveOrders();
+            if (character.tradeItems && freeOrders > 0)
+                trade(TRADE_ITEMS, ITEM_HANGAR_HOTKEY, ITEM_TERMINAL_ID);
+            if (character.tradeShips && freeOrders > 0)
+                trade(TRADE_SHIPS, SHIP_HANGAR_HOTKEY, SHIP_TERMINAL_ITEM_ID);
 
-                openOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
-                new SetClipboardHelper(DataFormats.Text, "0").Go();
+            stopwatch.Stop();
 
-                closeMarketAndItemsWindows();
-                if (character.tradeItems)
-                {
-                    terminalItemID = 5321;
-                    wait(5);
-                    keyboard.send("{PGUP}");
-                    wait(40);
-                    result = autoList(0);
-                    
-                    if (result == 1)
-                    {
-                        mouse.waitDuration = timing;
-                        orderAnalyzer.clearLastBuyOrder();
-                        keyboard.send("{PGUP}");
-                        freeOrders -= (buyOrdersCreated + sellOrdersCreated);
-                        return 1;
-                    }
-
-                    mouse.waitDuration = timing;
-                    orderAnalyzer.clearLastBuyOrder();
-                    wait(1);
-                    keyboard.send("{PGUP}");
-                    wait(1);
-                    keyboard.send("{HOME}");
-                }
-
-                if (character.tradeShips)
-                {
-                    terminalItemID = 2078;
-                    wait(5);
-                    keyboard.send("{PGDN}");
-                    wait(40);
-                    result = autoList(1);
-                    if (result == 1)
-                    {
-                        mouse.waitDuration = timing;
-                        orderAnalyzer.clearLastBuyOrder();
-                        keyboard.send("{PGDN}");
-                        freeOrders -= (buyOrdersCreated + sellOrdersCreated);
-                        return 1;
-                    }
-                    mouse.waitDuration = timing;
-                    orderAnalyzer.clearLastBuyOrder();
-                    wait(1);
-                    keyboard.send("{PGDN}");
-                    wait(1);
-                    keyboard.send("{HOME}");
-                }
-                cancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
-                stopwatch.Stop();
-                logger.log(character.name + ": AL made " + sellOrdersCreated + " sells, " + buyOrdersCreated + " buys in " + stopwatch.Elapsed.ToString());
-            }
-            freeOrders -= (buyOrdersCreated + sellOrdersCreated);
-            return 0;
+            teardown(stopwatch.Elapsed.ToString());
         }
 
-        private int autoList(int itemType)
+        private void prepare()
         {
-            string itemName = "null";
-            int typeID = 0;
-            int[] cursorPosition = { 0, 0 };
-            int offsetYModifier = 0;//When an item is a ship module, it can be fit to the current ship, which causes an extra row in the context menu. This offset jumps over the extra row (offset pulled from elementsXY when needed). 
-            int readFailCounter;
-            int copyFailCounter;
-            double activeOrderCheck;//0 if there is no active order, 1 for active sell order, 2 for active buy order, 3 for active buy and sell, 4 if no orders to compare against
-            double bestSellOrderPrice;
-            double bestBuyOrderPrice;
+            totalSellOrdersCreated = 0;
+            totalBuyOrdersCreated = 0;
+            currentBuyOrdersCreated = 0;
+            currentSellOrdersCreated = 0;
+            mouse.waitDuration = timing; //TODO Sync with client setting
+
+            logger.autoListerLog(character.name);
+
+            try { exportOrders(5, 30); }
+            catch (Exception e) { throw e; }
+            freeOrders = orderAnalyzer.orderSet.getNumberOfActiveOrders();
+
+            openOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
+            new SetClipboardHelper(DataFormats.Text, "0").Go();
+
+            orderAnalyzer.clearLastBuyOrder();
+
+            closeMarketAndHangarWindows();
+        }
+
+        private void trade(int type, String windowHotkey, int terminalId)
+        {
+            openHangar(windowHotkey);
+            autoList(terminalId, type);
+
+            mouse.waitDuration = timing;
+            closeMarketAndHangarWindows();
+
+            freeOrders -= (currentBuyOrdersCreated + currentSellOrdersCreated);
+            totalBuyOrdersCreated += currentBuyOrdersCreated;
+            totalSellOrdersCreated += currentSellOrdersCreated;
+            currentSellOrdersCreated = currentBuyOrdersCreated = 0;
+        }
+        private void autoList(int terminalId, int hangarType)
+        {
             int buyOrderQuantity;
-            int longOrderNameXOffset = 0;
-            int longOrderNameYOffset = 0;
-            int offsetFlag = 0;
-            int itemSoldOutModifier = 0;
+            int currentHangarListPosition = 0;
 
-
-            string directory = paths.logPath;
-
-            cursorPosition[0] = uiElements.itemsTop[0];
-            cursorPosition[1] = uiElements.itemsTop[1];
-            consecutiveFailures = 0;
-            wait(10);
-            while (openOrders > 0 && consecutiveFailures < 5)
+            while (openOrders > 0)
             {
-                if (cursorPosition[1] > uiElements.itemsTop[1] + uiElements.lineHeight * 19)
+                if (currentHangarListPosition > 18)
                 {
-                    cursorPosition[1] -= uiElements.lineHeight;
-                    mouse.pointAndClick(LEFT, cursorPosition, 40,1,40);
+                    mouse.pointAndClick(LEFT, uiElements.itemsTop[0], uiElements.itemsTop[1] + (currentHangarListPosition * uiElements.itemsLineHeight), 40, 1, 40);
                     for (int k = 0; k < 19; ++k)
                         keyboard.send("{DOWN}");
                     wait(20);
-                    cursorPosition[1] = uiElements.itemsTop[1];
+                    currentHangarListPosition = 0;
                 }
 
-                bestSellOrderPrice = bestBuyOrderPrice = readFailCounter = copyFailCounter = buyOrderQuantity = longOrderNameXOffset = longOrderNameYOffset = offsetFlag = itemSoldOutModifier = 0;
-                activeOrderCheck = -1;
-
-                if (itemType == 0)
-                    offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                else
-                    offsetYModifier = 0;
-                if (Directory.GetFiles(directory).Length > 0)
-                    DirectoryEraser.nuke(directory);
-
-                do
+                viewDetailsAndExportResult(17, 2, currentHangarListPosition, hangarType);
+                if (orderAnalyzer.getTypeId().Equals(terminalId))
+                    return;
+                try
                 {
-                    if ((activeOrderCheck == -1 || activeOrderCheck == -2)) //Try view details again
+                    if (!orderAnalyzer.isSomeBuyOwned() && character.adjustBuys && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))
                     {
-                        if (readFailCounter > 2)
-                        {
-                            int errorCode = getError();
-                            if (errorCode == 10 || errorCode == 12)
-                            {
-                                errorCheck();
-                                mouse.pointAndClick(LEFT, uiElements.itemsTop, 1, 1, 1);
-                            }
-                            errorCheck();
-                        }
-                        //RClick current line
-                        mouse.pointAndClick(RIGHT, cursorPosition, 1, 1, 1);
-                        //View details
-                        mouse.offsetAndClick(LEFT, uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] + offsetYModifier, 0, 2, 1);
-                        //TODO Make variable. Normal click route often causes inadvertant double-clicks on items, causing ships to be assembled and items
-                        //to be fitted. This left-click in a deadzone prevents such double clicks from occuring. 
-                        mouse.pointAndClick(LEFT, 120, 747, 1, 1, 1);
-                        if (itemType == 0)
-                            offsetYModifier = (offsetYModifier == 0 && readFailCounter != 8) ? uiElements.itemsViewModuleDetailExtraOffset : 0;
-                        if (readFailCounter % 2 == 1)
-                            mouse.waitDuration *= 2;
+                        buyOrderQuantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
+                        placeBuyOrder(orderAnalyzer.getTypeId(), buyOrderQuantity);
+                        
+                        //If a new sell order is created for this item, it will expect the old best buy price unless we 
+                        //update it with the price of the new buy order.
+                        orderAnalyzer.setOwnedBuyPrice(orderAnalyzer.getBuyPrice() + .01);
+                        ++currentBuyOrdersCreated;
                     }
-                    //Click on Export Market info
-                    mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
 
-                    activeOrderCheck = orderAnalyzer.findBestBuyAndSell(out bestSellOrderPrice, out bestBuyOrderPrice, out typeID, paths.logPath, ref terminalItemID, Convert.ToString(character.stationid), ref offsetFlag);
-                    if (typeID != 0)
-                        itemName = modules.typeNames[typeID];
-                    ++readFailCounter;
-                } while ((activeOrderCheck == -1 || activeOrderCheck == -2) && readFailCounter < 8);
-
-                if (readFailCounter >= 17)
-                {
-                    ++consecutiveFailures; 
-                    logger.logError("Failed to check an item. Retry limit exceeded.");
-                }
-                else
-                    consecutiveFailures = 0;
-                mouse.waitDuration = timing;
-                if ((activeOrderCheck == -1 || activeOrderCheck == -2) && consecutiveFailures == 3)
-                {
-                    return 1;
-                }
-                else if (activeOrderCheck == -4)
-                    return 0;
-                else if (consecutiveFailures > 0)
-                    resetView(itemType);
-
-                if (modules.longNameTypeIDs.ContainsKey(typeID))
-                {
-                    longOrderNameXOffset = 253;
-                    longOrderNameYOffset = 22;
-                }
-
-                offsetYModifier = 0;
-                if ((activeOrderCheck == 0 || activeOrderCheck == 1) && character.adjustBuys && character.tradeHistory.ContainsKey(typeID))//If a new buy order needs to be placed.
-                {
-                    double temp;
-                    buyOrderQuantity = getBuyOrderQty(bestBuyOrderPrice, bestSellOrderPrice);
-
-                    if (buyOrderQuantity > 0)
+                    if (!orderAnalyzer.isSomeSellOwned() && character.adjustSells && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))//If a new sell order needs to be placed.
                     {
-                        temp = 0;
-                        if (cancelOrder(0, 0) == 0)
-                        {
-                            do
-                            {
+                        openAndIdentifySellWindow(6, 2, currentHangarListPosition, hangarType);
+                        placeSellOrder();
 
-                                //Click on place buy order
-                                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 0, 1, 6);
-                                //Right click on the field
-                                mouse.pointAndClick(RIGHT, uiElements.buyOrderBox[0], uiElements.buyOrderBox[1] + longOrderNameYOffset, 0, 4, 2);
-                                //Click on copy
-                                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
-
-                                try {  temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
-                                catch  {  temp = 0; }
-
-                                //If this is the correct item. 
-                                if (temp < bestSellOrderPrice + 1000 && temp > bestSellOrderPrice - 1000)
-                                {
-                                    //Input buy order price.
-                                    int modificationFailCount = 0;
-                                    do
-                                    {
-                                        //Double click to highlight
-                                        mouse.pointAndClick(DOUBLE, uiElements.buyOrderBox[0], uiElements.buyOrderBox[1] + longOrderNameYOffset, 4, 2, 2);
-                                        Clipboard.setClip((bestBuyOrderPrice + .01).ToString());
-                                        mouse.click(RIGHT, 2, 2);
-                                        mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
-                                        Clipboard.setClip("0");
-
-                                        ++modificationFailCount;
-                                    } while (verifyNewOrderInput(uiElements.buyOrderBox, bestBuyOrderPrice, out lastOrderModified, ref longOrderNameYOffset) == false && modificationFailCount < 10);
-
-                                    if (modificationFailCount == 10)
-                                        temp = 0;
-                                    if (offsetFlag == 1)
-                                        itemSoldOutModifier = 15;
-                                    //Input buy order quantity.
-                                    if (lastOrderModified)
-                                    {
-                                        ++buyOrdersCreated;
-                                        modificationFailCount = 0;
-                                        do
-                                        {
-                                            //Double click to highlight
-                                            mouse.pointAndClick(DOUBLE, uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset - itemSoldOutModifier, 4, 6, 1);
-                                            mouse.click(DOUBLE, 1, 4);
-                                            keyboard.send(buyOrderQuantity.ToString());
-
-                                            ++modificationFailCount;
-                                        } while (verifyQuantityInput(ref buyOrderQuantity, out lastOrderModified, longOrderNameYOffset - itemSoldOutModifier) == false && modificationFailCount < 10);
-
-                                        if (modificationFailCount == 10)
-                                            temp = 0;
-                                    }
-                                }
-                                else
-                                {
-                                    temp = 0;
-                                }
-                                ++copyFailCounter;
-                            } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 10);
-                        }
+                        ++currentSellOrdersCreated;
+                        --currentHangarListPosition;
                     }
+                }
+                catch (Exception e)
+                {
+                    errorCheck();
+                    logger.log("AutoLister Failure!");
+                }
+                ++currentHangarListPosition;
+            }
+        }
+        private void viewDetailsAndExportResult(int tries, double timingScaleFactor, int currentHangarListPosition, int hangarType)
+        {
+            int lastTypeId = orderAnalyzer.getTypeId();
+            if (lastTypeId.Equals(0))
+                lastTypeId = 806;
+            int[] lineCoords = { uiElements.itemsTop[0], uiElements.itemsTop[1] + currentHangarListPosition * uiElements.itemsLineHeight };
+            int[] viewDetailsOffset = { uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] };
+            DirectoryEraser.nuke(paths.logPath);
+           
+            for (int i = 0; i < tries; i++)
+            {
+                if (i > 2)
+                {
+                    int errorCode = getError();
+                    if (errorCode == 10 || errorCode == 12)
+                    {
+                        errorCheck();
+                        mouse.pointAndClick(LEFT, uiElements.itemsTop, 1, 1, 1);
+                    }
+                    errorCheck();
+                }
+                //RClick current line
+                mouse.pointAndClick(RIGHT, lineCoords, 1, 1, 1);
+                //View details
+                mouse.offsetAndClick(LEFT, viewDetailsOffset, 0, 2, 1);
+                //TODO Make variable. Normal click route often causes inadvertant double-clicks on items, causing ships to be assembled and items
+                //to be fitted. This left-click in a deadzone prevents such double clicks from occuring. 
+                mouse.pointAndClick(LEFT, 120, 747, 1, 1, 1);
+
+                if (hangarType == TRADE_ITEMS)
+                    if (viewDetailsOffset[1].Equals(uiElements.itemsViewDetailsOffset[1]))
+                        viewDetailsOffset[1] = uiElements.itemsViewDetailsOffset[1] + uiElements.itemsViewModuleDetailExtraOffset;
                     else
-                    {
-                        if (!character.tradeQueue.Contains(typeID))
-                            character.tradeQueue.Enqueue(typeID);
-                        logger.autoAdjusterLog(itemName + " not purchased. Item no longer exceeds minimum profit threshhold.");
-                        logger.autoAdjusterLog(bestSellOrderPrice.ToString());
-                        logger.autoAdjusterLog(bestBuyOrderPrice.ToString());
-                        logger.autoAdjusterLog("");
-                    }
-                    new SetClipboardHelper(DataFormats.Text, "0").Go();
+                        viewDetailsOffset[1] = uiElements.itemsViewDetailsOffset[1];
 
+                if (i % 2 == 1)
+                    mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                //Click on Export Market info
+                mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
 
-                    if (lastOrderModified)
-                    {
-                        confirmOrder(new int[2] {uiElements.OrderBoxOK[0], uiElements.OrderBoxOK[1] + longOrderNameYOffset - itemSoldOutModifier }, 1, 1);
-                        --openOrders;
-                        lastOrderModified = false;
-                    }
-                    else
-                    {
-                        if (activeOrderCheck == 0 || activeOrderCheck == 2)
-                        {
-                            if (!character.tradeQueue.Contains(typeID))
-                                character.tradeQueue.Enqueue(typeID);
-                        }
-                        logger.autoAdjusterLog("Failed to buy item " + itemName);
-                        logger.autoAdjusterLog("");
-                    }
-                }
-                if ((activeOrderCheck == 0 || activeOrderCheck == 2) && character.tradeHistory.ContainsKey(typeID))//If a new sell order needs to be placed.
+                List<String[]> orderData = exportOrderData(lastTypeId);
+                if (orderData != null)
                 {
-                    copyFailCounter = 0;
-                    if (itemType == 0 && !modules.fittableModuleTypeIDs.ContainsKey(typeID))
-                        offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                    else
-                        offsetYModifier = 0;
-
-                    double temp = 0;
-                        do
-                        {
-                            if (cancelOrder(0, 0) == 0)
-                            {
-                                temp = 0;
-                                //RClick on current line.
-                                mouse.pointAndClick(RIGHT, cursorPosition, 0, 1, 1);
-                                mouse.pointAndClick(LEFT, cursorPosition[0] + uiElements.itemsSellItemOffset[0], cursorPosition[1] + uiElements.itemsSellItemOffset[1] + offsetYModifier, 0, 1, 1);
-
-                                if (copyFailCounter % 3 == 2)
-                                    mouse.waitDuration *= 2;
-                                if (copyFailCounter % 4 == 3)
-                                {
-                                    if (offsetYModifier == 0 && itemType == 0)
-                                        offsetYModifier = uiElements.itemsViewModuleDetailExtraOffset;
-                                    else if (itemType == 0)
-                                        offsetYModifier = 0;
-                                }
-
-                                //Right click on the field
-                                mouse.pointAndClick(RIGHT, uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset, 5, 2, 2);
-                                //Click on copy
-                                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
-                                try{ temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
-                                catch{ temp = 0; }
-
-                                mouse.waitDuration = timing;
-                                if ((temp - 1000) < bestBuyOrderPrice && bestBuyOrderPrice < (temp + 1000))
-                                {
-                                    int modificationFailCount = 0;
-                                    do
-                                    {
-                                        //Double click to highlight
-                                        mouse.pointAndClick(DOUBLE, uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset, 4, 2, 2);
-                                        Clipboard.setClip((bestSellOrderPrice - .01).ToString());
-                                        mouse.click(RIGHT, 2, 2);
-                                        mouse.offsetAndClick(LEFT, uiElements.pasteOffset, 0, 2, 0);
-                                        Clipboard.setClip("0");
-
-                                        ++modificationFailCount;
-                                    } while (verifyNewOrderInput(bestSellOrderPrice, out lastOrderModified, ref longOrderNameYOffset) == false && modificationFailCount < 10);
-                                    if (modificationFailCount == 10)
-                                        temp = 0;
-                                }
-                                else
-                                {
-                                    temp = 0;
-                                }
-                                ++copyFailCounter;
-                            }
-                        } while (string.Compare(Convert.ToString(temp), "0") == 0 && copyFailCounter < 6);
-                    Clipboard.setClip("0");
+                    orderAnalyzer.analyzeInvestment(orderData, Convert.ToString(character.stationid));
                     mouse.waitDuration = timing;
-                    mouse.click(LEFT,7, 0);
-
-                    if (lastOrderModified)
-                    {
-                        ++sellOrdersCreated;
-                        cursorPosition[1] = cursorPosition[1] - uiElements.itemsLineHeight;
-                        confirmOrder(fixCoordsForLongTypeName(typeID, uiElements.OrderBoxOK), 1, 0);
-                        --openOrders;
-                    }
+                    return;
                 }
-                cursorPosition[1] = cursorPosition[1] + uiElements.itemsLineHeight;
             }
-            return 0;
+            logger.log("Failed to view item details and export result.");
+            throw new Exception("Failed to view item details and export result.");
         }
 
-        private bool verifyNewOrderInput(double desiredInput, out bool lastOrderModified, ref int longOrderNameYOffset)
+        private List<String[]> exportOrderData(int lastTypeId)
         {
-            double temp;
+            String fileName;
+            List<String[]> result;
 
-            //Right click on the field
-            mouse.pointAndClick(RIGHT, uiElements.sellOrderBox[0], uiElements.sellOrderBox[1] + longOrderNameYOffset, 1, 1, 1);
-            //Click on copy
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
-
-            try { temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
-            catch { temp = -1; }
-
-            if (desiredInput - 10000 < temp && temp < desiredInput + 10000 && (temp != desiredInput))
+            fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
+            if (fileName != null && !fileName.Contains(modules.typeNames[lastTypeId]) && !fileName.Contains("My Orders"))
             {
-                lastOrderModified = true;
-                return true;
+                marketOrderio.fileName = fileName;
+                result = marketOrderio.read();
+                if (result != null && result.Count > 0)
+                    return result;
             }
-            else
-            {
-                lastOrderModified = false;
-                return false;
-            }
+            return null;
         }
 
-        private bool verifyNewOrderInput(int[] orderBoxCoords, double desiredInput, out bool lastOrderModified, ref int offset)
+        private void openAndIdentifySellWindow(int tries, double timingScaleFactor, int currentHangarListPosition, int hangarType)
         {
-            double temp;
+            Double clipboardValue = 0;
+            Double verificationValue = Math.Max(orderAnalyzer.getOwnedBuyPrice(), orderAnalyzer.getBuyPrice());
+            int[] lineCoords = { uiElements.itemsTop[0], uiElements.itemsTop[1] + currentHangarListPosition * uiElements.itemsLineHeight };
+            int[] sellItemOffset = { uiElements.itemsSellItemOffset[0], uiElements.itemsSellItemOffset[1] };
 
-            //Right click on the field
-            mouse.pointAndClick(RIGHT, orderBoxCoords[0], orderBoxCoords[1] + offset, 1, 1, 1);
-            //Click on copy
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 1);
-
-            try { temp = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
-            catch { temp = -1; }
-
-            if (desiredInput - 10000 < temp && temp < desiredInput + 10000 && (temp != desiredInput))
+            if (hangarType == TRADE_ITEMS && !modules.fittableModuleTypeIDs.ContainsKey(orderAnalyzer.getTypeId()))
             {
-                lastOrderModified = true;
-                return true;
+                sellItemOffset[1] += uiElements.itemsViewModuleDetailExtraOffset;
             }
-            else
+
+            for (int i = 0; i < tries; i++)
             {
-                lastOrderModified = false;
-                return false;
+                cancelOrder(0, 0);
+                //RClick on current line.
+                mouse.pointAndClick(RIGHT, lineCoords, 0, 1, 1);
+                mouse.offsetAndClick(LEFT, sellItemOffset, 0, 1, 1);
+
+                if (i % 3 == 2)
+                    mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+
+                //Right click on the field
+                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(orderAnalyzer.getTypeId(), uiElements.sellOrderBox), 5, 2, 2);
+                //Click on copy
+                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
+                try { clipboardValue = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
+                catch { clipboardValue = 0; }
+
+                if (clipboardValue.Equals(verificationValue))
+                {
+                    mouse.waitDuration = timing;
+                    return;
+                }
             }
+            logger.log("Failed to open and identify the sell window!");
+            throw new Exception("Failed to open and identify the sell window!");
         }
 
-        private bool verifyQuantityInput(ref int quantity, out bool lastOrderModified, int longOrderNameYOffset)
+        private void teardown(String timeElapsed)
         {
+            cancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
+            logger.log(character.name + ": AL made " + totalSellOrdersCreated + " sells, " + totalBuyOrdersCreated + " buys in " + timeElapsed);
+            freeOrders -= (totalBuyOrdersCreated + totalSellOrdersCreated);
+        }
 
-            //Right click on the field
-            mouse.pointAndClick(RIGHT, uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + longOrderNameYOffset, 1, 1, 1);
-            //Click on copy
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 1, 2);
+        private void openHangar(string hotkey)
+        {
+            wait(5);
+            keyboard.send(hotkey);
+            wait(40);
+        }
 
-            int temp;
-            try { temp = Convert.ToInt32(Clipboard.getTextFromClipboard()); }
-            catch { temp = -1; }
-
-            if (temp == quantity)
-            {
-                lastOrderModified = true;
-                return true;
-            }
-            else
-            {
-                lastOrderModified = false;
-                return false;
-            }
+        private void placeSellOrder()
+        {
+            inputValue(5, 2, fixCoordsForLongTypeName(orderAnalyzer.getTypeId(), uiElements.sellOrderBox), (orderAnalyzer.getSellPrice() - .01).ToString());
+            confirmOrder(fixCoordsForLongTypeName(orderAnalyzer.getTypeId(), uiElements.OrderBoxOK), 1, 1);
         }
 
         private void resetView(int tradeType)
         {
             errorCheck();
-            closeMarketAndItemsWindows();
+            closeMarketAndHangarWindows();
 
             if (tradeType == 0)
                 keyboard.send("{PGUP}");
