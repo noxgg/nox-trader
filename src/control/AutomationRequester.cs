@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Threading;
+using System.Windows.Forms;
 using noxiousET.src.guiInteraction;
 
 namespace noxiousET.src.control
@@ -8,12 +9,26 @@ namespace noxiousET.src.control
     {
         PuppetMaster puppetMaster;
         Thread automator;
-        Thread executor;
-        Process[] processes;
+        Hotkey pauseKey;
+        Hotkey unpauseKey;
+        Hotkey terminateKey;
+        Control control;
 
         public AutomationRequester(PuppetMaster puppetMaster)
         {
             this.puppetMaster = puppetMaster;
+            this.pauseKey = new Hotkey(Keys.Z, true, true, false, false);
+            pauseKey.Pressed += delegate { this.pause(); };
+            this.unpauseKey = new Hotkey(Keys.X, true, true, false, false);
+            unpauseKey.Pressed += delegate { this.unpause(); };
+            this.terminateKey = new Hotkey(Keys.Q, true, true, true, false);
+            terminateKey.Pressed += delegate { this.terminate(); };
+
+            this.control = new Control();
+            pauseKey.Register(control);
+            unpauseKey.Register(control);
+            terminateKey.Register(control);
+
         }
 
         public void automate()
@@ -24,13 +39,6 @@ namespace noxiousET.src.control
             automator = new Thread(new ThreadStart(this.handoff));
             automator.SetApartmentState(ApartmentState.STA);
             automator.Start();
-            while (!automator.IsAlive);
-            Thread.Sleep(1);
-
-            Thread executor = new Thread(new ThreadStart(this.waitForEvents));
-            executor.Start();
-            while (!executor.IsAlive) ;
-            Thread.Sleep(1);
         }
 
         private void handoff()
@@ -38,39 +46,20 @@ namespace noxiousET.src.control
             puppetMaster.automate(999);
         }
 
-        private void waitForEvents()
+        private void pause()
         {
-            bool automatorSuspended = false;
-            while (true)
-            {
-                if (!automatorSuspended && processExists("taskmgr"))
-                {
-                    automator.Suspend();
-                    automatorSuspended = true;
-                }
-                if (automatorSuspended && !processExists("taskmgr"))
-                {
-                    try
-                    {
-                        automator.Resume();
-                        automatorSuspended = false;
-                    }
-                    catch
-                    {
-                    }
-                }
-            }
+            Mouse.suspendEvent.Reset();
         }
 
-        private bool processExists(string processName)
+        private void unpause()
         {
-            processes = Process.GetProcessesByName(processName);
-            foreach (Process p in processes)
-            {
-                if (p.ProcessName == processName)
-                    return true;
-            }
-            return false;
+            Mouse.suspendEvent.Set();
+        }
+
+        private void terminate()
+        {
+            automator.Abort();
+            unpause();
         }
     }
 }

@@ -22,6 +22,10 @@ namespace noxiousET.src.guiInteraction.orders
         }
 
         //TODO, merge with confirmOrder
+        protected int cancelOrder(int[] offset)
+        {
+            return cancelOrder(offset[0], offset[1]);
+        }
         protected int cancelOrder(int xOffset, int yOffset)
         {
             int failCount = 0;
@@ -68,13 +72,14 @@ namespace noxiousET.src.guiInteraction.orders
         protected void openAndIdentifyBuyWindow(int currentItem, double sellPrice)
         {
             double result;
+
             for (int i = 0; i < 7; i++)
             {
-                cancelOrder(0, 0);
-                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 1, 1, 6);
-                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), 0, 4, 2);
-                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
-
+                cancelOrder(0,0);
+                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 5, 2, 15);
+                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), 2, 4, 2);
+                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 2, 2, 2);
+                mouse.offsetAndClick(LEFT, 428, 419, 0, 0, 0);
                 try
                 {
                     result = Convert.ToDouble(Clipboard.getTextFromClipboard());
@@ -83,6 +88,8 @@ namespace noxiousET.src.guiInteraction.orders
                         mouse.waitDuration = timing;
                         return;
                     }
+                    mouse.waitDuration *= 2;
+                    result = 0;
                 }
                 catch
                 {
@@ -102,7 +109,7 @@ namespace noxiousET.src.guiInteraction.orders
         protected void placeBuyOrder(int typeId, int quantity)
         {
             int[] quantityCoords = { uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] };
-            Double verificationValue = Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice());
+            Double verificationValue = Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice()).Equals(0) ? Math.Max(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice()) : Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice());
             if (orderAnalyzer.noSellsExist)
                 quantityCoords[1] -= 15;
 
@@ -110,7 +117,7 @@ namespace noxiousET.src.guiInteraction.orders
             //Input price
             inputValue(5, 2, fixCoordsForLongTypeName(typeId, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
             //Input quantity
-            inputValue(5, 2, fixCoordsForLongTypeName(typeId, quantityCoords), Convert.ToString(quantity));
+            inputValue(3, 2, fixCoordsForLongTypeName(typeId, quantityCoords), Convert.ToString(quantity));
             confirmOrder(fixCoordsForLongTypeName(typeId, uiElements.OrderBoxOK), 1, 1);
         }
 

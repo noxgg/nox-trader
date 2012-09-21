@@ -13,7 +13,7 @@ namespace noxiousET.src.guiInteraction
             DOUBLE,
         };
 
-        private Mutex mutex;
+        public static ManualResetEvent suspendEvent { set; get; }
         [System.Runtime.InteropServices.DllImport("user32.dll")]
         public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
 
@@ -29,12 +29,11 @@ namespace noxiousET.src.guiInteraction
         {
             this.waitDuration = waitDuration;
             this.Cursor = new Cursor(Cursor.Current.Handle);
-            this.mutex = new Mutex(false, EtConstants.KB_MOUSE_LOCK);
         }
 
         public void pointAndClick(int clickType, int[] point, int before, int between, int after)
         {
-            mutex.WaitOne();
+            Mouse.suspendEvent.WaitOne(Timeout.Infinite);
             if (before > 0)
                 wait(before);
             pointCursor(point);
@@ -43,7 +42,6 @@ namespace noxiousET.src.guiInteraction
             doClick(clickType);
             if (after > 0)
                 wait(after);
-            mutex.ReleaseMutex();
         }
 
         public void click(int clickType, int before, int after)

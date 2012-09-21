@@ -36,8 +36,8 @@ namespace noxiousET.src.etevent
         public event GetTypesFromFileRequestHandler getTypesFromFileRequestHandler;
         public delegate void GetTypesFromQuickbarRequestHandler(object sourceObject, string character, string firstItemName, string lastItemName);
         public event GetTypesFromQuickbarRequestHandler getTypesFromQuickbarRequestHandler;
-        public delegate void UnpauseEventHandler(object sourceObject);
-        public event UnpauseEventHandler unpauseEventHandler;
+        public delegate void UpdateActionToTakeRequestHandler(object sourceObject, string character, string typeId, string buyOrSell, string action);
+        public event UpdateActionToTakeRequestHandler updateActionToTakeRequestHandler;
 
         public void log(string message)
         {
@@ -84,9 +84,9 @@ namespace noxiousET.src.etevent
             this.getTypesFromQuickbarRequestHandler(this, character, firstItemId, lastItemId);
         }
 
-        public void unpauseEvent()
+        public void updateActionToTakeRequest(string character, string typeId, string buyOrSell, string action)
         {
-            this.unpauseEventHandler(this);
+            this.updateActionToTakeRequestHandler(this, character, typeId, buyOrSell, action);
         }
 	}
 }

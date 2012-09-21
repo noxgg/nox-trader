@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
@@ -19,11 +20,13 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
         int numScanned;
         private int freeOrders;
         private MarketOrderio marketOrderio;
+        private OrderReviewer orderReviewer;
         private String fileName;
 
-        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer, OrderReviewer orderReviewer)
             : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
         {
+            this.orderReviewer = orderReviewer;
             this.marketOrderio = new MarketOrderio();
             marketOrderio.path = paths.logPath;
         }
@@ -65,6 +68,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             long metricsNotModifiedAvg = 0;
             long metricsModifiedCount = 0;
             long metricsNotModifiedCount = 0;
+            List<String[]> orderData;
 
             int ceiling = Convert.ToInt32(Math.Ceiling(orderAnalyzer.orderSet.getNumberOfBuysAndSells()[typeToAdjust] / Convert.ToDouble(uiElements.visLines[typeToAdjust])));
             for (int i = 0; i < ceiling; ++i)
@@ -82,7 +86,8 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                             SetForegroundWindow(eveHandle);
 
                         marketOrderio.fileName = executeQueryAndExportResult(3, 2, cursorPosition, ref currentTypeId);
-                        orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(character.stationid));
+                        orderData = marketOrderio.read();
+                        orderAnalyzer.analyzeInvestment(orderData, Convert.ToString(character.stationid));
                         currentTypeId = orderAnalyzer.getTypeId();
                         if (modifiedOnLastIteration)
                         {
@@ -90,12 +95,22 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                             modifiedOnLastIteration = false;
                             ++numModified;
                         }
-                        if ((!orderAnalyzer.isBestOrderOwned(typeToAdjust) && shouldAdjustOrder(ref typeToAdjust)) || 
-                            (orderAnalyzer.isBestOrderOwned(typeToAdjust) && isAnOverbid(typeToAdjust)))
+                        if (!orderAnalyzer.isBestOrderOwned(typeToAdjust) && shouldAdjustOrder(ref typeToAdjust) || 
+                            orderAnalyzer.isBestOrderOwned(typeToAdjust) && isAnOverbid(typeToAdjust))
                         {
                             openAndIdentifyModifyWindow(10, 1.2, cursorPosition, orderAnalyzer.getOwnedPrice(typeToAdjust));
                             inputValue(5, 2, uiElements.modifyOrderBox, Convert.ToString(orderAnalyzer.getPrice(typeToAdjust) + outbid(typeToAdjust)));
                             modifiedOnLastIteration = true;
+                            orderReviewer.removeOrderRequiringReview(character.name, orderAnalyzer.getTypeId(), typeToAdjust);
+                        }
+                        else if (orderReviewer.shouldCancel(character.name, orderAnalyzer.getTypeId(), typeToAdjust))
+                        {
+                            //Do cancel
+                        }
+                        else if (!orderAnalyzer.isBestOrderOwned(typeToAdjust) && !shouldAdjustOrder(ref typeToAdjust))
+                        {
+                            double ownedPrice = orderAnalyzer.getOwnedPrice(typeToAdjust);
+                            orderReviewer.addOrderRequiringReview(character.stationid.ToString(), orderData, ownedPrice.ToString(), character.name, modules.typeNames[orderAnalyzer.getTypeId()]);
                         }
                         ++numScanned;
                         cursorPosition[1] += uiElements.lineHeight;
@@ -214,6 +229,11 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 if (orderAnalyzer.getSellPrice() < 0 || orderAnalyzer.getBuyPrice() < (orderAnalyzer.getSellPrice() - (orderAnalyzer.getSellPrice() - orderAnalyzer.getOwnedBuyPrice()) / 2))
                     return true;
             }
+            if (overrideShouldAdjust(typeToAdjust))
+            {
+                return true;
+            }
+
             logger.autoListerLog("AL not adjusting " + modules.typeNames[Convert.ToInt32(orderAnalyzer.getTypeId())]);
             logger.autoListerLog("Best Sell: " + orderAnalyzer.getBuyPrice());
             logger.autoListerLog("Best Buy: " + orderAnalyzer.getSellPrice());
@@ -222,6 +242,18 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             else
                 logger.autoListerLog("Target buy order: " + orderAnalyzer.getOwnedBuyPrice());
             return false;
+        }
+
+        private Boolean overrideShouldAdjust(int typeToAdjust)
+        {
+            return (orderReviewer.shouldUpdate(character.name, orderAnalyzer.getTypeId(), typeToAdjust) && !siginificantPriceChangeDetected(typeToAdjust));
+        }
+
+        private Boolean siginificantPriceChangeDetected(int typeToAdjust)
+        {
+            double newPrice = orderAnalyzer.getPrice(typeToAdjust);
+            double oldPrice = orderReviewer.getPrice(character.name, orderAnalyzer.getTypeId(), typeToAdjust);
+            return Math.Abs((newPrice - oldPrice) / oldPrice) > .02;
         }
 
         private String executeQueryAndExportResult(int tries, double timingScaleFactor, int[] cursorPosition, ref int lastTypeId)

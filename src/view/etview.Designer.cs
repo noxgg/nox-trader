@@ -41,8 +41,10 @@
             this.characterIdTB = new System.Windows.Forms.TextBox();
             this.maximumOrdersL = new System.Windows.Forms.Label();
             this.maximumOrdersTB = new System.Windows.Forms.TextBox();
+            this.accountIdLabel = new System.Windows.Forms.Label();
             this.stationidL = new System.Windows.Forms.Label();
             this.stationidTB = new System.Windows.Forms.TextBox();
+            this.accountIdTB = new System.Windows.Forms.TextBox();
             this.loginColorL = new System.Windows.Forms.Label();
             this.loginColorTB = new System.Windows.Forms.TextBox();
             this.alsellCB = new System.Windows.Forms.CheckBox();
@@ -60,9 +62,7 @@
             this.passwordTB = new System.Windows.Forms.TextBox();
             this.nameTB = new System.Windows.Forms.TextBox();
             this.loginTB = new System.Windows.Forms.TextBox();
-            this.accountIdLabel = new System.Windows.Forms.Label();
             this.charactersL = new System.Windows.Forms.Label();
-            this.accountIdTB = new System.Windows.Forms.TextBox();
             this.charactersLB = new System.Windows.Forms.ListBox();
             this.settingsPanel = new System.Windows.Forms.Panel();
             this.timingL = new System.Windows.Forms.Label();
@@ -94,6 +94,18 @@
             this.autoAdjusterLB = new System.Windows.Forms.ListBox();
             this.altab = new System.Windows.Forms.TabPage();
             this.autoListerLB = new System.Windows.Forms.ListBox();
+            this.reviewTab = new System.Windows.Forms.TabPage();
+            this.itemsToReviewList = new System.Windows.Forms.ListView();
+            this.buyOrSell = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.action = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.character = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.item = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.typeId = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.reviewDetailsListView = new System.Windows.Forms.ListView();
+            this.type = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.price = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.volume = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.timeLeft = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.automateB = new System.Windows.Forms.Button();
             this.unpauseB = new System.Windows.Forms.Button();
             this.clientTabs.SuspendLayout();
@@ -106,6 +118,7 @@
             this.resolutionTab.SuspendLayout();
             this.aalogTab.SuspendLayout();
             this.altab.SuspendLayout();
+            this.reviewTab.SuspendLayout();
             this.SuspendLayout();
             // 
             // clientTabs
@@ -115,11 +128,13 @@
             this.clientTabs.Controls.Add(this.resolutionTab);
             this.clientTabs.Controls.Add(this.aalogTab);
             this.clientTabs.Controls.Add(this.altab);
+            this.clientTabs.Controls.Add(this.reviewTab);
             this.clientTabs.Location = new System.Drawing.Point(12, 12);
             this.clientTabs.Name = "clientTabs";
-            this.clientTabs.SelectedIndex = 0;
-            this.clientTabs.Size = new System.Drawing.Size(412, 461);
-            this.clientTabs.TabIndex = 0;
+            this.clientTabs.SelectedIndex = 3;
+            this.clientTabs.Size = new System.Drawing.Size(560, 461);
+            this.clientTabs.TabIndex = 3;
+            this.clientTabs.SelectedIndexChanged += new System.EventHandler(this.clientTabs_SelectedIndexChanged);
             // 
             // homeTab
             // 
@@ -129,7 +144,7 @@
             this.homeTab.Location = new System.Drawing.Point(4, 22);
             this.homeTab.Name = "homeTab";
             this.homeTab.Padding = new System.Windows.Forms.Padding(3);
-            this.homeTab.Size = new System.Drawing.Size(404, 435);
+            this.homeTab.Size = new System.Drawing.Size(552, 435);
             this.homeTab.TabIndex = 0;
             this.homeTab.Text = "Home";
             // 
@@ -147,7 +162,7 @@
             this.consoleLB.FormattingEnabled = true;
             this.consoleLB.Location = new System.Drawing.Point(0, 26);
             this.consoleLB.Name = "consoleLB";
-            this.consoleLB.Size = new System.Drawing.Size(398, 407);
+            this.consoleLB.Size = new System.Drawing.Size(546, 407);
             this.consoleLB.TabIndex = 2;
             // 
             // configTab
@@ -165,7 +180,7 @@
             this.configTab.Location = new System.Drawing.Point(4, 22);
             this.configTab.Name = "configTab";
             this.configTab.Padding = new System.Windows.Forms.Padding(3);
-            this.configTab.Size = new System.Drawing.Size(404, 435);
+            this.configTab.Size = new System.Drawing.Size(552, 435);
             this.configTab.TabIndex = 1;
             this.configTab.Text = "Config";
             // 
@@ -266,6 +281,15 @@
             this.maximumOrdersTB.TabIndex = 25;
             this.maximumOrdersTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.maximumOrdersTB_KeyUp);
             // 
+            // accountIdLabel
+            // 
+            this.accountIdLabel.AutoSize = true;
+            this.accountIdLabel.Location = new System.Drawing.Point(19, 184);
+            this.accountIdLabel.Name = "accountIdLabel";
+            this.accountIdLabel.Size = new System.Drawing.Size(61, 13);
+            this.accountIdLabel.TabIndex = 24;
+            this.accountIdLabel.Text = "Account ID";
+            // 
             // stationidL
             // 
             this.stationidL.AutoSize = true;
@@ -282,6 +306,14 @@
             this.stationidTB.Size = new System.Drawing.Size(87, 20);
             this.stationidTB.TabIndex = 21;
             this.stationidTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.stationidTB_KeyUp);
+            // 
+            // accountIdTB
+            // 
+            this.accountIdTB.Location = new System.Drawing.Point(80, 181);
+            this.accountIdTB.Name = "accountIdTB";
+            this.accountIdTB.Size = new System.Drawing.Size(87, 20);
+            this.accountIdTB.TabIndex = 23;
+            this.accountIdTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.accountIdTB_KeyUp);
             // 
             // loginColorL
             // 
@@ -443,15 +475,6 @@
             this.loginTB.TabIndex = 0;
             this.loginTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.loginTB_KeyUp);
             // 
-            // accountIdLabel
-            // 
-            this.accountIdLabel.AutoSize = true;
-            this.accountIdLabel.Location = new System.Drawing.Point(19, 184);
-            this.accountIdLabel.Name = "accountIdLabel";
-            this.accountIdLabel.Size = new System.Drawing.Size(61, 13);
-            this.accountIdLabel.TabIndex = 24;
-            this.accountIdLabel.Text = "Account ID";
-            // 
             // charactersL
             // 
             this.charactersL.AutoSize = true;
@@ -460,14 +483,6 @@
             this.charactersL.Size = new System.Drawing.Size(58, 13);
             this.charactersL.TabIndex = 7;
             this.charactersL.Text = "Characters";
-            // 
-            // accountIdTB
-            // 
-            this.accountIdTB.Location = new System.Drawing.Point(80, 181);
-            this.accountIdTB.Name = "accountIdTB";
-            this.accountIdTB.Size = new System.Drawing.Size(87, 20);
-            this.accountIdTB.TabIndex = 23;
-            this.accountIdTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.accountIdTB_KeyUp);
             // 
             // charactersLB
             // 
@@ -684,7 +699,7 @@
             this.resolutionTab.Location = new System.Drawing.Point(4, 22);
             this.resolutionTab.Name = "resolutionTab";
             this.resolutionTab.Padding = new System.Windows.Forms.Padding(3);
-            this.resolutionTab.Size = new System.Drawing.Size(404, 435);
+            this.resolutionTab.Size = new System.Drawing.Size(552, 435);
             this.resolutionTab.TabIndex = 2;
             this.resolutionTab.Text = "Elements";
             // 
@@ -719,7 +734,7 @@
             this.knownItemsListBox.FormattingEnabled = true;
             this.knownItemsListBox.Location = new System.Drawing.Point(3, 32);
             this.knownItemsListBox.Name = "knownItemsListBox";
-            this.knownItemsListBox.Size = new System.Drawing.Size(395, 394);
+            this.knownItemsListBox.Size = new System.Drawing.Size(543, 394);
             this.knownItemsListBox.TabIndex = 0;
             this.knownItemsListBox.SelectedIndexChanged += new System.EventHandler(this.knownItemsListBox_SelectedIndexChanged);
             // 
@@ -730,7 +745,7 @@
             this.aalogTab.Location = new System.Drawing.Point(4, 22);
             this.aalogTab.Name = "aalogTab";
             this.aalogTab.Padding = new System.Windows.Forms.Padding(3);
-            this.aalogTab.Size = new System.Drawing.Size(404, 435);
+            this.aalogTab.Size = new System.Drawing.Size(552, 435);
             this.aalogTab.TabIndex = 3;
             this.aalogTab.Text = "AA Log";
             // 
@@ -739,7 +754,7 @@
             this.autoAdjusterLB.FormattingEnabled = true;
             this.autoAdjusterLB.Location = new System.Drawing.Point(-4, 0);
             this.autoAdjusterLB.Name = "autoAdjusterLB";
-            this.autoAdjusterLB.Size = new System.Drawing.Size(408, 433);
+            this.autoAdjusterLB.Size = new System.Drawing.Size(553, 433);
             this.autoAdjusterLB.TabIndex = 3;
             // 
             // altab
@@ -749,7 +764,7 @@
             this.altab.Location = new System.Drawing.Point(4, 22);
             this.altab.Name = "altab";
             this.altab.Padding = new System.Windows.Forms.Padding(3);
-            this.altab.Size = new System.Drawing.Size(404, 435);
+            this.altab.Size = new System.Drawing.Size(552, 435);
             this.altab.TabIndex = 4;
             this.altab.Text = "AL Log";
             // 
@@ -758,12 +773,100 @@
             this.autoListerLB.FormattingEnabled = true;
             this.autoListerLB.Location = new System.Drawing.Point(-2, 1);
             this.autoListerLB.Name = "autoListerLB";
-            this.autoListerLB.Size = new System.Drawing.Size(408, 433);
+            this.autoListerLB.Size = new System.Drawing.Size(551, 433);
             this.autoListerLB.TabIndex = 4;
+            // 
+            // reviewTab
+            // 
+            this.reviewTab.BackColor = System.Drawing.Color.Gainsboro;
+            this.reviewTab.Controls.Add(this.itemsToReviewList);
+            this.reviewTab.Controls.Add(this.reviewDetailsListView);
+            this.reviewTab.Location = new System.Drawing.Point(4, 22);
+            this.reviewTab.Name = "reviewTab";
+            this.reviewTab.Padding = new System.Windows.Forms.Padding(3);
+            this.reviewTab.Size = new System.Drawing.Size(552, 435);
+            this.reviewTab.TabIndex = 5;
+            this.reviewTab.Text = "Review";
+            // 
+            // itemsToReviewList
+            // 
+            this.itemsToReviewList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.buyOrSell,
+            this.action,
+            this.character,
+            this.item,
+            this.typeId});
+            this.itemsToReviewList.FullRowSelect = true;
+            this.itemsToReviewList.Location = new System.Drawing.Point(3, 35);
+            this.itemsToReviewList.Name = "itemsToReviewList";
+            this.itemsToReviewList.Size = new System.Drawing.Size(250, 394);
+            this.itemsToReviewList.TabIndex = 2;
+            this.itemsToReviewList.UseCompatibleStateImageBehavior = false;
+            this.itemsToReviewList.View = System.Windows.Forms.View.Details;
+            this.itemsToReviewList.SelectedIndexChanged += new System.EventHandler(this.itemsToReviewList_SelectedIndexChanged);
+            this.itemsToReviewList.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.itemsToReviewList_KeyPress);
+            // 
+            // buyOrSell
+            // 
+            this.buyOrSell.Text = "BuyOrSell";
+            this.buyOrSell.Width = 15;
+            // 
+            // action
+            // 
+            this.action.Text = "Action";
+            this.action.Width = 55;
+            // 
+            // character
+            // 
+            this.character.Text = "Character";
+            this.character.Width = 59;
+            // 
+            // item
+            // 
+            this.item.Text = "Item";
+            this.item.Width = 165;
+            // 
+            // typeId
+            // 
+            this.typeId.Text = "ID";
+            // 
+            // reviewDetailsListView
+            // 
+            this.reviewDetailsListView.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.type,
+            this.price,
+            this.volume,
+            this.timeLeft});
+            this.reviewDetailsListView.Location = new System.Drawing.Point(262, 6);
+            this.reviewDetailsListView.Name = "reviewDetailsListView";
+            this.reviewDetailsListView.Size = new System.Drawing.Size(284, 423);
+            this.reviewDetailsListView.TabIndex = 1;
+            this.reviewDetailsListView.UseCompatibleStateImageBehavior = false;
+            this.reviewDetailsListView.View = System.Windows.Forms.View.Details;
+            // 
+            // type
+            // 
+            this.type.Text = "Type";
+            this.type.Width = 73;
+            // 
+            // price
+            // 
+            this.price.Text = "Price";
+            this.price.Width = 111;
+            // 
+            // volume
+            // 
+            this.volume.Text = "Vol";
+            this.volume.Width = 42;
+            // 
+            // timeLeft
+            // 
+            this.timeLeft.Text = "Rem";
+            this.timeLeft.Width = 52;
             // 
             // automateB
             // 
-            this.automateB.Location = new System.Drawing.Point(248, 5);
+            this.automateB.Location = new System.Drawing.Point(416, 3);
             this.automateB.Name = "automateB";
             this.automateB.Size = new System.Drawing.Size(75, 23);
             this.automateB.TabIndex = 1;
@@ -773,7 +876,7 @@
             // 
             // unpauseB
             // 
-            this.unpauseB.Location = new System.Drawing.Point(329, 5);
+            this.unpauseB.Location = new System.Drawing.Point(497, 3);
             this.unpauseB.Name = "unpauseB";
             this.unpauseB.Size = new System.Drawing.Size(75, 23);
             this.unpauseB.TabIndex = 2;
@@ -785,7 +888,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(437, 484);
+            this.ClientSize = new System.Drawing.Size(584, 484);
             this.Controls.Add(this.unpauseB);
             this.Controls.Add(this.automateB);
             this.Controls.Add(this.clientTabs);
@@ -809,6 +912,7 @@
             this.resolutionTab.PerformLayout();
             this.aalogTab.ResumeLayout(false);
             this.altab.ResumeLayout(false);
+            this.reviewTab.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -884,6 +988,18 @@
         private System.Windows.Forms.Label eveSettingsLabel;
         private System.Windows.Forms.TextBox configPathTBeveSettingsTB;
         private System.Windows.Forms.TextBox eveSettingsTB;
+        private System.Windows.Forms.TabPage reviewTab;
+        private System.Windows.Forms.ListView reviewDetailsListView;
+        private System.Windows.Forms.ColumnHeader type;
+        private System.Windows.Forms.ColumnHeader price;
+        private System.Windows.Forms.ColumnHeader volume;
+        private System.Windows.Forms.ColumnHeader timeLeft;
+        private System.Windows.Forms.ListView itemsToReviewList;
+        private System.Windows.Forms.ColumnHeader action;
+        private System.Windows.Forms.ColumnHeader character;
+        private System.Windows.Forms.ColumnHeader item;
+        private System.Windows.Forms.ColumnHeader typeId;
+        private System.Windows.Forms.ColumnHeader buyOrSell;
 
 
     }

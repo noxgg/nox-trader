@@ -33,5 +33,6 @@ namespace noxiousET.src
         public const int SELL = 0;
         public const int BUY = 1;
         public const String KB_MOUSE_LOCK = "kbmousemutex";
+        public const String UNPAUSE_LOCK = "unpausemutex";
     }
 }

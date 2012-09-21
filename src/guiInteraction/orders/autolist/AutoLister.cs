@@ -89,10 +89,10 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         private void trade(int type, String windowHotkey, int terminalId)
         {
             openHangar(windowHotkey);
+            wait(10);
             autoList(terminalId, type);
 
             mouse.waitDuration = timing;
-            closeMarketAndHangarWindows();
 
             freeOrders -= (currentBuyOrdersCreated + currentSellOrdersCreated);
             totalBuyOrdersCreated += currentBuyOrdersCreated;
@@ -115,7 +115,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     currentHangarListPosition = 0;
                 }
 
-                viewDetailsAndExportResult(17, 2, currentHangarListPosition, hangarType);
+                viewDetailsAndExportResult(8, 2, currentHangarListPosition, hangarType);
                 if (orderAnalyzer.getTypeId().Equals(terminalId))
                     return;
                 try
@@ -123,12 +123,14 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     if (!orderAnalyzer.isSomeBuyOwned() && character.adjustBuys && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))
                     {
                         buyOrderQuantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
-                        placeBuyOrder(orderAnalyzer.getTypeId(), buyOrderQuantity);
-                        
-                        //If a new sell order is created for this item, it will expect the old best buy price unless we 
-                        //update it with the price of the new buy order.
-                        orderAnalyzer.setOwnedBuyPrice(orderAnalyzer.getBuyPrice() + .01);
-                        ++currentBuyOrdersCreated;
+                        if (buyOrderQuantity > 0)
+                        {
+                            placeBuyOrder(orderAnalyzer.getTypeId(), buyOrderQuantity);
+                            //If a new sell order is created for this item, it will expect the old best buy price unless we 
+                            //update it with the price of the new buy order.
+                            orderAnalyzer.setOwnedBuyPrice(orderAnalyzer.getBuyPrice() + .01);
+                            ++currentBuyOrdersCreated;
+                        }
                     }
 
                     if (!orderAnalyzer.isSomeSellOwned() && character.adjustSells && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))//If a new sell order needs to be placed.
@@ -197,6 +199,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 }
             }
             logger.log("Failed to view item details and export result.");
+            mouse.waitDuration = timing;
             throw new Exception("Failed to view item details and export result.");
         }
 
@@ -233,6 +236,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 cancelOrder(0, 0);
                 //RClick on current line.
                 mouse.pointAndClick(RIGHT, lineCoords, 0, 1, 1);
+
                 mouse.offsetAndClick(LEFT, sellItemOffset, 0, 1, 1);
 
                 if (i % 3 == 2)
@@ -245,7 +249,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                 try { clipboardValue = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
                 catch { clipboardValue = 0; }
 
-                if (clipboardValue.Equals(verificationValue))
+                if (Math.Abs(verificationValue - clipboardValue) < 1)
                 {
                     mouse.waitDuration = timing;
                     return;

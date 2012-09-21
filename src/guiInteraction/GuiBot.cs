@@ -108,17 +108,20 @@ namespace noxiousET.src.guiInteraction
                 errorCheck();
                 mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
 
+                StreamReader file = null;
                 try
                 {
                     var directory = new DirectoryInfo(paths.logPath);
                     var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
                     fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                    StreamReader file = new StreamReader(directory.ToString() + fileTemp.ToString());
+                    file = new StreamReader(directory.ToString() + fileTemp.ToString());
                     orderAnalyzer.orderSet.createOrderSet(directory.ToString() + fileTemp.ToString(), ref file, character.tradeHistory);
                     return;
                 }
                 catch (Exception e)
                 {
+                    if (file != null)
+                        file.Close();
                 }
             }
             throw new Exception("Failed to export orders");

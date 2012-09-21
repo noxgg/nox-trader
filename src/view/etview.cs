@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
+using System.Threading;
 using noxiousET.src;
 using noxiousET.src.control;
 using noxiousET.src.etevent;
@@ -12,6 +13,7 @@ namespace noxiousET
 {
     partial class etview : Form
     {
+        OrderReviewInfoProvider orderReviewInfoProvider;
         CharacterInfoProvider characterInfoProvider;
         ClientConfigInfoProvider clientConfigInfoProvider;
         AutomationRequester manualExecution;
@@ -21,11 +23,12 @@ namespace noxiousET
         delegate void AutoAdjusterListenerCallback(object o, string s);
         delegate void AutoListerListenerCallback(object o, string s);
 
-        public etview(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, AutomationRequester manualExecution)
+        public etview(CharacterInfoProvider characterInfoProvider, ClientConfigInfoProvider clientConfigInfoProvider, OrderReviewInfoProvider orderReviewInfoProvider, AutomationRequester manualExecution)
         {
             InitializeComponent();
             this.characterInfoProvider = characterInfoProvider;
             this.clientConfigInfoProvider = clientConfigInfoProvider;
+            this.orderReviewInfoProvider = orderReviewInfoProvider;
             this.manualExecution = manualExecution;
             this.eventDispatcher = EventDispatcher.Instance;
             this.eventDispatcher.genericEvent += new EventDispatcher.GenericEventHandler(genericEventListener);
@@ -305,7 +308,6 @@ namespace noxiousET
 
         private void unpauseB_Click(object sender, EventArgs e)
         {
-            eventDispatcher.unpauseEvent();
         }
 
         private void knownItemsListBox_SelectedIndexChanged(object sender, EventArgs e)
@@ -317,6 +319,92 @@ namespace noxiousET
         private void fetchItemsFromQuickbarButton_Click(object sender, EventArgs e)
         {
             eventDispatcher.getTypesFromQuickbarRequest((String)charactersLB.SelectedItem, firstItemTextbox.Text, lastItemTextbox.Text);
+        }
+
+        private void itemsToReviewList_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (itemsToReviewList.SelectedIndices.Count <= 0)
+                return;
+            String pressedKey = e.KeyChar.ToString();
+            int selectedIndex = itemsToReviewList.SelectedIndices[0];
+            string currentItemAction = itemsToReviewList.Items[selectedIndex].SubItems[1].Text;
+            string newItemAction;
+            if (pressedKey.ToLower().Equals("x"))
+                newItemAction = "Update";
+            else if (pressedKey.ToLower().Equals("c"))
+                newItemAction = "Cancel";
+            else
+                newItemAction = "Ignore";
+            itemsToReviewList.Items[selectedIndex].SubItems[1].Text = newItemAction;
+
+            string character = itemsToReviewList.Items[selectedIndex].SubItems[2].Text;
+            string typeId = itemsToReviewList.Items[selectedIndex].SubItems[4].Text;
+            string buyOrSell = itemsToReviewList.Items[selectedIndex].SubItems[0].Text;
+            if (buyOrSell.Equals("B"))
+                buyOrSell = EtConstants.BUY.ToString();
+            else
+                buyOrSell = EtConstants.SELL.ToString();
+            eventDispatcher.updateActionToTakeRequest(character, typeId, buyOrSell, newItemAction);
+        }
+
+        private void itemsToReviewList_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (itemsToReviewList.SelectedIndices.Count <= 0)
+                return;
+
+            int selectedIndex = itemsToReviewList.SelectedIndices[0];
+            String character = itemsToReviewList.Items[selectedIndex].SubItems[2].Text;
+            String typeId = itemsToReviewList.Items[selectedIndex].SubItems[4].Text;
+            String buyOrSell = itemsToReviewList.Items[selectedIndex].SubItems[0].Text;
+            displayOrderDetails(orderReviewInfoProvider.getItemDetails(character, typeId, buyOrSell));
+        }
+
+        private void displayOrderDetails(List<string[]> orderDetails)
+        {
+            int size = reviewDetailsListView.Items.Count;
+            for (int i = 0; i < size; i++)
+            {
+                reviewDetailsListView.Items.RemoveAt(0);
+            }
+            size = orderDetails.Count;
+            for (int i = 1; i < size; i++)
+            {
+                ListViewItem item = new ListViewItem(orderDetails[i][0]);
+                item.SubItems.Add(String.Format("{0:0,0.00}", Double.Parse(orderDetails[i][1])));
+                item.SubItems.Add(orderDetails[i][2]);
+                item.SubItems.Add(orderDetails[i][3]);
+                reviewDetailsListView.Items.Add(item);
+            }
+        }
+
+        private void clientTabs_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (clientTabs.SelectedIndex.Equals(5))
+            {
+                List<String[]> ordersRequiringReview = orderReviewInfoProvider.getOrdersRequiringReview();
+                int size = itemsToReviewList.Items.Count;
+                for (int i = 0; i < size; i++)
+                {
+                    itemsToReviewList.Items.RemoveAt(0);
+                }
+                foreach (string[] entry in ordersRequiringReview)
+                {
+                    ListViewItem item = new ListViewItem(buyOrSellToString(entry[0]));
+                    item.SubItems.Add(entry[1]);
+                    item.SubItems.Add(entry[2]);
+                    item.SubItems.Add(entry[3]);
+                    item.SubItems.Add(entry[4]);
+                    itemsToReviewList.Items.Add(item);
+                }
+            }
+        }
+
+        private string buyOrSellToString(string buyOrSell)
+        {
+            if (buyOrSell.Equals(EtConstants.BUY.ToString()))
+                return "B";
+            else
+                return "S";
         }
     }
 }

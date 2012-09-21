@@ -22,15 +22,17 @@ namespace noxiousET.src.guiInteraction
         EventDispatcher eventDispatcher;
         AutoInvestor autoInvestor;
         private OrderAnalyzer orderAnalyzer;
+        public OrderReviewer orderReviewer { set; get; }
 
         public PuppetMaster(DataManager dataManager)
         {
             this.dataManager = dataManager;
             characterManager = dataManager.characterManager;
             orderAnalyzer = new OrderAnalyzer();
+            orderReviewer = new OrderReviewer(dataManager.eventDispatcher);
             loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, orderAnalyzer);
             autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
-            autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
+            autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer, orderReviewer);
             autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
             eventDispatcher = dataManager.eventDispatcher;
             eventDispatcher.getTypesFromQuickbarRequestHandler += new EventDispatcher.GetTypesFromQuickbarRequestHandler(getTypeForCharacterFromQuickbar);       
