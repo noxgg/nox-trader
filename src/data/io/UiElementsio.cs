@@ -108,6 +108,8 @@ namespace noxiousET.src.data.io
                 uiElements.marketWindowQuickbarScrollbarUnfixedPosition[0] = readLineAsInt();
                 uiElements.marketWindowQuickbarScrollbarUnfixedPosition[1] = readLineAsInt();
                 uiElements.confirmingOrderAdjustment = readLineAsInt();
+                uiElements.cancelOrderOffset[0] = readLineAsInt();
+                uiElements.cancelOrderOffset[1] = readLineAsInt();
 
                 readClose();
 

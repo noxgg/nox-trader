@@ -118,7 +118,7 @@ namespace noxiousET.src.guiInteraction
                     orderAnalyzer.orderSet.createOrderSet(directory.ToString() + fileTemp.ToString(), ref file, character.tradeHistory);
                     return;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     if (file != null)
                         file.Close();

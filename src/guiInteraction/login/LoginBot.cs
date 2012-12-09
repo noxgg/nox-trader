@@ -217,7 +217,7 @@ namespace noxiousET.src.guiInteraction.login
                         return 0;
                     keyboard.send("-1");
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     keyboard.send("-1");
                 } 

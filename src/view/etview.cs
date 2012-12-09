@@ -129,7 +129,6 @@ namespace noxiousET
 
         private void displayCharacterInfo(Dictionary<string, string> characterInfo, List<String> items)
         {
-            int i = 0;
             nameTB.Text = (String)charactersLB.SelectedItem;
             loginTB.Text = characterInfo[EtConstants.ACCOUNT_LOGIN_KEY];
             passwordTB.Text = characterInfo[EtConstants.ACCOUNT_PASSWORD_KEY];
@@ -234,12 +233,12 @@ namespace noxiousET
 
         private void aabuyCB_Click(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ADJUST_SELLS_KEY, Convert.ToString(aabuyCB.Checked));
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ADJUST_BUYS_KEY, Convert.ToString(aabuyCB.Checked));
         }
 
         private void aasellCB_Click(object sender, System.EventArgs e)
         {
-            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ADJUST_BUYS_KEY, Convert.ToString(aasellCB.Checked));
+            characterUpdate((String)charactersLB.SelectedItem, EtConstants.CHARACTER_ADJUST_SELLS_KEY, Convert.ToString(aasellCB.Checked));
         }
 
         private void albuyCB_Click(object sender, System.EventArgs e)

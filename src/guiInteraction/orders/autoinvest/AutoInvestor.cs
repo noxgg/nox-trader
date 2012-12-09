@@ -84,7 +84,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                     marketOrderio.fileName = executeQueryAndExportResult(5, 1.2, lastTypeName, offset);
                     return;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                 }
 
@@ -111,6 +111,16 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                     if (orderAnalyzer.orderSet.getNumberOfActiveOrders() >= character.maximumOrders)
                         return;
                     prepareEnvironment();
+                }
+                catch (Exception e)
+                {
+                    logger.log("AI failed to prepare environment!");
+                    throw e;
+                }
+
+
+                try
+                {
                     Stopwatch stopwatch = new Stopwatch();
                     stopwatch.Start();
                     createInvestments();
@@ -164,6 +174,7 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
 
         private void createInvestments()
         {
+            int consecutiveFailures = 0;
             int currentPosition = 0;
             int initialPosition = currentPosition;
             int size;
@@ -177,7 +188,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             List<int> tradeQueue = modules.getTypeIdsAlphabetizedByItemName(character.tradeHistory.Keys);
             size = tradeQueue.Count;
 
-            logger.log(size.ToString());
             while (currentOffset > visibleRows)
             {
                 currentOffset -= visibleRows;
@@ -206,8 +216,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 } 
                 expectedTypeName = modules.typeNames[tradeQueue[currentPosition]];
                 currentTypeId = tradeQueue[currentPosition];
-                logger.log("Expected Type " + modules.typeNames[currentTypeId] + "    offset= " + currentOffset + "    index= " + currentPosition);
-
                 if (orderAnalyzer.orderSet.checkForActiveOrders(tradeQueue[currentPosition]) == 0)
                 {
                     try
@@ -215,7 +223,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                         marketOrderio.fileName = executeQueryAndExportResult(5, 1.2, expectedTypeName, currentOffset);
                         orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(character.stationid));
                         foundTypeName = modules.typeNames[orderAnalyzer.getTypeId()];
-                        logger.log("Found Type " + foundTypeName + "   offset= " + currentOffset);
                         if (foundTypeName.Equals(expectedTypeName) && !orderAnalyzer.isSomeBuyOwned() && !orderAnalyzer.isSomeSellOwned())
                         {
                             //Uses data from orderAnalyzer.analyzeInvestment to decide if a buy order should be made
@@ -244,9 +251,13 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                             }
 
                         }
+                        consecutiveFailures = 0;
                     }
                     catch (Exception e)
                     {
+                        ++consecutiveFailures;
+                        if (consecutiveFailures > 4)
+                            return;
                         logger.log(e.Message);
                     }
                 }

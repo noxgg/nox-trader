@@ -986,7 +986,6 @@
         private System.Windows.Forms.TextBox lastItemTextbox;
         private System.Windows.Forms.TextBox firstItemTextbox;
         private System.Windows.Forms.Label eveSettingsLabel;
-        private System.Windows.Forms.TextBox configPathTBeveSettingsTB;
         private System.Windows.Forms.TextBox eveSettingsTB;
         private System.Windows.Forms.TabPage reviewTab;
         private System.Windows.Forms.ListView reviewDetailsListView;

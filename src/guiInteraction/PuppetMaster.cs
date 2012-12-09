@@ -3,6 +3,7 @@ using System.Threading;
 using System.Collections.Generic;
 using noxiousET.src.etevent;
 using noxiousET.src.data;
+using noxiousET.src.helpers;
 using noxiousET.src.data.characters;
 using noxiousET.src.guiInteraction.login;
 using noxiousET.src.guiInteraction.orders.autoadjuster;
@@ -74,7 +75,14 @@ namespace noxiousET.src.guiInteraction
                 character = characterManager.getCharacter(queue.Dequeue());
                 characterManager.selected = character.name;
 
-                automate(character);
+                try
+                {
+                    automate(character);
+                }
+                catch (Exception)
+                {
+                    ProcessKiller.killProcess("ExeFile");
+                }
 
                 queue.Enqueue(character.name);
 

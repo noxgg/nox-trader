@@ -162,7 +162,6 @@ namespace noxiousET.src.orders
         private String getPrintableTimeLeft(String issueDate, String duration)
         {
             issueDate = issueDate.Substring(0, issueDate.Length - 7);
-            String format = "yyyy-MM-dd HH:mm";
             DateTime issueDateDT = new DateTime();
             long durationTicks = new DateTime().AddDays(int.Parse(duration)).Ticks;
 
@@ -184,10 +183,6 @@ namespace noxiousET.src.orders
             long issueDateTicks = issueDateDT.Ticks;
             long currentDateTicks = DateTime.UtcNow.Ticks;
             long timeRemainingTicks = durationTicks - (currentDateTicks - issueDateTicks);
-            //double fractionOfDaysRemaining = (timeRemainingTicks % TimeSpan.TicksPerDay);
-            //double daysRemaining = timeRemainingTicks - fractionOfDaysRemaining;
-            //daysRemaining = timeRemainingTicks / TimeSpan.TicksPerDay;
-            //fractionOfDaysRemaining = fractionOfDaysRemaining / TimeSpan.TicksPerDay;
             double daysRemaining = (double)timeRemainingTicks / (double)TimeSpan.TicksPerDay;
             return (daysRemaining).ToString("##.####");
         }

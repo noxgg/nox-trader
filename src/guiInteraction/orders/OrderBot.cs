@@ -73,7 +73,7 @@ namespace noxiousET.src.guiInteraction.orders
         {
             double result;
 
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < 5; i++)
             {
                 cancelOrder(0,0);
                 mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 5, 2, 15);
@@ -101,6 +101,7 @@ namespace noxiousET.src.guiInteraction.orders
                     cancelOrder(-53, 51);
                 }
             }
+            logger.log("Failed to open and identify the buy window!");
             mouse.waitDuration = timing;
             throw new Exception("Could not open buy window");
 
@@ -108,7 +109,7 @@ namespace noxiousET.src.guiInteraction.orders
 
         protected void placeBuyOrder(int typeId, int quantity)
         {
-            int[] quantityCoords = { uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] };
+            int[] quantityCoords = { uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + 5 };
             Double verificationValue = Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice()).Equals(0) ? Math.Max(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice()) : Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice());
             if (orderAnalyzer.noSellsExist)
                 quantityCoords[1] -= 15;

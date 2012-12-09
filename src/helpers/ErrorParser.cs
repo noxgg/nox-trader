@@ -72,6 +72,8 @@ namespace noxiousET.src.helpers
                 return 11;
             else if (message.Contains("Implants are lost when unplugged and when you die."))
                 return 12;
+            else if (message.Contains("Are you sure you want to cancel this order?"))
+                return 13;
             else
                 return 69;
         }

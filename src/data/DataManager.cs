@@ -54,7 +54,7 @@ namespace noxiousET.src.data
                 configFileName = ROOT_CONFIG_FILENAME;
                 initialize();
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 configFileName = ROOT_CONFIG_FILENAME_ALT;
                 initialize();

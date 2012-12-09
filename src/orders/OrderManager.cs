@@ -63,6 +63,11 @@ namespace noxiousET.src.orders
             File.Delete(filePathAndName);
         }
 
+        public void addOrder(int typeID, int orderType)
+        {
+            orders[orderType].Add(new Order(typeID));
+        }
+
         public string getOrderIDandListPosition(ref string typeID, ref int orderType, out int listPosition)
         {
             for (int i = 0; i < orders[orderType].Count(); ++i)

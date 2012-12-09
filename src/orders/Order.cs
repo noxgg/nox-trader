@@ -14,6 +14,16 @@
         {
         }
 
+        public Order(int typeID)
+        {
+            this.typeID = typeID;
+            this.orderID = "";
+            this.stationid = "";
+            this.range = 0;
+            this.price = 0;
+            this.volume = 0;
+        }
+
         public Order(string orderID, int typeID, string stationid, int range, double price, int volume)
         {
             this.orderID = orderID;

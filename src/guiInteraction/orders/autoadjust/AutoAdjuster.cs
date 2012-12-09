@@ -42,7 +42,15 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 return;
             this.character = character;
 
-            prepare();
+            try
+            {
+                prepare();
+            }
+            catch (Exception e)
+            {
+                logger.log("AA failed to prepare environment!");
+                throw e;
+            }
 
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
@@ -57,6 +65,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
 
         private void adjust(int typeToAdjust, int[] topLineCoords, int[] sortByTypeCoords)
         {
+            int consecutiveFailures = 0;
             int[] cursorPosition = new int[2];
             int visibleLines = uiElements.visLines[typeToAdjust];
             int currentTypeId = 5321;
@@ -105,7 +114,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         }
                         else if (orderReviewer.shouldCancel(character.name, orderAnalyzer.getTypeId(), typeToAdjust))
                         {
-                            //Do cancel
+                            cancelOrder(cursorPosition);
                         }
                         else if (!orderAnalyzer.isBestOrderOwned(typeToAdjust) && !shouldAdjustOrder(ref typeToAdjust))
                         {
@@ -114,9 +123,13 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                         }
                         ++numScanned;
                         cursorPosition[1] += uiElements.lineHeight;
+                        consecutiveFailures = 0;
                     }
                     catch (Exception e)
                     {
+                        ++consecutiveFailures;
+                        if (consecutiveFailures > 4)
+                            return;
                         cursorPosition[1] += uiElements.lineHeight;
                         logger.log(e.Message);
                         errorCheck();
@@ -159,6 +172,29 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             if (lastOrderModified)
                 confirmOrder(uiElements.OrderBoxOK, 1, typeToAdjust);
             wait(20);
+        }
+
+        private void cancelOrder(int[] rowCoords)
+        {
+            //identifyCancelWindow(rowCoords);
+            //confirmErrorCheck();
+        }
+
+        private void identifyCancelWindow(int[] rowCoords)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                mouse.pointAndClick(RIGHT, rowCoords, 1, 1, 1);
+                mouse.offsetAndClick(LEFT, uiElements.cancelOrderOffset, 1, 1, 1);
+                mouse.waitDuration *= 2;
+                if (getError() == 13)
+                {
+                    mouse.waitDuration = timing;
+                    return;
+                }
+            }
+            mouse.waitDuration = timing;
+            throw new Exception("Failed to identify cancellation window.");
         }
 
         private Boolean isAnOverbid(int typeToAdjust)

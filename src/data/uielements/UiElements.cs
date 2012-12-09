@@ -60,6 +60,8 @@
         public int[] marketWindowQuickbarScrollbarUnfixedPosition { set; get; }
         public int confirmingOrderAdjustment { set; get; }
 
+        public int[] cancelOrderOffset { set; get; }
+
 
         public UiElements() 
         {
@@ -123,6 +125,8 @@
             marketWindowQuickbarScrollbarUnfixedPosition = new int[2] { 469, 200 };
 
             confirmingOrderAdjustment = 55;
+
+            cancelOrderOffset = new int[2] { 72, 88 };
         }
 
     };

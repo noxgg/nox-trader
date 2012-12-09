@@ -50,7 +50,7 @@ namespace noxiousET.src.guiInteraction
                 _complete.Reset();
                 Work();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 if (DontRetryWorkOnFailed)
                     throw;

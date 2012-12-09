@@ -52,7 +52,15 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             Stopwatch stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            prepare();
+            try
+            {
+                prepare();
+            }
+            catch (Exception e)
+            {
+                logger.log("AL failed to prepare environment!");
+                throw e;
+            }
 
             if (character.tradeItems && freeOrders > 0)
                 trade(TRADE_ITEMS, ITEM_HANGAR_HOTKEY, ITEM_TERMINAL_ID);
@@ -103,9 +111,11 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         {
             int buyOrderQuantity;
             int currentHangarListPosition = 0;
+            int consecutiveFailures = 0;
 
             while (openOrders > 0)
             {
+                //TODO Remove hardcoded value
                 if (currentHangarListPosition > 18)
                 {
                     mouse.pointAndClick(LEFT, uiElements.itemsTop[0], uiElements.itemsTop[1] + (currentHangarListPosition * uiElements.itemsLineHeight), 40, 1, 40);
@@ -114,12 +124,12 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     wait(20);
                     currentHangarListPosition = 0;
                 }
-
-                viewDetailsAndExportResult(8, 2, currentHangarListPosition, hangarType);
-                if (orderAnalyzer.getTypeId().Equals(terminalId))
-                    return;
                 try
                 {
+                    viewDetailsAndExportResult(10, 1.5, currentHangarListPosition, hangarType);
+                    if (orderAnalyzer.getTypeId().Equals(terminalId))
+                        return;
+
                     if (!orderAnalyzer.isSomeBuyOwned() && character.adjustBuys && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))
                     {
                         buyOrderQuantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
@@ -129,6 +139,8 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                             //If a new sell order is created for this item, it will expect the old best buy price unless we 
                             //update it with the price of the new buy order.
                             orderAnalyzer.setOwnedBuyPrice(orderAnalyzer.getBuyPrice() + .01);
+                            orderAnalyzer.orderSet.addOrder(orderAnalyzer.getTypeId(), EtConstants.BUY);
+                            --openOrders;
                             ++currentBuyOrdersCreated;
                         }
                     }
@@ -137,15 +149,21 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     {
                         openAndIdentifySellWindow(6, 2, currentHangarListPosition, hangarType);
                         placeSellOrder();
-
+                        orderAnalyzer.orderSet.addOrder(orderAnalyzer.getTypeId(), EtConstants.SELL);
+                        --openOrders;
                         ++currentSellOrdersCreated;
                         --currentHangarListPosition;
                     }
+                    consecutiveFailures = 0;
                 }
                 catch (Exception e)
                 {
+                    ++consecutiveFailures;
+                    if (consecutiveFailures > 4)
+                        return;
+                    mouse.waitDuration = timing;
                     errorCheck();
-                    logger.log("AutoLister Failure!");
+                    logger.log("AutoLister Failure! " + e.Message);
                 }
                 ++currentHangarListPosition;
             }
