@@ -1,51 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.modules;
 
 namespace noxiousET.src.control
 {
-    class CharacterInfoProvider
+    internal class CharacterInfoProvider
     {
-        CharacterManager characterManager;
-        Modules modules;
+        private readonly CharacterManager _characterManager;
+        private readonly Modules _modules;
 
         public CharacterInfoProvider(CharacterManager characterManager, Modules modules)
         {
-            this.characterManager = characterManager;
-            this.modules = modules;
+            _characterManager = characterManager;
+            _modules = modules;
         }
 
-        public List<String> getCharacterList()
+        public List<String> GetCharacterList()
         {
-            return characterManager.getAllCharacterNames();
+            return _characterManager.GetAllCharacterNames();
         }
 
-        public String getSelectedCharacter()
+        public String GetSelectedCharacter()
         {
-            return characterManager.selected;
+            return _characterManager.SelectedCharacter;
         }
 
-        public Dictionary<string, string> getCharacterInfo(String character)
+        public Dictionary<string, string> GetCharacterInfo(String character)
         {
-            return characterManager.convertCharacterToDictionary(characterManager.getCharacter(character));
+            return _characterManager.ConvertCharacterToDictionary(_characterManager.GetCharacter(character));
         }
 
-        public List<String> getCharacterKnownItems(String character)
+        public List<String> GetCharacterKnownItems(String character)
         {
-            return modules.getAlphabetizedItemNames(characterManager.getCharacter(character).tradeHistory.Values);
+            return _modules.GetAlphabetizedItemNames(_characterManager.GetCharacter(character).TradeHistory.Values);
         }
 
-        public void setSelectedCharacter(String character)
+        public void SetSelectedCharacter(String character)
         {
-            characterManager.selected = character;
+            _characterManager.SelectedCharacter = character;
         }
 
-        public void saveCharacter(String name)
+        public void SaveCharacter(String name)
         {
-            characterManager.save(name);
+            _characterManager.Save(name);
         }
     }
 }

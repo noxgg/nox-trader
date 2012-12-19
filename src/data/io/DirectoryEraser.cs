@@ -3,22 +3,21 @@ using System.Linq;
 
 namespace noxiousET.src.data.io
 {
-    class DirectoryEraser
+    internal class DirectoryEraser
     {
-        public static void nuke(string directory)
+        public static void Nuke(string directory)
         {
-            var directoryVar = new DirectoryInfo(directory);
-            StreamReader file;
+            var directoryInfo = new DirectoryInfo(directory);
 
             while (Directory.GetFiles(directory).Length > 0)
             {
-            TryLabel:
+                TryLabel:
                 try
                 {
-                    var fileTemp = directoryVar.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                    file = new System.IO.StreamReader(directory.ToString() + fileTemp.ToString());
+                    FileInfo newestFileName = directoryInfo.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
+                    var file = new StreamReader(directory + newestFileName);
                     file.Close();
-                    File.Delete(directory.ToString() + fileTemp.ToString());
+                    File.Delete(directory + newestFileName);
                 }
                 catch
                 {

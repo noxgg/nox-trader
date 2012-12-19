@@ -1,21 +1,21 @@
 ﻿namespace noxiousET.src.data.paths
 {
-    class Paths
+    internal class Paths
     {
-        public string logPath { set; get; }
-        public string clientPath { set; get; }
-        public string configPath { set; get; }
-        public string eveSettingsPath { set; get; }
-        public static readonly string characterDataSubDir = @"CharacterData\";
-        public static readonly string clientSettingsSubDir = @"ClientSettings\";
+        public const string CharacterDataSubDir = @"CharacterData\";
+        public const string ClientSettingsSubDir = @"ClientSettings\";
 
         public Paths()
         {
-            logPath = @"A:\Users\nox\Documents\EVE\logs\Marketlogs\";
-            clientPath = @"G:\EVE\eve.exe";
-            configPath = @"D:\Dropbox\Dropbox\Apps\noxiousETConfig\";
-            eveSettingsPath = @"C:\Users\nox\AppData\Local\CCP\EVE\c_games_eve_tranquility\settings\";
-
+            LogPath = @"A:\Users\nox\Documents\EVE\logs\Marketlogs\";
+            ClientPath = @"G:\EVE\eve.exe";
+            ConfigPath = @"D:\Dropbox\Dropbox\Apps\noxiousETConfig\";
+            EveSettingsPath = @"C:\Users\nox\AppData\Local\CCP\EVE\c_games_eve_tranquility\settings\";
         }
+
+        public string LogPath { set; get; }
+        public string ClientPath { set; get; }
+        public string ConfigPath { set; get; }
+        public string EveSettingsPath { set; get; }
     }
 }

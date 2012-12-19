@@ -1,48 +1,40 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace noxiousET.src.data.modules
 {
-    class Modules
+    internal class Modules
     {
-        public Dictionary<int, int> longNameTypeIDs { set; get; }
-        public Dictionary<int, int> fittableModuleTypeIDs { set; get; }
-        public Dictionary<int, string> typeNames { set; get; }
-
         public Modules()
         {
-            longNameTypeIDs = new Dictionary<int,int>();
-            fittableModuleTypeIDs = new Dictionary<int, int>();
-            typeNames = new Dictionary<int, string>();
+            LongNameTypeIDs = new Dictionary<int, int>();
+            FittableModuleTypeIDs = new Dictionary<int, int>();
+            TypeNames = new Dictionary<int, string>();
         }
 
-        public List<string> getAlphabetizedItemNames(ICollection<int> typeids)
+        public Dictionary<int, int> LongNameTypeIDs { set; get; }
+        public Dictionary<int, int> FittableModuleTypeIDs { set; get; }
+        public Dictionary<int, string> TypeNames { set; get; }
+
+        public List<string> GetAlphabetizedItemNames(ICollection<int> typeids)
         {
-            List<string> names = new List<string>();
-            foreach (int typeid in typeids)
-            {
-                names.Add(typeNames[typeid]);
-            }
+            List<string> names = typeids.Select(typeid => TypeNames[typeid]).ToList();
             names.Sort();
             return names;
         }
 
-        public List<int> getTypeIdsAlphabetizedByItemName(ICollection<int> typeids)
+        public List<int> GetTypeIdsAlphabetizedByItemName(ICollection<int> typeids)
         {
-            List<string> names = new List<string>();
-            Dictionary<string, int> reverseTypeNames = new Dictionary<string, int>();
+            var names = new List<string>();
+            var reverseTypeNames = new Dictionary<string, int>();
             foreach (int typeid in typeids)
             {
-                names.Add(typeNames[typeid]);
-                reverseTypeNames.Add(typeNames[typeid], typeid);
+                names.Add(TypeNames[typeid]);
+                reverseTypeNames.Add(TypeNames[typeid], typeid);
             }
             names.Sort();
 
-            List<int> sortedTypeIds = new List<int>();
-            foreach (string s in names)
-            {
-                sortedTypeIds.Add(reverseTypeNames[s]);
-            }
-            return sortedTypeIds;
+            return names.Select(s => reverseTypeNames[s]).ToList();
         }
     }
 }

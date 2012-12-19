@@ -2,17 +2,17 @@
 
 namespace noxiousET.src.data.accounts
 {
-    class Account
+    internal class Account
     {
-        public String l { set; get; }
-        public String p { set; get; }
-        public String id { set; get; }
-
-        public Account(String l, String p, String user)
+        public Account(String userName, String password, String user)
         {
-            this.l = l;
-            this.p = p;
-            this.id = user;
+            UserName = userName;
+            Password = password;
+            Id = user;
         }
+
+        public String UserName { set; get; }
+        public String Password { set; get; }
+        public String Id { set; get; }
     }
 }

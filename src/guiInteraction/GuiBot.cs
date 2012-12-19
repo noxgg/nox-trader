@@ -3,119 +3,117 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
-using noxiousET.src.etevent;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
+using noxiousET.src.etevent;
 using noxiousET.src.helpers;
 using noxiousET.src.orders;
 
-
 namespace noxiousET.src.guiInteraction
 {
-    class GuiBot
+    internal class GuiBot
     {
-        [DllImport("user32.dll")] 
-        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+        protected static readonly int Left = (int) Mouse.ClickTypes.Left;
+        protected static readonly int Right = (int) Mouse.ClickTypes.Right;
+        protected static readonly int Double = (int) Mouse.ClickTypes.Double;
+        protected ClientConfig ClientConfig;
+        protected Boolean ConfirmingOrderInput = true;
+        protected ErrorParser ErrorParser;
+        protected IntPtr EveHandle;
+        protected Keyboard Keyboard;
+        protected Boolean LastOrderModified;
+        protected EventDispatcher Logger;
+        protected Mouse Mouse;
+        protected OrderAnalyzer OrderAnalyzer;
+        protected Paths Paths;
+        protected Boolean ShortCopyPasteMenu;
+        protected int Timing;
+        protected UiElements UiElements;
+        private int _shortCopyPasteAdjustment;
+
+        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+                      OrderAnalyzer orderAnalyzer)
+        {
+            ClientConfig = clientConfig;
+            UiElements = uiElements;
+            Paths = paths;
+            Character = character;
+            Logger = EventDispatcher.Instance;
+            Timing = clientConfig.TimingMultiplier;
+            Mouse = new Mouse(clientConfig.TimingMultiplier);
+            Keyboard = new Keyboard();
+            ErrorParser = new ErrorParser();
+            OrderAnalyzer = orderAnalyzer;
+        }
+
+        public Character Character { set; get; }
+
         [DllImport("USER32.DLL", CharSet = CharSet.Unicode)]
         public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+
         [DllImport("USER32.DLL")]
         public static extern bool SetForegroundWindow(IntPtr hWnd);
+
         [DllImport("user32.dll")]
         protected static extern IntPtr GetForegroundWindow();
 
-        public Character character { set; get; }
-        protected ClientConfig clientConfig;
-        protected UiElements uiElements;
-        protected Paths paths;
-        protected Mouse mouse;
-        protected Keyboard keyboard;
-        protected IntPtr eveHandle;
-        protected ErrorParser errorParser;
-        protected Boolean lastOrderModified = false;
-        protected EventDispatcher logger;
-        protected OrderAnalyzer orderAnalyzer;
-        protected int timing;
-        protected static readonly int LEFT = (int)Mouse.clickTypes.LEFT;
-        protected static readonly int RIGHT = (int)Mouse.clickTypes.RIGHT;
-        protected static readonly int DOUBLE = (int)Mouse.clickTypes.DOUBLE;
-        protected Boolean shortCopyPasteMenu = false;
-        protected Boolean confirmingOrderInput = true;
-        private int shortCopyPasteAdjustment = 0;
-        private int confirmingOrderAdjustment = 0;
-
-        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, OrderAnalyzer orderAnalyzer)
+        protected int ErrorCheck()
         {
-            this.clientConfig = clientConfig;
-            this.uiElements = uiElements;
-            this.paths = paths;
-            this.character = character;
-            logger = EventDispatcher.Instance;
-            timing = clientConfig.timingMultiplier;
-            mouse = new Mouse(clientConfig.timingMultiplier);
-            this.keyboard = new Keyboard();
-            errorParser = new ErrorParser();
-            this.orderAnalyzer = orderAnalyzer;
-        }
-
-        protected int errorCheck()
-        {
-            mouse.pointAndClick(LEFT, uiElements.errorCheck, 0, 1, 0);
+            Mouse.PointAndClick(Left, UiElements.AlertCancelButton, 0, 1, 0);
             return 0;
         }
 
-        protected int confirmErrorCheck()
+        protected int ConfirmErrorCheck()
         {
-            mouse.pointAndClick(LEFT, uiElements.confirmErrorCheck, 0, 2, 0);
+            Mouse.PointAndClick(Left, UiElements.AlertConfirmButton, 0, 2, 0);
             return 0;
         }
 
-        protected void wait(int multiplier)
+        protected void Wait(int multiplier)
         {
-            Thread.Sleep(clientConfig.timingMultiplier * multiplier);
+            Thread.Sleep(ClientConfig.TimingMultiplier*multiplier);
         }
 
-        protected bool isEVERunningForSelectedCharacter()
+        protected bool IsEveRunningForSelectedCharacter()
         {
-            setEVEHandle(character.name);
-            return !(eveHandle == IntPtr.Zero);
+            SetEveHandle(Character.Name);
+            return !(EveHandle == IntPtr.Zero);
         }
 
-        protected void setEVEHandle(String character)
+        protected void SetEveHandle(String character)
         {
-            eveHandle = FindWindow("triuiScreen", "EVE - " + character);
+            EveHandle = FindWindow("triuiScreen", "EVE - " + character);
         }
 
-        protected int getError()
+        protected int GetError()
         {
-            Clipboard.setClip("0");
-            mouse.pointAndClick(RIGHT, uiElements.parseErrorMessage, 0, 1, 1);
-            mouse.offsetAndClick(LEFT, uiElements.parseErrorMessageCopyOffset, 0, 1, 1);
-            string message = Clipboard.getTextFromClipboard();
+            Clipboard.SetClip("0");
+            Mouse.PointAndClick(Right, UiElements.AlertMessageBody, 0, 1, 1);
+            Mouse.OffsetAndClick(Left, UiElements.AlertContextMenuCopyOffset, 0, 1, 1);
+            string message = Clipboard.GetTextFromClipboard();
 
-            if (string.Compare(message, "0") != 0)
-                return errorParser.parse(message);
-            return 0;
+            return message.Equals("0") ? 0 : ErrorParser.parse(message);
         }
 
-        protected void exportOrders(int tries, int waitMultiplier)
+        protected void ExportOrders(int tries, int waitMultiplier)
         {
             for (int i = 0; i < tries; i++)
             {
-                wait(waitMultiplier);
+                Wait(waitMultiplier);
 
-                errorCheck();
-                mouse.pointAndClick(LEFT, uiElements.exportOrderList, 0, 2, 0);
+                ErrorCheck();
+                Mouse.PointAndClick(Left, UiElements.WalletExportButton, 0, 2, 0);
 
                 StreamReader file = null;
                 try
                 {
-                    var directory = new DirectoryInfo(paths.logPath);
-                    var fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                    fileTemp = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First();
-                    file = new StreamReader(directory.ToString() + fileTemp.ToString());
-                    orderAnalyzer.orderSet.createOrderSet(directory.ToString() + fileTemp.ToString(), ref file, character.tradeHistory);
+                    var directory = new DirectoryInfo(Paths.LogPath);
+                    String newestFileName = directory.GetFiles().OrderByDescending(f => f.LastWriteTime).First().ToString();
+                    file = new StreamReader(directory + newestFileName);
+                    OrderAnalyzer.OrderSet.CreateOrderSet(directory + newestFileName, ref file,
+                                                          Character.TradeHistory);
                     return;
                 }
                 catch (Exception)
@@ -127,92 +125,93 @@ namespace noxiousET.src.guiInteraction
             throw new Exception("Failed to export orders");
         }
 
-        protected int confirmOrder(int[]coords, int confirmationType, int buyOrSell)
+        protected int ConfirmOrder(int[] coords, int confirmationType, int buyOrSell)
         {
             int failCount = 0;
-            string result = "0";
-            int errorFlag = 0;
-            Clipboard.setClip("0");
+            string result;
+            Clipboard.SetClip("0");
             do
             {
-                mouse.pointAndClick(LEFT, coords, 1, 1, 1);
+                Mouse.PointAndClick(Left, coords, 1, 1, 1);
                 if (confirmationType == 1 && failCount > 1)
                 {
-                    errorFlag = getError();
+                    int errorFlag = GetError();
                     //If the error is 'above regional average' and this is a sell order || it is below/buy
-                    if (errorFlag == 1 && buyOrSell == EtConstants.SELL || errorFlag == 2 && buyOrSell == EtConstants.BUY)
+                    if (errorFlag == 1 && buyOrSell == EtConstants.Sell ||
+                        errorFlag == 2 && buyOrSell == EtConstants.Buy)
                     {
-                        confirmErrorCheck();
-                        wait(1);
-                        confirmErrorCheck();
+                        ConfirmErrorCheck();
+                        Wait(1);
+                        ConfirmErrorCheck();
                     }
                     else
                     {
-                        errorCheck();
-                        wait(1);
-                        errorCheck();
+                        ErrorCheck();
+                        Wait(1);
+                        ErrorCheck();
                     }
-                    Clipboard.setClip("0");
+                    Clipboard.SetClip("0");
                 }
 
                 //Right click where OK should no longer exist. 
-                mouse.pointAndClick(RIGHT, uiElements.OrderBoxOK, 0, 1, 1);
+                Mouse.PointAndClick(Right, UiElements.OrderBoxConfirm, 0, 1, 1);
 
                 //Click on copy
-                mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
+                Mouse.OffsetAndClick(Left, UiElements.ChatCopyOffset, 0, 1, 1);
                 if (failCount > 1)
-                    mouse.waitDuration *= 2;
-                result = Clipboard.getTextFromClipboard();
+                    Mouse.WaitDuration *= 2;
+                result = Clipboard.GetTextFromClipboard();
                 ++failCount;
-            } while (string.Compare(result, "0") == 0 && failCount < 5);
-            mouse.waitDuration = timing;
-            lastOrderModified = false;
-            if (string.Compare(result, "0") != 0)
+            } while (result.Equals("0") && failCount < 5);
+            Mouse.WaitDuration = Timing;
+            LastOrderModified = false;
+            if (!result.Equals("0"))
             {
-                Clipboard.setClip("0");
+                Clipboard.SetClip("0");
                 return 0;
             }
-            else
-                return 1;
+            return 1;
         }
 
-        public int killClient()
+        public int KillClient()
         {
-            ProcessKiller.killProcessByHandle(eveHandle);
+            ProcessKiller.killProcessByHandle(EveHandle);
             return 0;
         }
-        
-        protected void inputValue(int tries, double timingScaleFactor, int[] coords, string value)
+
+        protected void InputValue(int tries, double timingScaleFactor, int[] coords, string value)
         {
-            shortCopyPasteAdjustment = shortCopyPasteMenu ? uiElements.lineHeight : 0;
-            confirmingOrderAdjustment = confirmingOrderInput ? uiElements.confirmingOrderAdjustment : 0;
+            _shortCopyPasteAdjustment = ShortCopyPasteMenu ? UiElements.StandardRowHeight : 0;
             for (int i = 0; i < tries; i++)
             {
-                mouse.pointAndClick(DOUBLE, coords, 4, 2, 2);
-                Clipboard.setClip(value);
-                mouse.click(RIGHT, 2, 2);
-                mouse.offsetAndClick(LEFT, uiElements.pasteOffset[0] + confirmingOrderAdjustment, uiElements.pasteOffset[1] - shortCopyPasteAdjustment, 0, 2, 0);
-                if (verifyInput(coords, value))
+                Mouse.PointAndClick(Double, coords, 4, 2, 2);
+                Clipboard.SetClip(value);
+                Mouse.Click(Right, 2, 2);
+                Mouse.OffsetAndClick(Left, UiElements.ContextMenuPasteOffset[0],
+                                     UiElements.ContextMenuPasteOffset[1] - _shortCopyPasteAdjustment, 0, 2, 0);
+                if (VerifyInput(coords, value))
                 {
-                    mouse.waitDuration = timing;
+                    Mouse.WaitDuration = Timing;
                     return;
                 }
-                mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
             }
-            mouse.waitDuration = timing;
+            Mouse.WaitDuration = Timing;
             throw new Exception("Failed to input value " + value);
         }
 
-        private bool verifyInput(int[] coords, string desiredValue)
+        private bool VerifyInput(int[] coords, string desiredValue)
         {
-            Clipboard.setClip("");
-            mouse.pointAndClick(RIGHT, coords, 1, 1, 1);
-            mouse.offsetAndClick(LEFT, uiElements.copyOffset[0] + confirmingOrderAdjustment, uiElements.copyOffset[1] - shortCopyPasteAdjustment, 1, 1, 1);
+            Clipboard.SetClip("");
+            Mouse.PointAndClick(Right, coords, 1, 1, 1);
+            Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset[0],
+                                 UiElements.ContextMenuCopyOffset[1] - _shortCopyPasteAdjustment, 1, 1, 1);
 
             try
             {
-                if (desiredValue.Equals(Clipboard.getTextFromClipboard()) || 
-                    (desiredValue == character.account.p && desiredValue.Length == Clipboard.getTextFromClipboard().Length))
+                if (desiredValue.Equals(Clipboard.GetTextFromClipboard()) ||
+                    (desiredValue == Character.Account.Password &&
+                     desiredValue.Length == Clipboard.GetTextFromClipboard().Length))
                     return true;
             }
             catch

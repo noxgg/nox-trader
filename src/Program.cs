@@ -20,11 +20,11 @@ namespace noxiousET
             Application.SetCompatibleTextRenderingDefault(false);
             DataManager dataManager = new DataManager();
             PuppetMaster puppetMaster = new PuppetMaster(dataManager);
-            CharacterInfoProvider characterInfoProvider = new CharacterInfoProvider(dataManager.characterManager, dataManager.modules);
-            ClientConfigInfoProvider clientConfigInfoProvider = new ClientConfigInfoProvider(dataManager.paths, dataManager.clientConfig);
-            OrderReviewInfoProvider orderReviewInfoProvider = new OrderReviewInfoProvider(puppetMaster.orderReviewer);
+            CharacterInfoProvider characterInfoProvider = new CharacterInfoProvider(dataManager.CharacterManager, dataManager.Modules);
+            ClientConfigInfoProvider clientConfigInfoProvider = new ClientConfigInfoProvider(dataManager.Paths, dataManager.ClientConfig);
+            OrderReviewInfoProvider orderReviewInfoProvider = new OrderReviewInfoProvider(puppetMaster.OrderReviewer);
             AutomationRequester manualExecution = new AutomationRequester(puppetMaster);
-            Mouse.suspendEvent = new ManualResetEvent(true);
+            Mouse.SuspendEvent = new ManualResetEvent(true);
             Application.Run(new etview(characterInfoProvider, clientConfigInfoProvider, orderReviewInfoProvider, manualExecution));
         }
     }

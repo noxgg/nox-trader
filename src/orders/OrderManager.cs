@@ -5,77 +5,71 @@ using System.Linq;
 
 namespace noxiousET.src.orders
 {
-    class OrderManager
+    internal class OrderManager
     {
+        private int _buyOrders;
+        private List<Order>[] _orders;
+        private int _sellOrders;
 
-        List<Order>[] orders;
-        int buyOrders;
-        int sellOrders;
-        int typeID;
-
-        public OrderManager()
+        public void CreateOrderSet(string filePathAndName, ref StreamReader file, Dictionary<int, int> tradeHistory)
         {
-        }
+            _orders = new List<Order>[2];
+            _orders[0] = new List<Order>();
+            _orders[1] = new List<Order>();
+            _buyOrders = 0;
+            _sellOrders = 0;
 
-        public void createOrderSet(string filePathAndName, ref StreamReader file, Dictionary<int, int> tradeHistory)
-        {
-            orders = new List<Order>[2];
-            orders[0] = new List<Order>();
-            orders[1] = new List<Order>();
-            string line;
-            string[] parts;
-            buyOrders = 0;
-            sellOrders = 0;
-
-            line = file.ReadLine(); //Skip header row
+            string line = file.ReadLine();
             while ((line = file.ReadLine()) != null)
             {
-                parts = line.Split(',');
+                string[] parts = line.Split(',');
 
-                typeID = Convert.ToInt32(parts[1]);
                 //TODO DEPRECIATE?
                 //if (!tradeHistory.ContainsKey(typeID))
                 //    tradeHistory.Add(typeID, typeID);
 
-                if (parts[9].CompareTo("False") == 0) //If this is a sell order
+                if (parts[9].Equals("False")) //If this is a sell order
                 {
-                    Order newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
-                    orders[0].Add(newOrder);
-                    ++sellOrders;
+                    var newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]),
+                                             Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
+                    _orders[0].Add(newOrder);
+                    ++_sellOrders;
                 }
                 else //Otherwise it is a buy order
                 {
-                    Order newOrder;
                     try
                     {
-                        newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
+                        var newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6],
+                                                 Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]),
+                                                 Convert.ToInt32(Convert.ToDouble(parts[12])));
+                        _orders[1].Add(newOrder);
+                        ++_buyOrders;
                     }
                     catch
                     {
                         file.Close();
                         return;
                     }
-                    orders[1].Add(newOrder);
-                    ++buyOrders;
                 }
             }
             file.Close();
             File.Delete(filePathAndName);
         }
 
-        public void addOrder(int typeID, int orderType)
+        public void AddOrder(int typeID, int orderType)
         {
-            orders[orderType].Add(new Order(typeID));
+            _orders[orderType].Add(new Order(typeID));
         }
 
-        public string getOrderIDandListPosition(ref string typeID, ref int orderType, out int listPosition)
+        public string GetOrderIDandListPosition(ref string typeID, ref int orderType, out int listPosition)
         {
-            for (int i = 0; i < orders[orderType].Count(); ++i)
+            for (int i = 0; i < _orders[orderType].Count(); ++i)
             {
-                if (Convert.ToInt32(typeID) == orders[orderType][i].getTypeID()) //If this element is the target sell order.
+                if (Convert.ToInt32(typeID) == _orders[orderType][i].GetTypeId())
+                    //If this element is the target sell order.
                 {
                     listPosition = i;
-                    return Convert.ToString(orders[orderType][i].getOrderID());
+                    return Convert.ToString(_orders[orderType][i].GetOrderId());
                 }
             }
             listPosition = -1;
@@ -83,67 +77,43 @@ namespace noxiousET.src.orders
         }
 
         //Returns 0 if there is no active order, 1 for active sell order, 2 for active buy order, 3 for both
-        public int checkForActiveOrders(int typeID)
+        public int CheckForActiveOrders(int typeID)
         {
             bool sellOrderExists = false;
             bool buyOrderExists = false;
-            for (int i = 0; i < orders[0].Count(); ++i)
+            for (int i = 0; i < _orders[0].Count(); ++i)
             {
-                if (typeID == orders[0][i].getTypeID()) //If this element is the target sell order.
+                if (typeID == _orders[0][i].GetTypeId()) //If this element is the target sell order.
                 {
                     sellOrderExists = true;
                 }
             }
-            for (int i = 0; i < orders[1].Count(); ++i)
+            for (int i = 0; i < _orders[1].Count(); ++i)
             {
-                if (typeID == orders[1][i].getTypeID()) //If this element is the target sell order.
+                if (typeID == _orders[1][i].GetTypeId()) //If this element is the target sell order.
                 {
                     buyOrderExists = true;
                 }
             }
-            if (sellOrderExists && buyOrderExists)
-            {
-                return 3;
-            }
-            else if (buyOrderExists)
-            {
-                return 2;
-            }
-            else if (sellOrderExists)
-            {
-                return 1;
-            }
-            else
-            {
-                return 0;
-            }
+            return sellOrderExists && buyOrderExists ? 3 : (buyOrderExists ? 2 : (sellOrderExists ? 1 : 0));
         }
 
-        public bool existsOrderOfType(int typeid, int type)
+        public bool ExistsOrderOfType(int typeid, int type)
         {
-            foreach (Order o in orders[type])
-            {
-                if (o.getTypeID() == typeid)
-                    return true;
-            }
-            return false;
+            return _orders[type].Any(o => o.GetTypeId() == typeid);
         }
 
-        public bool isOrderOwned(String orderid, int type)
+        public bool IsOrderOwned(String orderid, int type)
         {
-            foreach (Order o in orders[type])
-            {
-                if (o.getOrderID().CompareTo(orderid) == 0)
-                    return true;
-            }
-            return false;
+            return _orders[type].Any(o => o.GetOrderId().Equals(orderid));
         }
 
-        public int getListPosition(ref string typeID, ref int orderType)
+        public int GetListPosition(ref string typeID, ref int orderType)
         {
-            for (int i = 0; i < orders[orderType].Count(); ++i)
+            for (int i = 0; i < _orders[orderType].Count(); ++i)
             {
-                if (typeID.CompareTo(orders[orderType][i].getTypeID()) == 0) //If this element is the target sell order.
+                if (typeID.CompareTo(_orders[orderType][i].GetTypeId()) == 0)
+                    //If this element is the target sell order.
                 {
                     return i;
                 }
@@ -151,41 +121,41 @@ namespace noxiousET.src.orders
             return -1;
         }
 
-        public String getOrderStation(ref int listPosition, ref int orderType)
+        public String GetOrderStation(ref int listPosition, ref int orderType)
         {
-            return orders[orderType][listPosition].getStationid();
+            return _orders[orderType][listPosition].GetStationid();
         }
 
-        public int getOrderTypeID(ref int listPosition, ref int orderType)
+        public int GetOrderTypeID(ref int listPosition, ref int orderType)
         {
-            return orders[orderType][listPosition].getTypeID();
+            return _orders[orderType][listPosition].GetTypeId();
         }
 
-        public int incrementOrderRuns(ref int listPosition, ref int orderType)
+        public int IncrementOrderRuns(ref int listPosition, ref int orderType)
         {
-            orders[orderType][listPosition].incrementRuns();
+            _orders[orderType][listPosition].IncrementRuns();
             return 0;
         }
 
-        public int getOrderRuns(ref int listPosition, ref int orderType)
+        public int GetOrderRuns(ref int listPosition, ref int orderType)
         {
-            return orders[orderType][listPosition].getRuns();
+            return _orders[orderType][listPosition].GetRuns();
         }
 
-        public int[] getNumberOfBuysAndSells()
+        public int[] GetNumberOfBuysAndSells()
         {
-            int[] temp = { sellOrders, buyOrders };
+            int[] temp = {_sellOrders, _buyOrders};
             return temp;
         }
 
-        public int getNumberOfActiveOrders()
+        public int GetNumberOfActiveOrders()
         {
-            return sellOrders + buyOrders;
+            return _sellOrders + _buyOrders;
         }
 
-        public double getOrderPrice(ref int listPosition, ref int orderType)
+        public double GetOrderPrice(ref int listPosition, ref int orderType)
         {
-            return orders[orderType][listPosition].getPrice();
+            return _orders[orderType][listPosition].GetPrice();
         }
     };
 }

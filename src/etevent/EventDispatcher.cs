@@ -1,92 +1,116 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace noxiousET.src.etevent
 {
-	public sealed class EventDispatcher
-	{
-	    private static readonly EventDispatcher instance = new EventDispatcher();
+    public sealed class EventDispatcher
+    {
+        #region Delegates
+
+        public delegate void AutoAdjusterEventHandler(object sourceObject, String e);
+
+        public delegate void AutoListerEventHandler(object sourceObject, String e);
+
+        public delegate void CharacterSettingUpdatedHandler(
+            object sourceObject, String character, String key, String value);
+
+        public delegate void ClientSettingUpdatedHandler(object sourceObject, String character, String key, String value
+            );
+
+        public delegate void GenericErrorEventHandler(object sourceObject, String e);
+
+        public delegate void GenericEventHandler(object sourceObject, String s);
+
+        public delegate void GetTypesFromFileRequestHandler(object sourceObject, string character);
+
+        public delegate void GetTypesFromQuickbarRequestHandler(
+            object sourceObject, string character, string firstItemName, string lastItemName);
+
+        public delegate void SaveAllSettingsRequestHandler(object sourceObject);
+
+        public delegate void UpdateActionToTakeRequestHandler(
+            object sourceObject, string character, string typeId, string buyOrSell, string action);
+
+        #endregion
+
+        private static readonly EventDispatcher instance = new EventDispatcher();
 
         private EventDispatcher()
         {
         }
 
-	    public static EventDispatcher Instance
-	    {
-	        get { return instance; }
-	    }
+        public static EventDispatcher Instance
+        {
+            get { return instance; }
+        }
 
-	    public delegate void GenericEventHandler(object sourceObject, String s);
-        public event GenericEventHandler genericEvent;
-        public delegate void GenericErrorEventHandler(object sourceObject, String e);
-        public event GenericErrorEventHandler genericErrorEvent;
-        public delegate void AutoAdjusterEventHandler(object sourceObject, String e);
-        public event AutoAdjusterEventHandler autoAdjusterEvent;
-        public delegate void AutoListerEventHandler(object sourceObject, String e);
-        public event AutoListerEventHandler autoListerEvent;
-        public delegate void CharacterSettingUpdatedHandler(object sourceObject, String character, String key, String value);
+        public event GenericEventHandler GenericEvent;
+
+        public event GenericErrorEventHandler GenericErrorEvent;
+
+        public event AutoAdjusterEventHandler AutoAdjusterEvent;
+
+        public event AutoListerEventHandler AutoListerEvent;
+
         public event CharacterSettingUpdatedHandler characterSettingUpdatedHandler;
-        public delegate void ClientSettingUpdatedHandler(object sourceObject, String character, String key, String value);
+
         public event ClientSettingUpdatedHandler clientSettingUpdatedHandler;
-        public delegate void SaveAllSettingsRequestHandler(object sourceObject);
+
         public event SaveAllSettingsRequestHandler saveAllSettingsRequestHandler;
-        public delegate void GetTypesFromFileRequestHandler(object sourceObject, string character);
+
         public event GetTypesFromFileRequestHandler getTypesFromFileRequestHandler;
-        public delegate void GetTypesFromQuickbarRequestHandler(object sourceObject, string character, string firstItemName, string lastItemName);
+
         public event GetTypesFromQuickbarRequestHandler getTypesFromQuickbarRequestHandler;
-        public delegate void UpdateActionToTakeRequestHandler(object sourceObject, string character, string typeId, string buyOrSell, string action);
+
         public event UpdateActionToTakeRequestHandler updateActionToTakeRequestHandler;
 
-        public void log(string message)
+        public void Log(string message)
         {
-            this.genericEvent (this, message);
+            GenericEvent(this, message);
         }
 
-        public void logError(string message)
+        public void LogError(string message)
         {
-            this.genericErrorEvent(this, message);
+            GenericErrorEvent(this, message);
         }
 
-        public void autoAdjusterLog(string message)
+        public void AutoAdjusterLog(string message)
         {
-            this.autoAdjusterEvent(this, message);
+            AutoAdjusterEvent(this, message);
         }
 
-        public void autoListerLog(string message)
+        public void AutoListerLog(string message)
         {
-            this.autoListerEvent(this, message);
+            AutoListerEvent(this, message);
         }
 
-        public void characterSettingUpdated(String character, String key, String value)
+        public void CharacterSettingUpdated(String character, String key, String value)
         {
-            this.characterSettingUpdatedHandler(this, character, key, value);
+            characterSettingUpdatedHandler(this, character, key, value);
         }
 
-        public void clientSettingUpdated(String character, String key, String value)
+        public void ClientSettingUpdated(String character, String key, String value)
         {
-            this.clientSettingUpdatedHandler(this, character, key, value);
+            clientSettingUpdatedHandler(this, character, key, value);
         }
 
-        public void saveAllSettingsRequest()
+        public void SaveAllSettingsRequest()
         {
-            this.saveAllSettingsRequestHandler(this);
+            saveAllSettingsRequestHandler(this);
         }
 
-        public void getTypesFromFileRequest(String character)
+        public void GetTypesFromFileRequest(String character)
         {
-            this.getTypesFromFileRequestHandler(this, character);
+            getTypesFromFileRequestHandler(this, character);
         }
 
-        public void getTypesFromQuickbarRequest(String character, String firstItemId, String lastItemId)
+        public void GetTypesFromQuickbarRequest(String character, String firstItemId, String lastItemId)
         {
-            this.getTypesFromQuickbarRequestHandler(this, character, firstItemId, lastItemId);
+            getTypesFromQuickbarRequestHandler(this, character, firstItemId, lastItemId);
         }
 
-        public void updateActionToTakeRequest(string character, string typeId, string buyOrSell, string action)
+        public void UpdateActionToTakeRequest(string character, string typeId, string buyOrSell, string action)
         {
-            this.updateActionToTakeRequestHandler(this, character, typeId, buyOrSell, action);
+            updateActionToTakeRequestHandler(this, character, typeId, buyOrSell, action);
         }
-	}
+    }
 }

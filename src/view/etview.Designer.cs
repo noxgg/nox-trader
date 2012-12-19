@@ -134,7 +134,7 @@
             this.clientTabs.SelectedIndex = 3;
             this.clientTabs.Size = new System.Drawing.Size(560, 461);
             this.clientTabs.TabIndex = 3;
-            this.clientTabs.SelectedIndexChanged += new System.EventHandler(this.clientTabs_SelectedIndexChanged);
+            this.clientTabs.SelectedIndexChanged += new System.EventHandler(this.ClientTabsSelectedIndexChanged);
             // 
             // homeTab
             // 
@@ -192,7 +192,7 @@
             this.getTypeB.TabIndex = 13;
             this.getTypeB.Text = "Get Type Log Directory";
             this.getTypeB.UseVisualStyleBackColor = true;
-            this.getTypeB.Click += new System.EventHandler(this.getTypeB_Click);
+            this.getTypeB.Click += new System.EventHandler(this.GetTypeBClick);
             // 
             // saveAllSettingsB
             // 
@@ -202,7 +202,7 @@
             this.saveAllSettingsB.TabIndex = 12;
             this.saveAllSettingsB.Text = "Save All Settings";
             this.saveAllSettingsB.UseVisualStyleBackColor = true;
-            this.saveAllSettingsB.Click += new System.EventHandler(this.saveAllSettingsB_Click);
+            this.saveAllSettingsB.Click += new System.EventHandler(this.SaveAllSettingsBClick);
             // 
             // saveSelectedCharacterB
             // 
@@ -212,7 +212,7 @@
             this.saveSelectedCharacterB.TabIndex = 9;
             this.saveSelectedCharacterB.Text = "Save Selected Character";
             this.saveSelectedCharacterB.UseVisualStyleBackColor = true;
-            this.saveSelectedCharacterB.Click += new System.EventHandler(this.saveSelectedCharacterB_Click);
+            this.saveSelectedCharacterB.Click += new System.EventHandler(this.SaveSelectedCharacterBClick);
             // 
             // panel2
             // 
@@ -262,7 +262,7 @@
             this.characterIdTB.Name = "characterIdTB";
             this.characterIdTB.Size = new System.Drawing.Size(87, 20);
             this.characterIdTB.TabIndex = 27;
-            this.characterIdTB.TextChanged += new System.EventHandler(this.characterIdTB_TextChanged);
+            this.characterIdTB.TextChanged += new System.EventHandler(this.CharacterIdTbTextChanged);
             // 
             // maximumOrdersL
             // 
@@ -279,7 +279,7 @@
             this.maximumOrdersTB.Name = "maximumOrdersTB";
             this.maximumOrdersTB.Size = new System.Drawing.Size(87, 20);
             this.maximumOrdersTB.TabIndex = 25;
-            this.maximumOrdersTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.maximumOrdersTB_KeyUp);
+            this.maximumOrdersTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.MaximumOrdersTbKeyUp);
             // 
             // accountIdLabel
             // 
@@ -305,7 +305,7 @@
             this.stationidTB.Name = "stationidTB";
             this.stationidTB.Size = new System.Drawing.Size(87, 20);
             this.stationidTB.TabIndex = 21;
-            this.stationidTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.stationidTB_KeyUp);
+            this.stationidTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.StationidTbKeyUp);
             // 
             // accountIdTB
             // 
@@ -313,7 +313,7 @@
             this.accountIdTB.Name = "accountIdTB";
             this.accountIdTB.Size = new System.Drawing.Size(87, 20);
             this.accountIdTB.TabIndex = 23;
-            this.accountIdTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.accountIdTB_KeyUp);
+            this.accountIdTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.AccountIdTbKeyUp);
             // 
             // loginColorL
             // 
@@ -330,7 +330,7 @@
             this.loginColorTB.Name = "loginColorTB";
             this.loginColorTB.Size = new System.Drawing.Size(87, 20);
             this.loginColorTB.TabIndex = 19;
-            this.loginColorTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.loginColorTB_KeyUp);
+            this.loginColorTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.LoginColorTbKeyUp);
             // 
             // alsellCB
             // 
@@ -341,7 +341,7 @@
             this.alsellCB.TabIndex = 18;
             this.alsellCB.Text = "Sell";
             this.alsellCB.UseVisualStyleBackColor = true;
-            this.alsellCB.Click += new System.EventHandler(this.alsellCB_Click);
+            this.alsellCB.Click += new System.EventHandler(this.AlsellCbClick);
             // 
             // albuyCB
             // 
@@ -352,7 +352,7 @@
             this.albuyCB.TabIndex = 17;
             this.albuyCB.Text = "Buy";
             this.albuyCB.UseVisualStyleBackColor = true;
-            this.albuyCB.Click += new System.EventHandler(this.albuyCB_Click);
+            this.albuyCB.Click += new System.EventHandler(this.AlbuyCbClick);
             // 
             // itemsCB
             // 
@@ -363,7 +363,7 @@
             this.itemsCB.TabIndex = 16;
             this.itemsCB.Text = "Items";
             this.itemsCB.UseVisualStyleBackColor = true;
-            this.itemsCB.Click += new System.EventHandler(this.itemsCB_Click);
+            this.itemsCB.Click += new System.EventHandler(this.ItemsCbClick);
             // 
             // shipsCB
             // 
@@ -374,7 +374,7 @@
             this.shipsCB.TabIndex = 15;
             this.shipsCB.Text = "Ships";
             this.shipsCB.UseVisualStyleBackColor = true;
-            this.shipsCB.Click += new System.EventHandler(this.shipsCB_Click);
+            this.shipsCB.Click += new System.EventHandler(this.ShipsCbClick);
             // 
             // aasellCB
             // 
@@ -385,7 +385,7 @@
             this.aasellCB.TabIndex = 14;
             this.aasellCB.Text = "Sell";
             this.aasellCB.UseVisualStyleBackColor = true;
-            this.aasellCB.Click += new System.EventHandler(this.aasellCB_Click);
+            this.aasellCB.Click += new System.EventHandler(this.AasellCbClick);
             // 
             // aabuyCB
             // 
@@ -396,7 +396,7 @@
             this.aabuyCB.TabIndex = 13;
             this.aabuyCB.Text = "Buy";
             this.aabuyCB.UseVisualStyleBackColor = true;
-            this.aabuyCB.Click += new System.EventHandler(this.aabuyCB_Click);
+            this.aabuyCB.Click += new System.EventHandler(this.AabuyCbClick);
             // 
             // adjustL
             // 
@@ -458,7 +458,7 @@
             this.passwordTB.Name = "passwordTB";
             this.passwordTB.Size = new System.Drawing.Size(87, 20);
             this.passwordTB.TabIndex = 2;
-            this.passwordTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.passwordTB_KeyUp);
+            this.passwordTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.PasswordTbKeyUp);
             // 
             // nameTB
             // 
@@ -473,7 +473,7 @@
             this.loginTB.Name = "loginTB";
             this.loginTB.Size = new System.Drawing.Size(87, 20);
             this.loginTB.TabIndex = 0;
-            this.loginTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.loginTB_KeyUp);
+            this.loginTB.KeyUp += new System.Windows.Forms.KeyEventHandler(this.LoginTbKeyUp);
             // 
             // charactersL
             // 
@@ -491,7 +491,7 @@
             this.charactersLB.Name = "charactersLB";
             this.charactersLB.Size = new System.Drawing.Size(179, 82);
             this.charactersLB.TabIndex = 6;
-            this.charactersLB.SelectedIndexChanged += new System.EventHandler(this.charactersLB_SelectedIndexChanged);
+            this.charactersLB.SelectedIndexChanged += new System.EventHandler(this.CharactersLbSelectedIndexChanged);
             // 
             // settingsPanel
             // 
@@ -539,7 +539,7 @@
             this.timingTB.Name = "timingTB";
             this.timingTB.Size = new System.Drawing.Size(100, 20);
             this.timingTB.TabIndex = 1;
-            this.timingTB.TextChanged += new System.EventHandler(this.timingTB_TextChanged);
+            this.timingTB.TextChanged += new System.EventHandler(this.TimingTbTextChanged);
             // 
             // iterationsTB
             // 
@@ -547,7 +547,7 @@
             this.iterationsTB.Name = "iterationsTB";
             this.iterationsTB.Size = new System.Drawing.Size(100, 20);
             this.iterationsTB.TabIndex = 0;
-            this.iterationsTB.TextChanged += new System.EventHandler(this.iterationsTB_TextChanged);
+            this.iterationsTB.TextChanged += new System.EventHandler(this.IterationsTbTextChanged);
             // 
             // resolutionPanel
             // 
@@ -595,7 +595,7 @@
             this.yResolutionTB.Name = "yResolutionTB";
             this.yResolutionTB.Size = new System.Drawing.Size(100, 20);
             this.yResolutionTB.TabIndex = 1;
-            this.yResolutionTB.TextChanged += new System.EventHandler(this.yResolutionTB_TextChanged);
+            this.yResolutionTB.TextChanged += new System.EventHandler(this.YResolutionTbTextChanged);
             // 
             // xResolutionTB
             // 
@@ -603,7 +603,7 @@
             this.xResolutionTB.Name = "xResolutionTB";
             this.xResolutionTB.Size = new System.Drawing.Size(100, 20);
             this.xResolutionTB.TabIndex = 0;
-            this.xResolutionTB.TextChanged += new System.EventHandler(this.xResolutionTB_TextChanged);
+            this.xResolutionTB.TextChanged += new System.EventHandler(this.XResolutionTbTextChanged);
             // 
             // panel1
             // 
@@ -627,7 +627,7 @@
             this.eveSettingsTB.Name = "eveSettingsTB";
             this.eveSettingsTB.Size = new System.Drawing.Size(100, 20);
             this.eveSettingsTB.TabIndex = 9;
-            this.eveSettingsTB.TextChanged += new System.EventHandler(this.eveSettingsTB_TextChanged);
+            this.eveSettingsTB.TextChanged += new System.EventHandler(this.EveSettingsTbTextChanged);
             // 
             // eveSettingsLabel
             // 
@@ -671,7 +671,7 @@
             this.logPathTB.Name = "logPathTB";
             this.logPathTB.Size = new System.Drawing.Size(100, 20);
             this.logPathTB.TabIndex = 2;
-            this.logPathTB.TextChanged += new System.EventHandler(this.logPathTB_TextChanged);
+            this.logPathTB.TextChanged += new System.EventHandler(this.LogPathTbTextChanged);
             // 
             // configPathTB
             // 
@@ -679,7 +679,7 @@
             this.configPathTB.Name = "configPathTB";
             this.configPathTB.Size = new System.Drawing.Size(100, 20);
             this.configPathTB.TabIndex = 1;
-            this.configPathTB.TextChanged += new System.EventHandler(this.configPathTB_TextChanged);
+            this.configPathTB.TextChanged += new System.EventHandler(this.ConfigPathTbTextChanged);
             // 
             // clientPathTB
             // 
@@ -687,7 +687,7 @@
             this.clientPathTB.Name = "clientPathTB";
             this.clientPathTB.Size = new System.Drawing.Size(100, 20);
             this.clientPathTB.TabIndex = 0;
-            this.clientPathTB.TextChanged += new System.EventHandler(this.clientPathTB_TextChanged);
+            this.clientPathTB.TextChanged += new System.EventHandler(this.ClientPathTbTextChanged);
             // 
             // resolutionTab
             // 
@@ -727,7 +727,7 @@
             this.fetchItemsFromQuickbarButton.TabIndex = 1;
             this.fetchItemsFromQuickbarButton.Text = "Fetch Items From Quickbar";
             this.fetchItemsFromQuickbarButton.UseVisualStyleBackColor = true;
-            this.fetchItemsFromQuickbarButton.Click += new System.EventHandler(this.fetchItemsFromQuickbarButton_Click);
+            this.fetchItemsFromQuickbarButton.Click += new System.EventHandler(this.FetchItemsFromQuickbarButtonClick);
             // 
             // knownItemsListBox
             // 
@@ -736,7 +736,7 @@
             this.knownItemsListBox.Name = "knownItemsListBox";
             this.knownItemsListBox.Size = new System.Drawing.Size(543, 394);
             this.knownItemsListBox.TabIndex = 0;
-            this.knownItemsListBox.SelectedIndexChanged += new System.EventHandler(this.knownItemsListBox_SelectedIndexChanged);
+            this.knownItemsListBox.SelectedIndexChanged += new System.EventHandler(this.KnownItemsListBoxSelectedIndexChanged);
             // 
             // aalogTab
             // 
@@ -803,8 +803,8 @@
             this.itemsToReviewList.TabIndex = 2;
             this.itemsToReviewList.UseCompatibleStateImageBehavior = false;
             this.itemsToReviewList.View = System.Windows.Forms.View.Details;
-            this.itemsToReviewList.SelectedIndexChanged += new System.EventHandler(this.itemsToReviewList_SelectedIndexChanged);
-            this.itemsToReviewList.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.itemsToReviewList_KeyPress);
+            this.itemsToReviewList.SelectedIndexChanged += new System.EventHandler(this.ItemsToReviewListSelectedIndexChanged);
+            this.itemsToReviewList.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.ItemsToReviewListKeyPress);
             // 
             // buyOrSell
             // 
@@ -872,7 +872,7 @@
             this.automateB.TabIndex = 1;
             this.automateB.Text = "Automate";
             this.automateB.UseVisualStyleBackColor = true;
-            this.automateB.Click += new System.EventHandler(this.automateB_Click);
+            this.automateB.Click += new System.EventHandler(this.AutomateBClick);
             // 
             // unpauseB
             // 
@@ -882,7 +882,7 @@
             this.unpauseB.TabIndex = 2;
             this.unpauseB.Text = "Unpause";
             this.unpauseB.UseVisualStyleBackColor = true;
-            this.unpauseB.Click += new System.EventHandler(this.unpauseB_Click);
+            this.unpauseB.Click += new System.EventHandler(this.UnpauseBClick);
             // 
             // etview
             // 
@@ -894,7 +894,7 @@
             this.Controls.Add(this.clientTabs);
             this.Name = "etview";
             this.Text = "noxiousET - Beta 2";
-            this.Load += new System.EventHandler(this.noxiousET_load);
+            this.Load += new System.EventHandler(this.NoxiousEtLoad);
             this.clientTabs.ResumeLayout(false);
             this.homeTab.ResumeLayout(false);
             this.homeTab.PerformLayout();

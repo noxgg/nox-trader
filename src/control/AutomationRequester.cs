@@ -1,65 +1,63 @@
-﻿using System.Diagnostics;
-using System.Threading;
+﻿using System.Threading;
 using System.Windows.Forms;
 using noxiousET.src.guiInteraction;
 
 namespace noxiousET.src.control
 {
-    class AutomationRequester
+    internal class AutomationRequester
     {
-        PuppetMaster puppetMaster;
-        Thread automator;
-        Hotkey pauseKey;
-        Hotkey unpauseKey;
-        Hotkey terminateKey;
-        Control control;
+        private readonly Control _control;
+        private readonly Hotkey _pauseKey;
+        private readonly PuppetMaster _puppetMaster;
+        private readonly Hotkey _terminateKey;
+        private readonly Hotkey _unpauseKey;
+        private Thread _automator;
 
         public AutomationRequester(PuppetMaster puppetMaster)
         {
-            this.puppetMaster = puppetMaster;
-            this.pauseKey = new Hotkey(Keys.Z, true, true, false, false);
-            pauseKey.Pressed += delegate { this.pause(); };
-            this.unpauseKey = new Hotkey(Keys.X, true, true, false, false);
-            unpauseKey.Pressed += delegate { this.unpause(); };
-            this.terminateKey = new Hotkey(Keys.Q, true, true, true, false);
-            terminateKey.Pressed += delegate { this.terminate(); };
+            _puppetMaster = puppetMaster;
+            _pauseKey = new Hotkey(Keys.Z, true, true, false, false);
+            _pauseKey.Pressed += delegate { Pause(); };
+            _unpauseKey = new Hotkey(Keys.X, true, true, false, false);
+            _unpauseKey.Pressed += delegate { Unpause(); };
+            _terminateKey = new Hotkey(Keys.Q, true, true, true, false);
+            _terminateKey.Pressed += delegate { Terminate(); };
 
-            this.control = new Control();
-            pauseKey.Register(control);
-            unpauseKey.Register(control);
-            terminateKey.Register(control);
-
+            _control = new Control();
+            _pauseKey.Register(_control);
+            _unpauseKey.Register(_control);
+            _terminateKey.Register(_control);
         }
 
-        public void automate()
+        public void Automate()
         {
-            if (automator != null && automator.IsAlive)
-                automator.Abort();
+            if (_automator != null && _automator.IsAlive)
+                _automator.Abort();
 
-            automator = new Thread(new ThreadStart(this.handoff));
-            automator.SetApartmentState(ApartmentState.STA);
-            automator.Start();
+            _automator = new Thread(Handoff);
+            _automator.SetApartmentState(ApartmentState.STA);
+            _automator.Start();
         }
 
-        private void handoff()
+        private void Handoff()
         {
-            puppetMaster.automate(999);
+            _puppetMaster.Automate(999);
         }
 
-        private void pause()
+        private static void Pause()
         {
-            Mouse.suspendEvent.Reset();
+            Mouse.SuspendEvent.Reset();
         }
 
-        private void unpause()
+        private static void Unpause()
         {
-            Mouse.suspendEvent.Set();
+            Mouse.SuspendEvent.Set();
         }
 
-        private void terminate()
+        private void Terminate()
         {
-            automator.Abort();
-            unpause();
+            _automator.Abort();
+            Unpause();
         }
     }
 }

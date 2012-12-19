@@ -1,66 +1,54 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace noxiousET.src.data.io
 {
-    class MarketOrderio : TextFileio
+    internal class MarketOrderio : TextFileio
     {
-        public MarketOrderio()
+        public new List<String[]> Read(String path, String fileName)
         {
-
+            Path = path;
+            FileName = fileName;
+            return Read();
         }
 
-        public new List<String[]> read(String path, String fileName)
+        public new List<String[]> Read()
         {
-            this.path = path;
-            this.fileName = fileName;
-            return read();
-        }
+            var result = new List<String[]>();
 
-        public new List<String[]> read()
-        {
-            string line;
-            List<String[]> result = new List<String[]>();
-
-            readOpen();
-            line = readLine();
-            line = readLine(); //Skip past header
+            ReadOpen();
+            string line = ReadLine();
+            line = ReadLine(); //Skip past header
             while (line != null)
             {
                 result.Add(line.Split(','));
-                line = readLine();
+                line = ReadLine();
             }
-            readClose();
+            ReadClose();
             return result;
         }
 
-        public String[] readFirstEntry(String path, String fileName)
+        public String[] ReadFirstEntry(String path, String fileName)
         {
-            String[] line = readFirst(ref path, ref fileName);
-            delete();
+            String[] line = ReadFirst(ref path, ref fileName);
+            Delete();
             return line;
         }
 
-        private String[] readFirst(ref String path, ref String fileName)
+        private String[] ReadFirst(ref String path, ref String fileName)
         {
-            this.path = path;
-            this.fileName = fileName;
-            String[] line = new String[14];
-            readOpen();
-            readLine();
-            if (line != null)
-            {
-                line = readLine().Split(',');
-            }
-            readClose();
+            Path = path;
+            FileName = fileName;
+            ReadOpen();
+            ReadLine();
+            string[] line = ReadLine().Split(',');
+            ReadClose();
             return line;
         }
 
-        public String[] readFirstEntryNoDelete(String path, String fileName)
+        public String[] ReadFirstEntryNoDelete(String path, String fileName)
         {
-            return readFirst(ref path, ref fileName);
+            return ReadFirst(ref path, ref fileName);
         }
     }
 }

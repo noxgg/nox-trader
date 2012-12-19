@@ -3,19 +3,20 @@ using System.Windows.Forms;
 
 namespace noxiousET.src.guiInteraction
 {
-    class Keyboard
+    internal class Keyboard
     {
-        private Mutex mutex;
+        private readonly Mutex _mutex;
 
         public Keyboard()
         {
-            this.mutex = new Mutex(false, EtConstants.KB_MOUSE_LOCK);
+            _mutex = new Mutex(false, EtConstants.KbMouseLock);
         }
-        public void send(string s)
+
+        public void Send(string s)
         {
-            mutex.WaitOne();
+            _mutex.WaitOne();
             SendKeys.SendWait(s);
-            mutex.ReleaseMutex();
+            _mutex.ReleaseMutex();
         }
     }
 }

@@ -1,9 +1,7 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Windows.Forms;
-using noxiousET.src.etevent;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.io;
@@ -14,144 +12,143 @@ using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autolister
 {
-    class AutoLister : OrderBot
+    internal class AutoLister : OrderBot
     {
-        private MarketOrderio marketOrderio;
-        private int openOrders = 0;
-        private int totalBuyOrdersCreated = 0;
-        private int totalSellOrdersCreated = 0;
-        private int currentBuyOrdersCreated = 0;
-        private int currentSellOrdersCreated = 0;
-        public int freeOrders {set; get;}
-        private const int SHIP_TERMINAL_ITEM_ID = 2078;
-        private const int ITEM_TERMINAL_ID = 5321;
-        private const string SHIP_HANGAR_HOTKEY = "{PGDN}";
-        private const string ITEM_HANGAR_HOTKEY = "{PGUP}";
-        private const int TRADE_SHIPS = 1;
-        private const int TRADE_ITEMS = 0;
+        private const int ShipTerminalItemId = 2078;
+        private const int ItemTerminalId = 5321;
+        private const string ShipHangarHotkey = "{PGDN}";
+        private const string ItemHangarHotkey = "{PGUP}";
+        private const int TradeShips = 1;
+        private const int TradeItems = 0;
+        private readonly MarketOrderio _marketOrderio;
+        private int _currentBuyOrdersCreated;
+        private int _currentSellOrdersCreated;
+        private int _openOrders;
+        private int _totalBuyOrdersCreated;
+        private int _totalSellOrdersCreated;
 
-        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+                          Modules modules, OrderAnalyzer orderAnalyzer)
             : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
         {
-            this.marketOrderio = new MarketOrderio();
-            marketOrderio.path = paths.logPath;
-            freeOrders = 0;
+            _marketOrderio = new MarketOrderio {Path = paths.LogPath};
+            FreeOrders = 0;
         }
 
-        public int getNumberOfFreeOrders()
-        {
-            return freeOrders;
-        }
+        public int FreeOrders { set; get; }
 
-        public void execute(Character character)
+        public void Execute(Character character)
         {
-            this.character = character;
-            if (!isEVERunningForSelectedCharacter())
+            Character = character;
+            if (!IsEveRunningForSelectedCharacter())
                 return;
 
-            Stopwatch stopwatch = new Stopwatch();
+            var stopwatch = new Stopwatch();
             stopwatch.Start();
 
             try
             {
-                prepare();
+                Prepare();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                logger.log("AL failed to prepare environment!");
-                throw e;
+                Logger.Log("AL failed to prepare environment!");
+                throw;
             }
 
-            if (character.tradeItems && freeOrders > 0)
-                trade(TRADE_ITEMS, ITEM_HANGAR_HOTKEY, ITEM_TERMINAL_ID);
-            if (character.tradeShips && freeOrders > 0)
-                trade(TRADE_SHIPS, SHIP_HANGAR_HOTKEY, SHIP_TERMINAL_ITEM_ID);
+            if (character.ShouldTradeItems && FreeOrders > 0)
+                Trade(TradeItems, ItemHangarHotkey, ItemTerminalId);
+            if (character.ShouldTradeShips && FreeOrders > 0)
+                Trade(TradeShips, ShipHangarHotkey, ShipTerminalItemId);
 
             stopwatch.Stop();
 
-            teardown(stopwatch.Elapsed.ToString());
+            Teardown(stopwatch.Elapsed.ToString());
         }
 
-        private void prepare()
+        private void Prepare()
         {
-            totalSellOrdersCreated = 0;
-            totalBuyOrdersCreated = 0;
-            currentBuyOrdersCreated = 0;
-            currentSellOrdersCreated = 0;
-            mouse.waitDuration = timing; //TODO Sync with client setting
+            _totalSellOrdersCreated = 0;
+            _totalBuyOrdersCreated = 0;
+            _currentBuyOrdersCreated = 0;
+            _currentSellOrdersCreated = 0;
+            Mouse.WaitDuration = Timing; //TODO Sync with client setting
 
-            logger.autoListerLog(character.name);
+            Logger.AutoListerLog(Character.Name);
 
-            try { exportOrders(5, 30); }
-            catch (Exception e) { throw e; }
-            freeOrders = orderAnalyzer.orderSet.getNumberOfActiveOrders();
+            ExportOrders(5, 30);
+            FreeOrders = OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
 
-            openOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
+            _openOrders = Character.MaximumOrders - OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
             new SetClipboardHelper(DataFormats.Text, "0").Go();
 
-            orderAnalyzer.clearLastBuyOrder();
-
-            closeMarketAndHangarWindows();
+            CloseMarketAndHangarWindows();
         }
 
-        private void trade(int type, String windowHotkey, int terminalId)
+        private void Trade(int type, String windowHotkey, int terminalId)
         {
-            openHangar(windowHotkey);
-            wait(10);
-            autoList(terminalId, type);
+            OpenHangar(windowHotkey);
+            Wait(10);
+            AutoList(terminalId, type);
 
-            mouse.waitDuration = timing;
+            Mouse.WaitDuration = Timing;
 
-            freeOrders -= (currentBuyOrdersCreated + currentSellOrdersCreated);
-            totalBuyOrdersCreated += currentBuyOrdersCreated;
-            totalSellOrdersCreated += currentSellOrdersCreated;
-            currentSellOrdersCreated = currentBuyOrdersCreated = 0;
+            FreeOrders -= (_currentBuyOrdersCreated + _currentSellOrdersCreated);
+            _totalBuyOrdersCreated += _currentBuyOrdersCreated;
+            _totalSellOrdersCreated += _currentSellOrdersCreated;
+            _currentSellOrdersCreated = _currentBuyOrdersCreated = 0;
         }
-        private void autoList(int terminalId, int hangarType)
+
+        private void AutoList(int terminalId, int hangarType)
         {
-            int buyOrderQuantity;
             int currentHangarListPosition = 0;
             int consecutiveFailures = 0;
 
-            while (openOrders > 0)
+            while (_openOrders > 0)
             {
                 //TODO Remove hardcoded value
                 if (currentHangarListPosition > 18)
                 {
-                    mouse.pointAndClick(LEFT, uiElements.itemsTop[0], uiElements.itemsTop[1] + (currentHangarListPosition * uiElements.itemsLineHeight), 40, 1, 40);
+                    Mouse.PointAndClick(Left, UiElements.HangarFirstRow[0],
+                                        UiElements.HangarFirstRow[1] +
+                                        (currentHangarListPosition*UiElements.HangarRowHeight), 40, 1, 40);
                     for (int k = 0; k < 19; ++k)
-                        keyboard.send("{DOWN}");
-                    wait(20);
+                        Keyboard.Send("{DOWN}");
+                    Wait(20);
                     currentHangarListPosition = 0;
                 }
                 try
                 {
-                    viewDetailsAndExportResult(10, 1.5, currentHangarListPosition, hangarType);
-                    if (orderAnalyzer.getTypeId().Equals(terminalId))
+                    ViewDetailsAndExportResult(10, 1.5, currentHangarListPosition, hangarType);
+                    if (OrderAnalyzer.GetTypeId().Equals(terminalId))
                         return;
 
-                    if (!orderAnalyzer.isSomeBuyOwned() && character.adjustBuys && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))
+                    if (!OrderAnalyzer.IsSomeBuyOwned() && Character.ShouldAdjustBuys &&
+                        Character.TradeHistory.ContainsKey(OrderAnalyzer.GetTypeId()))
                     {
-                        buyOrderQuantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
+                        int buyOrderQuantity = GetBuyOrderQuantity(OrderAnalyzer.GetBuyPrice(),
+                                                                   OrderAnalyzer.GetSellPrice());
                         if (buyOrderQuantity > 0)
                         {
-                            placeBuyOrder(orderAnalyzer.getTypeId(), buyOrderQuantity);
+                            PlaceBuyOrder(OrderAnalyzer.GetTypeId(), buyOrderQuantity);
                             //If a new sell order is created for this item, it will expect the old best buy price unless we 
                             //update it with the price of the new buy order.
-                            orderAnalyzer.setOwnedBuyPrice(orderAnalyzer.getBuyPrice() + .01);
-                            orderAnalyzer.orderSet.addOrder(orderAnalyzer.getTypeId(), EtConstants.BUY);
-                            --openOrders;
-                            ++currentBuyOrdersCreated;
+                            OrderAnalyzer.SetOwnedBuyPrice(OrderAnalyzer.GetBuyPrice() + .01);
+                            OrderAnalyzer.OrderSet.AddOrder(OrderAnalyzer.GetTypeId(), EtConstants.Buy);
+                            --_openOrders;
+                            ++_currentBuyOrdersCreated;
                         }
                     }
 
-                    if (!orderAnalyzer.isSomeSellOwned() && character.adjustSells && character.tradeHistory.ContainsKey(orderAnalyzer.getTypeId()))//If a new sell order needs to be placed.
+                    if (!OrderAnalyzer.IsSomeSellOwned() && Character.ShouldAdjustSells &&
+                        Character.TradeHistory.ContainsKey(OrderAnalyzer.GetTypeId()))
+                        //If a new sell order needs to be placed.
                     {
-                        openAndIdentifySellWindow(6, 2, currentHangarListPosition, hangarType);
-                        placeSellOrder();
-                        orderAnalyzer.orderSet.addOrder(orderAnalyzer.getTypeId(), EtConstants.SELL);
-                        --openOrders;
-                        ++currentSellOrdersCreated;
+                        OpenAndIdentifySellWindow(6, 2, currentHangarListPosition, hangarType);
+                        PlaceSellOrder();
+                        OrderAnalyzer.OrderSet.AddOrder(OrderAnalyzer.GetTypeId(), EtConstants.Sell);
+                        --_openOrders;
+                        ++_currentSellOrdersCreated;
                         --currentHangarListPosition;
                     }
                     consecutiveFailures = 0;
@@ -161,152 +158,174 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     ++consecutiveFailures;
                     if (consecutiveFailures > 4)
                         return;
-                    mouse.waitDuration = timing;
-                    errorCheck();
-                    logger.log("AutoLister Failure! " + e.Message);
+                    Mouse.WaitDuration = Timing;
+                    ErrorCheck();
+                    Logger.Log("AutoLister Failure! " + e.Message);
                 }
                 ++currentHangarListPosition;
             }
         }
-        private void viewDetailsAndExportResult(int tries, double timingScaleFactor, int currentHangarListPosition, int hangarType)
+
+        private void ViewDetailsAndExportResult(int tries, double timingScaleFactor, int currentHangarListPosition,
+                                                int hangarType)
         {
-            int lastTypeId = orderAnalyzer.getTypeId();
+            int lastTypeId = OrderAnalyzer.GetTypeId();
             if (lastTypeId.Equals(0))
                 lastTypeId = 806;
-            int[] lineCoords = { uiElements.itemsTop[0], uiElements.itemsTop[1] + currentHangarListPosition * uiElements.itemsLineHeight };
-            int[] viewDetailsOffset = { uiElements.itemsViewDetailsOffset[0], uiElements.itemsViewDetailsOffset[1] };
-            DirectoryEraser.nuke(paths.logPath);
-           
+            int[] lineCoords = {
+                                   UiElements.HangarFirstRow[0],
+                                   UiElements.HangarFirstRow[1] + currentHangarListPosition*UiElements.HangarRowHeight
+                               };
+            int[] viewDetailsOffset = {
+                                          UiElements.HangarContextMenuViewDetailsOffset[0],
+                                          UiElements.HangarContextMenuViewDetailsOffset[1]
+                                      };
+            DirectoryEraser.Nuke(Paths.LogPath);
+
             for (int i = 0; i < tries; i++)
             {
                 if (i > 2)
                 {
-                    int errorCode = getError();
+                    int errorCode = GetError();
                     if (errorCode == 10 || errorCode == 12)
                     {
-                        errorCheck();
-                        mouse.pointAndClick(LEFT, uiElements.itemsTop, 1, 1, 1);
+                        ErrorCheck();
+                        Mouse.PointAndClick(Left, UiElements.HangarFirstRow, 1, 1, 1);
                     }
-                    errorCheck();
+                    ErrorCheck();
                 }
                 //RClick current line
-                mouse.pointAndClick(RIGHT, lineCoords, 1, 1, 1);
+                Mouse.PointAndClick(Right, lineCoords, 1, 1, 1);
                 //View details
-                mouse.offsetAndClick(LEFT, viewDetailsOffset, 0, 2, 1);
+                Mouse.OffsetAndClick(Left, viewDetailsOffset, 0, 2, 1);
                 //TODO Make variable. Normal click route often causes inadvertant double-clicks on items, causing ships to be assembled and items
                 //to be fitted. This left-click in a deadzone prevents such double clicks from occuring. 
-                mouse.pointAndClick(LEFT, 120, 747, 1, 1, 1);
+                Mouse.PointAndClick(Left, 120, 747, 1, 1, 1);
 
-                if (hangarType == TRADE_ITEMS)
-                    if (viewDetailsOffset[1].Equals(uiElements.itemsViewDetailsOffset[1]))
-                        viewDetailsOffset[1] = uiElements.itemsViewDetailsOffset[1] + uiElements.itemsViewModuleDetailExtraOffset;
+                if (hangarType == TradeItems)
+                    if (viewDetailsOffset[1].Equals(UiElements.HangarContextMenuViewDetailsOffset[1]))
+                        viewDetailsOffset[1] = UiElements.HangarContextMenuViewDetailsOffset[1] +
+                                               UiElements.HangarContextMenuExtraXOffsetForModules;
                     else
-                        viewDetailsOffset[1] = uiElements.itemsViewDetailsOffset[1];
+                        viewDetailsOffset[1] = UiElements.HangarContextMenuViewDetailsOffset[1];
 
-                if (i % 2 == 1)
-                    mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                if (i%2 == 1)
+                    Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
                 //Click on Export Market info
-                mouse.pointAndClick(LEFT, uiElements.exportItem, 0, 5, 3);
+                Mouse.PointAndClick(Left, UiElements.MarketExportButton, 0, 5, 3);
 
-                List<String[]> orderData = exportOrderData(lastTypeId);
+                List<String[]> orderData = ExportOrderData(lastTypeId);
                 if (orderData != null)
                 {
-                    orderAnalyzer.analyzeInvestment(orderData, Convert.ToString(character.stationid));
-                    mouse.waitDuration = timing;
+                    OrderAnalyzer.AnalyzeInvestment(orderData, Convert.ToString(Character.StationId));
+                    Mouse.WaitDuration = Timing;
                     return;
                 }
             }
-            logger.log("Failed to view item details and export result.");
-            mouse.waitDuration = timing;
+            Logger.Log("Failed to view item details and export result.");
+            Mouse.WaitDuration = Timing;
             throw new Exception("Failed to view item details and export result.");
         }
 
-        private List<String[]> exportOrderData(int lastTypeId)
+        private List<String[]> ExportOrderData(int lastTypeId)
         {
-            String fileName;
-            List<String[]> result;
-
-            fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
-            if (fileName != null && !fileName.Contains(modules.typeNames[lastTypeId]) && !fileName.Contains("My Orders"))
+            string fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
+            if (fileName != null && !fileName.Contains(Modules.TypeNames[lastTypeId]) && !fileName.Contains("My Orders"))
             {
-                marketOrderio.fileName = fileName;
-                result = marketOrderio.read();
+                _marketOrderio.FileName = fileName;
+                List<String[]> result = _marketOrderio.Read();
                 if (result != null && result.Count > 0)
                     return result;
             }
             return null;
         }
 
-        private void openAndIdentifySellWindow(int tries, double timingScaleFactor, int currentHangarListPosition, int hangarType)
+        private void OpenAndIdentifySellWindow(int tries, double timingScaleFactor, int currentHangarListPosition,
+                                               int hangarType)
         {
-            Double clipboardValue = 0;
-            Double verificationValue = Math.Max(orderAnalyzer.getOwnedBuyPrice(), orderAnalyzer.getBuyPrice());
-            int[] lineCoords = { uiElements.itemsTop[0], uiElements.itemsTop[1] + currentHangarListPosition * uiElements.itemsLineHeight };
-            int[] sellItemOffset = { uiElements.itemsSellItemOffset[0], uiElements.itemsSellItemOffset[1] };
+            Double verificationValue = Math.Max(OrderAnalyzer.GetOwnedBuyPrice(), OrderAnalyzer.GetBuyPrice());
+            int[] lineCoords = {
+                                   UiElements.HangarFirstRow[0],
+                                   UiElements.HangarFirstRow[1] + currentHangarListPosition*UiElements.HangarRowHeight
+                               };
+            int[] sellItemOffset = {
+                                       UiElements.HangarContextMenuSellItemOffset[0],
+                                       UiElements.HangarContextMenuSellItemOffset[1]
+                                   };
 
-            if (hangarType == TRADE_ITEMS && !modules.fittableModuleTypeIDs.ContainsKey(orderAnalyzer.getTypeId()))
+            if (hangarType == TradeItems && !Modules.FittableModuleTypeIDs.ContainsKey(OrderAnalyzer.GetTypeId()))
             {
-                sellItemOffset[1] += uiElements.itemsViewModuleDetailExtraOffset;
+                sellItemOffset[1] += UiElements.HangarContextMenuExtraXOffsetForModules;
             }
 
             for (int i = 0; i < tries; i++)
             {
-                cancelOrder(0, 0);
+                CancelOrder(0, 0);
                 //RClick on current line.
-                mouse.pointAndClick(RIGHT, lineCoords, 0, 1, 1);
+                Mouse.PointAndClick(Right, lineCoords, 0, 1, 1);
 
-                mouse.offsetAndClick(LEFT, sellItemOffset, 0, 1, 1);
+                Mouse.OffsetAndClick(Left, sellItemOffset, 0, 1, 1);
 
-                if (i % 3 == 2)
-                    mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                if (i%3 == 2)
+                    Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
 
                 //Right click on the field
-                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(orderAnalyzer.getTypeId(), uiElements.sellOrderBox), 5, 2, 2);
+                Mouse.PointAndClick(Right,
+                                    FixCoordsForLongTypeName(OrderAnalyzer.GetTypeId(), UiElements.SellBidPriceField), 5,
+                                    2, 2);
                 //Click on copy
-                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 0, 2, 2);
-                try { clipboardValue = Convert.ToDouble(Clipboard.getTextFromClipboard()); }
-                catch { clipboardValue = 0; }
+                Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset, 0, 2, 2);
+                Double clipboardValue;
+                try
+                {
+                    clipboardValue = Convert.ToDouble(Clipboard.GetTextFromClipboard());
+                }
+                catch
+                {
+                    clipboardValue = 0;
+                }
 
                 if (Math.Abs(verificationValue - clipboardValue) < 1)
                 {
-                    mouse.waitDuration = timing;
+                    Mouse.WaitDuration = Timing;
                     return;
                 }
             }
-            logger.log("Failed to open and identify the sell window!");
+            Logger.Log("Failed to open and identify the sell window!");
             throw new Exception("Failed to open and identify the sell window!");
         }
 
-        private void teardown(String timeElapsed)
+        private void Teardown(String timeElapsed)
         {
-            cancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
-            logger.log(character.name + ": AL made " + totalSellOrdersCreated + " sells, " + totalBuyOrdersCreated + " buys in " + timeElapsed);
-            freeOrders -= (totalBuyOrdersCreated + totalSellOrdersCreated);
+            CancelOrder(0, 0); //Clean up after self.. don't leave any windows open!
+            Logger.Log(Character.Name + ": AL made " + _totalSellOrdersCreated + " sells, " + _totalBuyOrdersCreated +
+                       " buys in " + timeElapsed);
+            FreeOrders -= (_totalBuyOrdersCreated + _totalSellOrdersCreated);
         }
 
-        private void openHangar(string hotkey)
+        private void OpenHangar(string hotkey)
         {
-            wait(5);
-            keyboard.send(hotkey);
-            wait(40);
+            Wait(5);
+            Keyboard.Send(hotkey);
+            Wait(40);
         }
 
-        private void placeSellOrder()
+        private void PlaceSellOrder()
         {
-            inputValue(5, 2, fixCoordsForLongTypeName(orderAnalyzer.getTypeId(), uiElements.sellOrderBox), (orderAnalyzer.getSellPrice() - .01).ToString());
-            confirmOrder(fixCoordsForLongTypeName(orderAnalyzer.getTypeId(), uiElements.OrderBoxOK), 1, 1);
+            InputValue(5, 1.4, FixCoordsForLongTypeName(OrderAnalyzer.GetTypeId(), UiElements.SellBidPriceField),
+                       (OrderAnalyzer.GetSellPrice() - .01).ToString());
+            ConfirmOrder(FixCoordsForLongTypeName(OrderAnalyzer.GetTypeId(), UiElements.OrderBoxConfirm), 1, 1);
         }
 
-        private void resetView(int tradeType)
+        private void ResetView(int tradeType)
         {
-            errorCheck();
-            closeMarketAndHangarWindows();
+            ErrorCheck();
+            CloseMarketAndHangarWindows();
 
             if (tradeType == 0)
-                keyboard.send("{PGUP}");
+                Keyboard.Send("{PGUP}");
             else
-                keyboard.send("{PGDN}");
-
+                Keyboard.Send("{PGDN}");
         }
     }
 }

@@ -1,116 +1,117 @@
 ﻿using System;
-using System.Threading;
 using System.Collections.Generic;
-using noxiousET.src.etevent;
+using System.Threading;
 using noxiousET.src.data;
-using noxiousET.src.helpers;
 using noxiousET.src.data.characters;
+using noxiousET.src.etevent;
 using noxiousET.src.guiInteraction.login;
 using noxiousET.src.guiInteraction.orders.autoadjuster;
-using noxiousET.src.guiInteraction.orders.autolister;
 using noxiousET.src.guiInteraction.orders.autoinvester;
+using noxiousET.src.guiInteraction.orders.autolister;
+using noxiousET.src.helpers;
 using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction
 {
-    class PuppetMaster
+    internal class PuppetMaster
     {
-        DataManager dataManager;
-        CharacterManager characterManager;
-        public LoginBot loginBot {set; get;}
-        AutoAdjuster autoAdjuster;
-        AutoLister autoLister;
-        EventDispatcher eventDispatcher;
-        AutoInvestor autoInvestor;
-        private OrderAnalyzer orderAnalyzer;
-        public OrderReviewer orderReviewer { set; get; }
+        private readonly AutoAdjuster _autoAdjuster;
+        private readonly AutoInvestor _autoInvestor;
+        private readonly AutoLister _autoLister;
+        private readonly CharacterManager _characterManager;
+        private readonly EventDispatcher _eventDispatcher;
+        private readonly OrderAnalyzer _orderAnalyzer;
 
         public PuppetMaster(DataManager dataManager)
         {
-            this.dataManager = dataManager;
-            characterManager = dataManager.characterManager;
-            orderAnalyzer = new OrderAnalyzer();
-            orderReviewer = new OrderReviewer(dataManager.eventDispatcher);
-            loginBot = new LoginBot(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, orderAnalyzer);
-            autoLister = new AutoLister(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
-            autoAdjuster = new AutoAdjuster(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer, orderReviewer);
-            autoInvestor = new AutoInvestor(dataManager.clientConfig, dataManager.uiElements, dataManager.paths, null, dataManager.modules, orderAnalyzer);
-            eventDispatcher = dataManager.eventDispatcher;
-            eventDispatcher.getTypesFromQuickbarRequestHandler += new EventDispatcher.GetTypesFromQuickbarRequestHandler(getTypeForCharacterFromQuickbar);       
+            _characterManager = dataManager.CharacterManager;
+            _orderAnalyzer = new OrderAnalyzer();
+            OrderReviewer = new OrderReviewer(dataManager.EventDispatcher);
+            LoginBot = new LoginBot(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+                                    _orderAnalyzer);
+            _autoLister = new AutoLister(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+                                         dataManager.Modules, _orderAnalyzer);
+            _autoAdjuster = new AutoAdjuster(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+                                             dataManager.Modules, _orderAnalyzer, OrderReviewer);
+            _autoInvestor = new AutoInvestor(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+                                             dataManager.Modules, _orderAnalyzer);
+            _eventDispatcher = dataManager.EventDispatcher;
+            _eventDispatcher.getTypesFromQuickbarRequestHandler += GetTypeForCharacterFromQuickbar;
         }
 
+        public LoginBot LoginBot { set; get; }
+        public OrderReviewer OrderReviewer { set; get; }
 
-        private void getTypeForCharacterFromQuickbar(object o, String name, String firstItemId, String lastItemId)
+
+        private void GetTypeForCharacterFromQuickbar(object o, String name, String firstItemId, String lastItemId)
         {
-            autoInvestor.getTypeForCharacterFromQuickbar(characterManager.getCharacter(name), firstItemId, lastItemId);
+            _autoInvestor.GetTypeForCharacterFromQuickbar(_characterManager.GetCharacter(name), firstItemId, lastItemId);
         }
 
-        public int automate(int iterations)
+        public int Automate(int iterations)
         {
-            Character character;
-            Queue<String> queue;
-            Random random = new Random((int) DateTime.Now.Ticks & 0x0000FFFF);
+            var random = new Random((int) DateTime.Now.Ticks & 0x0000FFFF);
 
-            if (characterManager.selected == null && characterManager.active.Count > 0)
-                characterManager.selected = characterManager.active[0];
+            if (_characterManager.SelectedCharacter == null && _characterManager.ActiveCharacters.Count > 0)
+                _characterManager.SelectedCharacter = _characterManager.ActiveCharacters[0];
             //else exception
 
-            queue = new Queue<String>();
-            int characterCount = characterManager.active.Count;
-            int selectedIndex = characterManager.active.IndexOf(characterManager.selected);
+            var queue = new Queue<String>();
+            int characterCount = _characterManager.ActiveCharacters.Count;
+            int selectedIndex = _characterManager.ActiveCharacters.IndexOf(_characterManager.SelectedCharacter);
             for (int i = 0; i < characterCount; i++)
-                queue.Enqueue(characterManager.active[(i + selectedIndex) % characterCount]);
+                queue.Enqueue(_characterManager.ActiveCharacters[(i + selectedIndex)%characterCount]);
 
             iterations *= queue.Count;
             for (int i = 0; i < iterations; i++)
             {
                 //Take occassional breaks to simulate being a human.
-                if (i != 0 && i % characterCount == 0)
+                if (i != 0 && i%characterCount == 0)
                 {
-                    if (random.Next(0, 10) % 3 == 0)
+                    if (random.Next(0, 10)%3 == 0)
                         Thread.Sleep(random.Next(0, 3600000));
-                    eventDispatcher.log("Starting run #" + ((i / characterCount) + 1));
+                    _eventDispatcher.Log("Starting run #" + ((i/characterCount) + 1));
                 }
 
-                character = characterManager.getCharacter(queue.Dequeue());
-                characterManager.selected = character.name;
+                Character character = _characterManager.GetCharacter(queue.Dequeue());
+                _characterManager.SelectedCharacter = character.Name;
 
                 try
                 {
-                    automate(character);
+                    Automate(character);
                 }
                 catch (Exception)
                 {
                     ProcessKiller.killProcess("ExeFile");
                 }
 
-                queue.Enqueue(character.name);
+                queue.Enqueue(character.Name);
 
                 if (queue.Count > 1)
-                    autoAdjuster.killClient();
+                    _autoAdjuster.KillClient();
             }
             return 0;
         }
 
-        private void automate(Character character)
+        private void Automate(Character character)
         {
-            if (loginBot.login(character) != 0)
+            if (LoginBot.Login(character) != 0)
                 return;
 
-            autoAdjuster.execute(character);
-            characterManager.save(character.name);
+            _autoAdjuster.Execute(character);
+            _characterManager.Save(character.Name);
 
-            if (autoAdjuster.getNumberOfFreeOrders() < 5)
+            if (_autoAdjuster.GetNumberOfFreeOrders() < 5)
                 return;
 
-            autoLister.execute(character);
-            characterManager.save(character.name);
+            _autoLister.Execute(character);
+            _characterManager.Save(character.Name);
 
-            if (autoLister.getNumberOfFreeOrders() < 5)
+            if (_autoLister.FreeOrders < 5)
                 return;
 
-            autoInvestor.execute(character);
-            characterManager.save(character.name);
+            _autoInvestor.Execute(character);
+            _characterManager.Save(character.Name);
         }
     }
 }

@@ -1,366 +1,228 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Windows.Forms;
-using noxiousET.src.helpers;
-using noxiousET.src.etevent;
 
 //TODO no buy orders exist?
+
 namespace noxiousET.src.orders
 {
-    class OrderAnalyzer
+    internal class OrderAnalyzer
     {
-        public OrderManager orderSet { set; get; }
-        private string lastOrderTypeID;
-        private EventDispatcher eventDispatcher;
-        private bool bestSellOwned;
-        private bool bestBuyOwned;
-        private bool someBuyOwned;
-        private bool someSellOwned;
-        private double buyPrice;
-        private double sellPrice;
-        private double ownedBuyPrice;
-        private double ownedSellPrice;
-        private string typeid;
-        public Boolean noSellsExist { set; get; }
-        public Boolean noBuysExist { set; get; }
-        private int[] terminalItemIDs = { 5321, 2078 };
+        private bool _bestBuyOwned;
+        private bool _bestSellOwned;
+        private double _buyPrice;
+        private double _ownedBuyPrice;
+        private double _ownedSellPrice;
+        private double _sellPrice;
+        private bool _someBuyOwned;
+        private bool _someSellOwned;
+        private string _typeid;
 
         public OrderAnalyzer()
         {
-            lastOrderTypeID = "0";
-            this.eventDispatcher = EventDispatcher.Instance;
-            this.orderSet = new OrderManager();
+            OrderSet = new OrderManager();
         }
 
-        public void analyzeInvestment(List<String[]> orderData, String typeid, String stationid)
+        public OrderManager OrderSet { set; get; }
+
+        public Boolean NoSellsExist { set; get; }
+        public Boolean NoBuysExist { set; get; }
+
+        public void AnalyzeInvestment(List<String[]> orderData, String typeid, String stationid)
         {
-            analyze(ref orderData, ref typeid, ref stationid);
+            Analyze(ref orderData, ref typeid, ref stationid);
         }
 
-        public void analyzeInvestment(List<String[]> orderData, String stationid)
+        public void AnalyzeInvestment(List<String[]> orderData, String stationid)
         {
-            analyze(ref orderData, ref orderData[0][2], ref stationid);
+            Analyze(ref orderData, ref orderData[0][2], ref stationid);
         }
 
-        private void analyze(ref List<String[]> orderData, ref String typeid, ref String stationid)
+        private void Analyze(ref List<String[]> orderData, ref String typeId, ref String stationId)
         {
-            buyPrice = 0;
-            sellPrice = 0;
-            ownedSellPrice = 0;
-            ownedBuyPrice = 0;
-            bestSellOwned = false;
-            bestBuyOwned = false;
+            _buyPrice = 0;
+            _sellPrice = 0;
+            _ownedSellPrice = 0;
+            _ownedBuyPrice = 0;
+            _bestSellOwned = false;
+            _bestBuyOwned = false;
             int i = 0;
             int orderDataCount = orderData.Count;
             String[] order = i < orderDataCount ? orderData[i++] : null;
-            this.typeid = order[2];
-            if (typeid.CompareTo(this.typeid) != 0)
+            _typeid = order[2];
+            if (!typeId.Equals(0))
                 throw new Exception("Wrong typeid");
-            someSellOwned = orderSet.existsOrderOfType(Convert.ToInt32(typeid), 0);
-            someBuyOwned = orderSet.existsOrderOfType(Convert.ToInt32(typeid), 1);
+            _someSellOwned = OrderSet.ExistsOrderOfType(Convert.ToInt32(typeId), 0);
+            _someBuyOwned = OrderSet.ExistsOrderOfType(Convert.ToInt32(typeId), 1);
             //Find first order at target station
-            while (order != null && order[7].CompareTo("False") == 0 && order[10].CompareTo(stationid) != 0)
+            while (order != null && order[7].Equals("False") && !order[10].Equals(stationId))
                 order = i < orderDataCount ? orderData[i++] : null;
 
             //If this order is a sell order and if it is competing at the target station
-            if (order != null && order[7].CompareTo("False") == 0 && order[10].CompareTo(stationid) == 0)
+            if (order != null && order[7].Equals("False") && order[10].Equals(stationId))
             {
                 //Is this an owned order?
-                if (orderSet.isOrderOwned(order[4], 0))
+                if (OrderSet.IsOrderOwned(order[4], 0))
                 {
-                    ownedSellPrice = Convert.ToDouble(order[0]);
-                    bestSellOwned = true;
+                    _ownedSellPrice = Convert.ToDouble(order[0]);
+                    _bestSellOwned = true;
                 }
-                sellPrice = Convert.ToDouble(order[0]);
+                _sellPrice = Convert.ToDouble(order[0]);
             }
             else
             {
-                bestSellOwned = false;
-                sellPrice = 0;
+                _bestSellOwned = false;
+                _sellPrice = 0;
             }
 
             //If this is the best sell order, fetch the next nest competitive price
-            if (bestSellOwned)
+            if (_bestSellOwned)
             {
                 order = i < orderDataCount ? orderData[i++] : null;
-                while (order != null && order[7].CompareTo("False") == 0 && order[10].CompareTo(stationid) != 0)
+                while (order != null && order[7].Equals("False") && !order[10].Equals(stationId))
                     order = i < orderDataCount ? orderData[i++] : null;
-                if (order != null && order[7].CompareTo("False") == 0 && order[10].CompareTo(stationid) == 0)
-                    sellPrice = Convert.ToDouble(order[0]);
+                if (order != null && order[7].Equals("False") && order[10].Equals(stationId))
+                    _sellPrice = Convert.ToDouble(order[0]);
                 else
-                    sellPrice = 0;
+                    _sellPrice = 0;
             }
 
 
             //Jump over any remaining sell orders
-            while (order != null && order[7].CompareTo("False") == 0)
-            { 
-                if (orderSet.isOrderOwned(order[4], 0))
-                    ownedSellPrice = Convert.ToDouble(order[0]);
+            while (order != null && order[7].Equals("False"))
+            {
+                if (OrderSet.IsOrderOwned(order[4], 0))
+                    _ownedSellPrice = Convert.ToDouble(order[0]);
                 order = i < orderDataCount ? orderData[i++] : null;
             }
 
             //Find first order that is competing at target station
-            while (order != null && !isCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationid))
+            while (order != null &&
+                   !IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
                 order = i < orderDataCount ? orderData[i++] : null;
 
-            if (order != null && order[7].CompareTo("True") == 0 && isCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationid))
+            if (order != null && order[7].Equals("True") &&
+                IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
             {
                 //Is this an owned order?
-                if (orderSet.isOrderOwned(order[4], 1))
+                if (OrderSet.IsOrderOwned(order[4], 1))
                 {
-                    ownedBuyPrice = Convert.ToDouble(order[0]);
-                    bestBuyOwned = true;
+                    _ownedBuyPrice = Convert.ToDouble(order[0]);
+                    _bestBuyOwned = true;
                 }
-                buyPrice = Convert.ToDouble(order[0]);
+                _buyPrice = Convert.ToDouble(order[0]);
             }
             else
             {
-                bestBuyOwned = false;
-                buyPrice = 0;
+                _bestBuyOwned = false;
+                _buyPrice = 0;
             }
 
             //If this is the best sell order, fetch the next best price.
-            if (bestBuyOwned)
+            if (_bestBuyOwned)
             {
                 order = i < orderDataCount ? orderData[i++] : null;
-                while (order != null && !isCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationid))
+                while (order != null &&
+                       !IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
                     order = i < orderDataCount ? orderData[i++] : null;
-                if (order != null && order[7].CompareTo("True") == 0 && isCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationid))
-                    buyPrice = Convert.ToDouble(order[0]);
+                if (order != null && order[7].Equals("True") &&
+                    IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
+                    _buyPrice = Convert.ToDouble(order[0]);
                 else
-                    buyPrice = 0;
+                    _buyPrice = 0;
             }
 
-            while (order != null && ownedBuyPrice == 0)
+            while (order != null && _ownedBuyPrice.Equals(0))
             {
-                if (orderSet.isOrderOwned(order[4], 1))
-                    ownedBuyPrice = Convert.ToDouble(order[0]);
+                if (OrderSet.IsOrderOwned(order[4], 1))
+                    _ownedBuyPrice = Convert.ToDouble(order[0]);
                 order = i < orderDataCount ? orderData[i++] : null;
             }
 
-            if (sellPrice <= 0 && buyPrice <= 0) //If there are no orders to compare against, return
+            if (_sellPrice <= 0 && _buyPrice <= 0) //If there are no orders to compare against, return
             {
-                noSellsExist = noBuysExist = true;
+                NoSellsExist = NoBuysExist = true;
             }
-            else if (sellPrice <= 0)//If there are no active sell orders, set sell to 1.5x best buy
+            else if (_sellPrice <= 0) //If there are no active sell orders, set sell to 1.5x best buy
             {
-                noSellsExist = true;
-                sellPrice = buyPrice * 1.5;
+                NoSellsExist = true;
+                _sellPrice = _buyPrice*1.5;
             }
-            else if (buyPrice <= 0)//If there are no active buy orders, set buy tp 1/2 best sell
+            else if (_buyPrice <= 0) //If there are no active buy orders, set buy tp 1/2 best sell
             {
-                noBuysExist = true;
-                buyPrice = sellPrice / 2;
+                NoBuysExist = true;
+                _buyPrice = _sellPrice/2;
             }
         }
 
-
-
-        private bool isCompetingBuyOrder(int range, int jumps, string stationid, string targetStationid)
+        private static bool IsCompetingBuyOrder(int range, int jumps, string stationid, string targetStationid)
         {
-            if (range == -1 && stationid.CompareTo(targetStationid) == 0 || range - jumps >= 0)//If this is my station and the order has a station range
-                return true;
-            return false;
+            //If this is my station and the order has a station range
+            return range == -1 && stationid.Equals(targetStationid) || range - jumps >= 0;
         }
 
-        public int getTypeId()
+        public int GetTypeId()
         {
-            return Convert.ToInt32(typeid);
+            return Convert.ToInt32(_typeid);
         }
 
-        public double getBuyPrice()
+        public double GetBuyPrice()
         {
-            return buyPrice;
+            return _buyPrice;
         }
 
-        public double getSellPrice()
+        public double GetSellPrice()
         {
-            return sellPrice;
+            return _sellPrice;
         }
 
-        public double getPrice(int type)
+        public double GetPrice(int type)
         {
-            if (type == EtConstants.BUY)
-                return buyPrice;
-            else
-                return sellPrice;
+            return type == EtConstants.Buy ? _buyPrice : _sellPrice;
         }
 
-        public double getOwnedBuyPrice()
+        public double GetOwnedBuyPrice()
         {
-            return ownedBuyPrice;
+            return _ownedBuyPrice;
         }
 
-        public double getOwnedSellPrice()
+        public double GetOwnedSellPrice()
         {
-            return ownedSellPrice;
+            return _ownedSellPrice;
         }
 
-        public void setOwnedBuyPrice(double ownedBuyPrice)
+        public void SetOwnedBuyPrice(double ownedBuyPrice)
         {
-            this.ownedBuyPrice = ownedBuyPrice;
+            _ownedBuyPrice = ownedBuyPrice;
         }
 
-        public double getOwnedPrice(int type)
+        public double GetOwnedPrice(int type)
         {
-            if (type == EtConstants.BUY)
-                return ownedBuyPrice;
-            else
-                return ownedSellPrice;
+            return type == EtConstants.Buy ? _ownedBuyPrice : _ownedSellPrice;
         }
 
-        public bool isSomeBuyOwned()
+        public bool IsSomeBuyOwned()
         {
-            return someBuyOwned;
+            return _someBuyOwned;
         }
 
-        public bool isSomeSellOwned()
+        public bool IsSomeSellOwned()
         {
-            return someSellOwned;
+            return _someSellOwned;
         }
 
-        public bool isBestBuyOwned()
+        public bool IsBestBuyOwned()
         {
-            return bestBuyOwned;
+            return _bestBuyOwned;
         }
 
-        public bool isBestSellOwned()
+        public bool IsBestSellOwned()
         {
-            return bestSellOwned;
+            return _bestSellOwned;
         }
 
-        public bool isBestOrderOwned(int type)
+        public bool IsBestOrderOwned(int type)
         {
-            if (type == EtConstants.BUY)
-                return bestBuyOwned;
-            else
-                return bestSellOwned;
-        }
-
-        public double findBestBuyAndSell(out double bestSellOrderPrice, out double bestBuyOrderPrice, out int typeID, string path, ref int terminalItemID, string stationID, ref int offsetFlag)
-        {
-            bestBuyOrderPrice = bestSellOrderPrice = 0;
-            typeID = 0;
-
-            FileHandler file = new FileHandler(path);
-            if (file.openNewestFile(path) == -1) return -1;
-            string line;
-            string[] parts = { "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0" };
-            string[] topSellOrder = { "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1" };
-            string[] topBuyOrder = { "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1", "-1" };
-            int[] numOfActiveOrders = orderSet.getNumberOfBuysAndSells();
-            if (file.getFileName().Contains("My Orders"))//If we're still looking at the buy orders file, return as if it were a previous order.
-            {
-                file.close();
-                return -2;
-            }
-
-            line = file.readLine(); //Skip header row
-
-            line = file.readLine();
-            parts = line.Split(',');
-
-            if (terminalItemIDs[0] == (Convert.ToInt32(parts[2])) || terminalItemIDs[1] == (Convert.ToInt32(parts[2])))//There are no more items to scan.
-            {
-                if (Convert.ToInt32(parts[2]) == terminalItemID)
-                {
-                    file.close();
-                    return -4;
-                }
-                else
-                    return -1;
-            }
-
-            typeID = Convert.ToInt32(parts[2]);
-            //If we're still looking at the last buy order, do nothing. 
-            if (String.Compare(lastOrderTypeID, parts[2]) == 0)
-            {
-                file.close();
-                return -2;
-            }
-
-            //Now update last order to be the current order. 
-            lastOrderTypeID = string.Copy(parts[2]);
-
-            int activeOrderCheck = orderSet.checkForActiveOrders(Convert.ToInt32(parts[2]));
-
-            if (activeOrderCheck == 3) //If there is no reason to do anything, because there are currently both sell and buy orders, do nothing.
-            {
-                file.close();
-                return 3;
-            }
-
-            //Find the most competitive sell order.
-            if (parts[7].CompareTo("False") == 0) //If there is at least one sell order
-            {
-                if (stationID.CompareTo(parts[10]) == 0) //If this order is competing at my station
-                {
-                    topSellOrder = line.Split(',');
-                }
-                else
-                {
-                    while (parts[7].CompareTo("False") == 0 && (line = file.readLine()) != null)
-                    {
-                        parts = line.Split(',');
-
-                        if (parts[7].CompareTo("False") == 0 && stationID.CompareTo(parts[10]) == 0 && topSellOrder[0].CompareTo("-1") == 0) //If this order is competing at my station
-                        {
-                            topSellOrder = line.Split(',');
-                            break;
-                        }
-                    }
-                }
-            }
-            //Find the most competitive buy order.
-            while (parts[7].CompareTo("False") == 0 && (line = file.readLine()) != null)
-            {
-                parts = line.Split(','); //Iterate past all sell orders.
-            }
-            if (line != null && isCompetingBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), parts[10], stationID)) //If this order is competing at my station
-            {
-                topBuyOrder = line.Split(',');//null if there are no buy orders
-            }
-            else
-            {
-                while ((line = file.readLine()) != null)
-                {
-                    parts = line.Split(',');
-
-                    if (isCompetingBuyOrder(Convert.ToInt32(parts[3]), Convert.ToInt32(parts[13]), parts[10], stationID)) //If this order is competing at my station
-                    {
-                        topBuyOrder = line.Split(',');
-                        break;
-                    }
-                }
-            }
-
-            file.close();
-
-            bestSellOrderPrice = Convert.ToDouble(topSellOrder[0]);
-            bestBuyOrderPrice = Convert.ToDouble(topBuyOrder[0]);
-
-            if (bestSellOrderPrice <= 0 && bestBuyOrderPrice <= 0) //If there are no orders to compare against, return code 4.
-            {
-                return 4;
-            } 
-            if (bestSellOrderPrice <= 0)//If there are no active sell orders, sell for twice the best buy order.
-            {
-                offsetFlag = 1;
-                bestSellOrderPrice = bestBuyOrderPrice * 1.5;
-            }
-            if (bestBuyOrderPrice <= 0)//If there are no active buy orders, buy for half the best sell order.
-            {
-                bestBuyOrderPrice = bestSellOrderPrice / 2;
-            }
-
-            return activeOrderCheck;
-        }
-
-        public int clearLastBuyOrder()
-        {
-            lastOrderTypeID = "0";
-            return 0;
+            return type == EtConstants.Buy ? _bestBuyOwned : _bestSellOwned;
         }
     };
 }

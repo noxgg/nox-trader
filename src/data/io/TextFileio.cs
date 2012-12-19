@@ -7,28 +7,29 @@ namespace noxiousET.src.data.io
 {
     public class TextFileio
     {
-        public String path { set; get; }
-        public String fileName { set; get; }
-        protected TextReader textReader;
-        protected TextWriter textWriter;
+        protected TextReader TextReader;
+        protected TextWriter TextWriter;
 
         public TextFileio()
         {
-            this.path = path;
-            this.fileName = fileName;
+            Path = Path;
+            FileName = FileName;
         }
 
         public TextFileio(String path, String fileName)
         {
-            this.path = path;
-            this.fileName = fileName;
+            Path = path;
+            FileName = fileName;
         }
 
-        protected int readOpen()
+        public String Path { set; get; }
+        public String FileName { set; get; }
+
+        protected int ReadOpen()
         {
             try
             {
-                textReader = new StreamReader(path + fileName);
+                TextReader = new StreamReader(Path + FileName);
             }
             catch
             {
@@ -38,28 +39,28 @@ namespace noxiousET.src.data.io
             return 0;
         }
 
-        protected int readOpen(String path, String fileName)
+        protected int ReadOpen(String path, String fileName)
         {
-            this.path = path;
-            this.fileName = fileName;
-            return readOpen();
+            Path = path;
+            FileName = fileName;
+            return ReadOpen();
         }
 
-        protected int readClose()
+        protected int ReadClose()
         {
-            textReader.Close();
+            TextReader.Close();
             return 0;
         }
 
-        protected int writeOpen()
-        { 
+        protected int WriteOpen()
+        {
             try
             {
-                if (path.Length > 0 && !Directory.Exists(path))
-                    Directory.CreateDirectory(path);
-                if (!File.Exists(path + fileName))
-                    File.Create(path + fileName).Close();
-                textWriter = new StreamWriter(path + fileName);
+                if (Path.Length > 0 && !Directory.Exists(Path))
+                    Directory.CreateDirectory(Path);
+                if (!File.Exists(Path + FileName))
+                    File.Create(Path + FileName).Close();
+                TextWriter = new StreamWriter(Path + FileName);
             }
             catch
             {
@@ -69,29 +70,29 @@ namespace noxiousET.src.data.io
             return 0;
         }
 
-        protected int writeOpen(String path, String fileName)
+        protected int WriteOpen(String path, String fileName)
         {
-            this.path = path;
-            this.fileName = fileName;
-            return writeOpen();
+            Path = path;
+            FileName = fileName;
+            return WriteOpen();
         }
 
-        protected int writeClose()
+        protected int WriteClose()
         {
-            textWriter.Close();
+            TextWriter.Close();
             return 0;
         }
 
-        protected int readLineAsInt()
+        protected int ReadLineAsInt()
         {
-            return Convert.ToInt32(textReader.ReadLine());
+            return Convert.ToInt32(TextReader.ReadLine());
         }
 
-        protected String readLine()
+        protected String ReadLine()
         {
             try
             {
-                return textReader.ReadLine();
+                return TextReader.ReadLine();
             }
             catch
             {
@@ -99,52 +100,52 @@ namespace noxiousET.src.data.io
             }
         }
 
-        protected List<String> readFile()
+        protected List<String> ReadFile()
         {
-            List<String> settings = new List<String>();
-            while (textReader.Peek() >= 0)
-                settings.Add(textReader.ReadLine());
+            var settings = new List<String>();
+            while (TextReader.Peek() >= 0)
+                settings.Add(TextReader.ReadLine());
             return settings;
         }
 
-        protected int writeLine(Object line)
+        protected int WriteLine(Object line)
         {
-            textWriter.WriteLine(line);
+            TextWriter.WriteLine(line);
             return 0;
         }
 
-        public int save(List<Object> settings)
+        public int Save(List<Object> settings)
         {
-            if (writeOpen() != 0)
+            if (WriteOpen() != 0)
             {
                 //Exception
                 return 1;
             }
 
-            foreach (Object o in settings)
+            foreach (object o in settings)
             {
-                writeLine(o);
+                WriteLine(o);
             }
 
-            writeClose();
+            WriteClose();
 
             return 0;
         }
 
-        public int save(List<Object> settings, String path, String file)
+        public int Save(List<Object> settings, String path, String file)
         {
-            this.path = path;
-            this.fileName = file;
-            return save(settings);
+            Path = path;
+            FileName = file;
+            return Save(settings);
         }
 
-        public List<String> read()
+        public List<String> Read()
         {
             try
             {
-                readOpen();
-                List<String> result = readFile();
-                readClose();
+                ReadOpen();
+                List<String> result = ReadFile();
+                ReadClose();
                 return result;
             }
             catch
@@ -153,21 +154,21 @@ namespace noxiousET.src.data.io
             }
         }
 
-        public List<String> read(String path, String file)
+        public List<String> Read(String path, String file)
         {
-            this.path = path;
-            this.fileName = file;
-            return read();
+            Path = path;
+            FileName = file;
+            return Read();
         }
 
-        public int getNumberOfFilesInDirectory(String directory)
+        public int GetNumberOfFilesInDirectory(String directory)
         {
             return Directory.GetFiles(directory).Length;
         }
 
-        public String getNewestFileNameInDirectory(String directory)
+        public String GetNewestFileNameInDirectory(String directory)
         {
-            if (getNumberOfFilesInDirectory(directory) > 0)
+            if (GetNumberOfFilesInDirectory(directory) > 0)
             {
                 var directoryVar = new DirectoryInfo(directory);
                 return directoryVar.GetFiles().OrderByDescending(f => f.LastWriteTime).First().ToString();
@@ -175,9 +176,9 @@ namespace noxiousET.src.data.io
             return null;
         }
 
-        protected void delete()
+        protected void Delete()
         {
-            File.Delete(path + fileName);
+            File.Delete(Path + FileName);
         }
     }
 }

@@ -1,5 +1,7 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using noxiousET.src.data.accounts;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
@@ -8,167 +10,160 @@ using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
 using noxiousET.src.etevent;
-using System.IO;
-using noxiousET.src.orders;
 
 namespace noxiousET.src.data
 {
-    class DataManager
+    internal class DataManager
     {
-        public Modules modules { set; get; }
-        public Paths paths { set; get; }
-        public UiElements uiElements { set; get; }
-        public CharacterManager characterManager { set; get; }
-        public AccountManager accountManager { set; get; }
-        public ClientConfig clientConfig { set; get; }
-        public EventDispatcher eventDispatcher { set; get; }
-        private TextFileio textFileio;
-        private TextFileToDictionaryLoader textFileToDictionaryLoader;
-        private MarketOrderio marketOrderio;
-        private UiElementsio uiElementsio;
-
-
-        private string configFileName;
-        private const String ROOT_CONFIG_FILENAME = "last.ini";
-        private const String ROOT_CONFIG_FILENAME_ALT = "lastmba.ini";
-        private const String FITTABLE_MODULE_TYPE_IDS_FILENAME = "fittableModuleTypeIDs.ini";
-        private const String LONG_NAME_TYPE_IDS_FILENAME = "longNameTypeIDs.ini";
-        private const String TYPE_NAMES_FILENAME = "typeNames.ini";
+        private const String RootConfigFilename = "last.ini";
+        private const String RootConfigFilenameAlt = "lastmba.ini";
+        private const String FittableModuleTypeIdsFilename = "fittableModuleTypeIDs.ini";
+        private const String LongNameTypeIdsFilename = "longNameTypeIDs.ini";
+        private const String TypeNamesFilename = "typeNames.ini";
+        private readonly string _configFileName;
+        private readonly MarketOrderio _marketOrderio;
+        private TextFileToDictionaryLoader _textFileToDictionaryLoader;
+        private TextFileio _textFileio;
+        private UiElementsio _uiElementsio;
 
         public DataManager()
         {
-            paths = new Paths();
-            clientConfig = new ClientConfig();
-            this.eventDispatcher = EventDispatcher.Instance;
-            this.eventDispatcher.clientSettingUpdatedHandler += new EventDispatcher.ClientSettingUpdatedHandler(clientSettingUpdatedListener);
-            this.eventDispatcher.saveAllSettingsRequestHandler += new EventDispatcher.SaveAllSettingsRequestHandler(saveAllSettingsRequestListener);
-            this.eventDispatcher.getTypesFromFileRequestHandler += new EventDispatcher.GetTypesFromFileRequestHandler(getTypeForCharacterFromNewestLogFile);
+            Paths = new Paths();
+            ClientConfig = new ClientConfig();
+            EventDispatcher = EventDispatcher.Instance;
+            EventDispatcher.clientSettingUpdatedHandler += ClientSettingUpdatedListener;
+            EventDispatcher.saveAllSettingsRequestHandler += SaveAllSettingsRequestListener;
+            EventDispatcher.getTypesFromFileRequestHandler += GetTypeForCharacterFromNewestLogFile;
 
-            accountManager = new AccountManager();
-            characterManager = new CharacterManager(paths, accountManager);
-            modules = new Modules();
-            uiElements = new UiElements();
+            AccountManager = new AccountManager();
+            CharacterManager = new CharacterManager(Paths, AccountManager);
+            Modules = new Modules();
+            UiElements = new UiElements();
 
             try
             {
-                configFileName = ROOT_CONFIG_FILENAME;
-                initialize();
+                _configFileName = RootConfigFilename;
+                Initialize();
             }
             catch (Exception)
             {
-                configFileName = ROOT_CONFIG_FILENAME_ALT;
-                initialize();
+                _configFileName = RootConfigFilenameAlt;
+                Initialize();
             }
 
-            marketOrderio = new MarketOrderio();
+            _marketOrderio = new MarketOrderio();
         }
 
-        private void initialize()
+        public Modules Modules { set; get; }
+        public Paths Paths { set; get; }
+        public UiElements UiElements { set; get; }
+        public CharacterManager CharacterManager { set; get; }
+        public AccountManager AccountManager { set; get; }
+        public ClientConfig ClientConfig { set; get; }
+        public EventDispatcher EventDispatcher { set; get; }
+
+        private void Initialize()
         {
+            _textFileio = new TextFileio("", _configFileName);
+            List<String> config = _textFileio.Read();
+            var configLines = new Dictionary<String, String>();
+            var characterNames = new List<String>();
 
-            textFileio = new TextFileio("", configFileName);
-            List<String> config = textFileio.read();
-            Dictionary<String, String> configLines = new Dictionary<String, String>();
-            List<String> characterNames = new List<String>();
-
-            String[] parts;
-            foreach (String line in config) {
-                parts = line.Split('=');
-                if (parts[0].Equals(EtConstants.CHARACTER_KEY))
+            foreach (String line in config)
+            {
+                String[] parts = line.Split('=');
+                if (parts[0].Equals(EtConstants.CharacterKey))
                     characterNames.Add(parts[1]);
                 else
                     configLines.Add(parts[0], parts[1]);
-
             }
 
 
-            paths.logPath = configLines[EtConstants.LOG_PATH_KEY];
-            paths.clientPath = configLines[EtConstants.CLIENT_PATH_KEY];
-            paths.configPath = configLines[EtConstants.CONFIG_PATH_KEY];
-            paths.eveSettingsPath = configLines[EtConstants.EVE_SETTINGS_PATH_KEY];
-            clientConfig.timingMultiplier = Convert.ToInt32(configLines[EtConstants.TIMING_MULTIPLIER_KEY]);
-            clientConfig.iterations = Convert.ToInt32(configLines[EtConstants.ITERATIONS_KEY]);
-            clientConfig.xResolution = Convert.ToInt32(configLines[EtConstants.X_RESOLUTION_KEY]);
-            clientConfig.yResolution = Convert.ToInt32(configLines[EtConstants.Y_RESOLUTION_KEY]);
+            Paths.LogPath = configLines[EtConstants.LogPathKey];
+            Paths.ClientPath = configLines[EtConstants.ClientPathKey];
+            Paths.ConfigPath = configLines[EtConstants.ConfigPathKey];
+            Paths.EveSettingsPath = configLines[EtConstants.EveSettingsPathKey];
+            ClientConfig.TimingMultiplier = Convert.ToInt32(configLines[EtConstants.TimingMultiplierKey]);
+            ClientConfig.Iterations = Convert.ToInt32(configLines[EtConstants.IterationsKey]);
+            ClientConfig.XResolution = Convert.ToInt32(configLines[EtConstants.XResolutionKey]);
+            ClientConfig.YResolution = Convert.ToInt32(configLines[EtConstants.YResolutionKey]);
 
-            characterManager.load(characterNames);
+            CharacterManager.Load(characterNames);
 
-            String fileName = Convert.ToString(clientConfig.xResolution) + "x" + Convert.ToString(clientConfig.yResolution) + ".ini";
-            uiElementsio = new UiElementsio(paths.configPath, fileName, uiElements);
+            String fileName = Convert.ToString(ClientConfig.XResolution) + "x" +
+                              Convert.ToString(ClientConfig.YResolution) + ".ini";
+            _uiElementsio = new UiElementsio(Paths.ConfigPath, fileName, UiElements);
 
-            textFileToDictionaryLoader = new TextFileToDictionaryLoader(paths.configPath, FITTABLE_MODULE_TYPE_IDS_FILENAME);
-            modules.fittableModuleTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine();
-            modules.longNameTypeIDs = textFileToDictionaryLoader.loadIntKeyEqualsIntValueEqualsOneLine(paths.configPath, LONG_NAME_TYPE_IDS_FILENAME);
-            modules.typeNames = textFileToDictionaryLoader.loadIntKeyStringValue(paths.configPath, TYPE_NAMES_FILENAME);
+            _textFileToDictionaryLoader = new TextFileToDictionaryLoader(Paths.ConfigPath, FittableModuleTypeIdsFilename);
+            Modules.FittableModuleTypeIDs = _textFileToDictionaryLoader.LoadIntKeyEqualsIntValueEqualsOneLine();
+            Modules.LongNameTypeIDs = _textFileToDictionaryLoader.LoadIntKeyEqualsIntValueEqualsOneLine(
+                Paths.ConfigPath, LongNameTypeIdsFilename);
+            Modules.TypeNames = _textFileToDictionaryLoader.LoadIntKeyStringValue(Paths.ConfigPath, TypeNamesFilename);
         }
 
-        public void savePathAndClientSettings()
+        public void SavePathAndClientSettings()
         {
-            List<Object> settings = new List<Object>();
+            var settings = new List<Object>
+                               {
+                                   EtConstants.LogPathKey + "=" + Paths.LogPath,
+                                   EtConstants.ClientPathKey + "=" + Paths.ClientPath,
+                                   EtConstants.ConfigPathKey + "=" + Paths.ConfigPath,
+                                   EtConstants.EveSettingsPathKey + "=" + Paths.EveSettingsPath,
+                                   EtConstants.TimingMultiplierKey + "=" + ClientConfig.TimingMultiplier,
+                                   EtConstants.IterationsKey + "=" + ClientConfig.Iterations,
+                                   EtConstants.XResolutionKey + "=" + ClientConfig.XResolution,
+                                   EtConstants.YResolutionKey + "=" + ClientConfig.YResolution
+                               };
 
-            settings.Add(EtConstants.LOG_PATH_KEY + "=" + paths.logPath);
-            settings.Add(EtConstants.CLIENT_PATH_KEY + "=" + paths.clientPath);
-            settings.Add(EtConstants.CONFIG_PATH_KEY + "=" + paths.configPath);
-            settings.Add(EtConstants.EVE_SETTINGS_PATH_KEY + "=" + paths.eveSettingsPath);
-            settings.Add(EtConstants.TIMING_MULTIPLIER_KEY + "=" + clientConfig.timingMultiplier);
-            settings.Add(EtConstants.ITERATIONS_KEY + "=" + clientConfig.iterations);
-            settings.Add(EtConstants.X_RESOLUTION_KEY + "=" + clientConfig.xResolution);
-            settings.Add(EtConstants.Y_RESOLUTION_KEY + "=" + clientConfig.yResolution);
-
-            foreach (String s in characterManager.getAllCharacterNames())
-            {
-                settings.Add(EtConstants.CHARACTER_KEY + "=" + s);
-            }
-
-            textFileio.save(settings, "", configFileName);
+            settings.AddRange(CharacterManager.GetAllCharacterNames().Select(s => EtConstants.CharacterKey + "=" + s));
+            _textFileio.Save(settings, "", _configFileName);
         }
 
-        private void saveAllSettingsRequestListener(object o)
+        private void SaveAllSettingsRequestListener(object o)
         {
-            savePathAndClientSettings();
-            characterManager.saveAll();
+            SavePathAndClientSettings();
+            CharacterManager.SaveAll();
         }
 
-        private void clientSettingUpdatedListener(object o, string name, string key, string value)
+        private void ClientSettingUpdatedListener(object o, string name, string key, string value)
         {
             try
             {
                 switch (key)
                 {
-                    case EtConstants.TIMING_MULTIPLIER_KEY:
-                        clientConfig.timingMultiplier = parseValue(value, false);
+                    case EtConstants.TimingMultiplierKey:
+                        ClientConfig.TimingMultiplier = parseValue(value, false);
                         break;
-                    case EtConstants.ITERATIONS_KEY:
-                        clientConfig.iterations = parseValue(value, true);
+                    case EtConstants.IterationsKey:
+                        ClientConfig.Iterations = parseValue(value, true);
                         break;
-                    case EtConstants.X_RESOLUTION_KEY:
-                        clientConfig.xResolution = parseValue(value, false);
+                    case EtConstants.XResolutionKey:
+                        ClientConfig.XResolution = parseValue(value, false);
                         break;
-                    case EtConstants.Y_RESOLUTION_KEY:
-                        clientConfig.yResolution = parseValue(value, false);
+                    case EtConstants.YResolutionKey:
+                        ClientConfig.YResolution = parseValue(value, false);
                         break;
-                    case EtConstants.LOG_PATH_KEY:
-                        paths.logPath = value;
+                    case EtConstants.LogPathKey:
+                        Paths.LogPath = value;
                         break;
-                    case EtConstants.CONFIG_PATH_KEY:
-                        paths.configPath = value;
+                    case EtConstants.ConfigPathKey:
+                        Paths.ConfigPath = value;
                         break;
-                    case EtConstants.CLIENT_PATH_KEY:
-                        paths.clientPath = value;
+                    case EtConstants.ClientPathKey:
+                        Paths.ClientPath = value;
                         break;
-                    case EtConstants.EVE_SETTINGS_PATH_KEY:
-                        paths.eveSettingsPath = value;
+                    case EtConstants.EveSettingsPathKey:
+                        Paths.EveSettingsPath = value;
                         break;
                     default:
-                        eventDispatcher.logError("Attempt to save value for non-existant client data key.");
+                        EventDispatcher.LogError("Attempt to save value for non-existant client data key.");
                         break;
                 }
             }
             catch
             {
-                eventDispatcher.logError("Attempt to save value of incorrect type for the given character data key.");
+                EventDispatcher.LogError("Attempt to save value of incorrect type for the given character data key.");
             }
-
         }
 
         private int parseValue(String value, Boolean acceptZero)
@@ -180,26 +175,23 @@ namespace noxiousET.src.data
             else
                 throw new Exception("Invalid integer value for given character data key");
         }
+
         //TODO DEPRECIATE
-        private void getTypeForCharacterFromNewestLogFile(object o, String name)
+        private void GetTypeForCharacterFromNewestLogFile(object o, String name)
         {
-            Character character = characterManager.getCharacter(name);
-            String fileName;
-            while (Directory.GetFiles(paths.logPath).Length > 0)
+            Character character = CharacterManager.GetCharacter(name);
+            while (Directory.GetFiles(Paths.LogPath).Length > 0)
             {
-                fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
-                String[] result = marketOrderio.readFirstEntry(paths.logPath, fileName);
+                String fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
+                String[] result = _marketOrderio.ReadFirstEntry(Paths.LogPath, fileName);
                 int typeid = Convert.ToInt32(result[2]);
-                if (modules.typeNames.ContainsKey(typeid))
+                if (Modules.TypeNames.ContainsKey(typeid) && !character.TradeQueue.Contains(typeid))
                 {
-                    if (!character.tradeQueue.Contains(typeid))
-                    {
-                        character.tradeQueue.Enqueue(typeid);
-                        eventDispatcher.log("Added " + modules.typeNames[typeid] + " to queue for " + character.name);
-                    }
+                    character.TradeQueue.Enqueue(typeid);
+                    EventDispatcher.Log("Added " + Modules.TypeNames[typeid] + " to queue for " + character.Name);
                 }
             }
-            characterManager.save(name);
+            CharacterManager.Save(name);
         }
     }
 }

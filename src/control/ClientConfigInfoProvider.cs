@@ -1,43 +1,40 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using noxiousET.src.data.client;
 using noxiousET.src.data.paths;
 
 namespace noxiousET.src.control
 {
-    class ClientConfigInfoProvider
+    internal class ClientConfigInfoProvider
     {
-        Paths paths;
-        ClientConfig clientConfig;
+        private readonly ClientConfig _clientConfig;
+        private readonly Paths _paths;
 
         public ClientConfigInfoProvider(Paths paths, ClientConfig clientConfig)
         {
-            this.paths = paths;
-            this.clientConfig = clientConfig;
+            _paths = paths;
+            _clientConfig = clientConfig;
         }
 
-        public String[] getPaths()
+        public String[] GetPaths()
         {
-            String[] result = new String[4];
+            var result = new String[4];
 
-            result[0] = paths.logPath;
-            result[1] = paths.clientPath;
-            result[2] = paths.configPath;
-            result[3] = paths.eveSettingsPath;
+            result[0] = _paths.LogPath;
+            result[1] = _paths.ClientPath;
+            result[2] = _paths.ConfigPath;
+            result[3] = _paths.EveSettingsPath;
 
             return result;
         }
 
-        public String[] getConfig()
+        public String[] GetConfig()
         {
-            String[] result = new String[4];
+            var result = new String[4];
 
-            result[0] = Convert.ToString(clientConfig.timingMultiplier);
-            result[1] = Convert.ToString(clientConfig.iterations);
-            result[2] = Convert.ToString(clientConfig.xResolution);
-            result[3] = Convert.ToString(clientConfig.yResolution);
+            result[0] = Convert.ToString(_clientConfig.TimingMultiplier);
+            result[1] = Convert.ToString(_clientConfig.Iterations);
+            result[2] = Convert.ToString(_clientConfig.XResolution);
+            result[3] = Convert.ToString(_clientConfig.YResolution);
 
             return result;
         }

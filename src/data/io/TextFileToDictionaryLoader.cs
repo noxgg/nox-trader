@@ -3,55 +3,53 @@ using System.Collections.Generic;
 
 namespace noxiousET.src.data.io
 {
-    class TextFileToDictionaryLoader : TextFileio
+    internal class TextFileToDictionaryLoader : TextFileio
     {
         public TextFileToDictionaryLoader(String path, String fileName) : base(path, fileName)
         {
         }
 
-        public Dictionary<int, int> loadIntKeyEqualsIntValueEqualsOneLine()
+        public Dictionary<int, int> LoadIntKeyEqualsIntValueEqualsOneLine()
         {
-            Dictionary<int, int> result = new Dictionary<int, int>();
-            int line;
-            readOpen();
-            if (textReader == null)
+            var result = new Dictionary<int, int>();
+            ReadOpen();
+            if (TextReader == null)
                 return result;
-            while (textReader.Peek() >= 0)
+            while (TextReader.Peek() >= 0)
             {
-                line = Convert.ToInt32(textReader.ReadLine());
+                int line = Convert.ToInt32(TextReader.ReadLine());
                 result.Add(line, line);
             }
-            readClose();
+            ReadClose();
             return result;
         }
 
-        public Dictionary<int, int> loadIntKeyEqualsIntValueEqualsOneLine(String path, String fileName)
+        public Dictionary<int, int> LoadIntKeyEqualsIntValueEqualsOneLine(String path, String fileName)
         {
-            this.path = path;
-            this.fileName = fileName;
-            return loadIntKeyEqualsIntValueEqualsOneLine();
+            Path = path;
+            FileName = fileName;
+            return LoadIntKeyEqualsIntValueEqualsOneLine();
         }
 
-        public Dictionary<int, String> loadIntKeyStringValue(String path, String fileName)
+        public Dictionary<int, String> LoadIntKeyStringValue(String path, String fileName)
         {
-            this.path = path;
-            this.fileName = fileName;
-            return loadIntKeyStringValue();
+            Path = path;
+            FileName = fileName;
+            return LoadIntKeyStringValue();
         }
 
-        public Dictionary<int, String> loadIntKeyStringValue()
+        public Dictionary<int, String> LoadIntKeyStringValue()
         {
-            Dictionary<int, String> result = new Dictionary<int, String>();
-            String [] line;
-            readOpen();
-            if (textReader == null)
+            var result = new Dictionary<int, String>();
+            ReadOpen();
+            if (TextReader == null)
                 return result;
-            while (textReader.Peek() >= 0)
+            while (TextReader.Peek() >= 0)
             {
-                line = textReader.ReadLine().Split('=');
+                String[] line = TextReader.ReadLine().Split('=');
                 result.Add(Convert.ToInt32(line[0]), line[1]);
             }
-            readClose();
+            ReadClose();
             return result;
         }
     }

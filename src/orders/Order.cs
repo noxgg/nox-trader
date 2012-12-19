@@ -1,14 +1,12 @@
 ﻿namespace noxiousET.src.orders
 {
-    class Order
+    internal class Order
     {
-        private string orderID;
-        private int typeID;
-        private string stationid;
-        private int range;
-        private double price;
-        private int volume;
-        private int runs;
+        private readonly string _orderId;
+        private readonly double _price;
+        private readonly string _stationId;
+        private readonly int _typeId;
+        private int _runs;
 
         public Order()
         {
@@ -16,52 +14,49 @@
 
         public Order(int typeID)
         {
-            this.typeID = typeID;
-            this.orderID = "";
-            this.stationid = "";
-            this.range = 0;
-            this.price = 0;
-            this.volume = 0;
+            _typeId = typeID;
+            _orderId = "";
+            _stationId = "";
+            _price = 0;
         }
 
-        public Order(string orderID, int typeID, string stationid, int range, double price, int volume)
+        public Order(string orderId, int typeId, string stationId, int range, double price, int volume)
         {
-            this.orderID = orderID;
-            this.typeID = typeID;
-            this.stationid = stationid;
-            this.range = range;
-            this.price = price;
-            this.volume = volume;
-            this.runs = 0;
+            _orderId = orderId;
+            _typeId = typeId;
+            _stationId = stationId;
+            _price = price;
+            _runs = 0;
         }
 
-        public string getOrderID()
+        public string GetOrderId()
         {
-            return this.orderID;
+            return _orderId;
         }
 
-        public string getStationid()
+        public string GetStationid()
         {
-            return this.stationid;
+            return _stationId;
         }
 
-        public int getTypeID()
+        public int GetTypeId()
         {
-            return this.typeID;
-        }
-        public int getRuns()
-        {
-            return this.runs;
+            return _typeId;
         }
 
-        public double getPrice()
+        public int GetRuns()
         {
-            return this.price;
+            return _runs;
         }
 
-        public int incrementRuns()
+        public double GetPrice()
         {
-            ++this.runs;
+            return _price;
+        }
+
+        public int IncrementRuns()
+        {
+            ++_runs;
             return 0;
         }
     };

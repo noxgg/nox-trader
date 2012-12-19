@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using noxiousET.src.data.accounts;
 using noxiousET.src.data.io;
 using noxiousET.src.data.paths;
@@ -8,132 +8,130 @@ using noxiousET.src.etevent;
 
 namespace noxiousET.src.data.characters
 {
-    class CharacterManager
+    internal class CharacterManager
     {
-        public List<String> active { set; get; }
-        public List<String> inactive { set; get; }
-        public String selected { set; get; }
-        private Dictionary<String, Character> characters;
-        private TextFileio textFileio;
-        private AccountManager accountManager;
-        private Paths paths;
-        private EventDispatcher eventDispatcher;
-        private static readonly string tradeQueueFileName = "Queue.ini";
-        private static readonly string tradeHistoryFileName = "History.ini";
+        private const string TradeQueueFileName = "Queue.ini";
+        private const string TradeHistoryFileName = "History.ini";
+        private readonly AccountManager _accountManager;
+        private readonly Dictionary<String, Character> _characters;
+        private readonly EventDispatcher _eventDispatcher;
+        private readonly Paths _paths;
+        private readonly TextFileio _textFileio;
 
         public CharacterManager(Paths paths, AccountManager accountManager)
         {
-            this.paths = paths;
-            this.accountManager = accountManager;
-            characters = new Dictionary<String, Character>();
-            active = new List<String>();
-            inactive = new List<String>();
-            selected = null;
-            textFileio = new TextFileio(paths.configPath, null);
-            this.eventDispatcher = EventDispatcher.Instance;
-            this.eventDispatcher.characterSettingUpdatedHandler += new EventDispatcher.CharacterSettingUpdatedHandler(characterSettingUpdatedListener);
+            _paths = paths;
+            _accountManager = accountManager;
+            _characters = new Dictionary<String, Character>();
+            ActiveCharacters = new List<String>();
+            InactiveCharacters = new List<String>();
+            SelectedCharacter = null;
+            _textFileio = new TextFileio(paths.ConfigPath, null);
+            _eventDispatcher = EventDispatcher.Instance;
+            _eventDispatcher.characterSettingUpdatedHandler += CharacterSettingUpdatedListener;
         }
 
-        public void addCharacter(Character character)
-        {
-            if (characters.ContainsKey(character.name))
-                characters.Remove(character.name);
-            characters.Add(character.name, character);
-        }
+        public List<String> ActiveCharacters { set; get; }
+        public List<String> InactiveCharacters { set; get; }
+        public String SelectedCharacter { set; get; }
 
-        public Character getCharacter(string name)
+        public void AddCharacter(Character character)
         {
-            if (characters.ContainsKey(name))
+            if (_characters.ContainsKey(character.Name))
             {
-                return characters[name];
+                _characters.Remove(character.Name);
             }
-            addCharacter(load(name));
-            
-            return getCharacter(name);
+            _characters.Add(character.Name, character);
         }
 
-        public List<String> getAllCharacterNames()
+        public Character GetCharacter(string name)
         {
-            List<String> result = new List<String>();
-            foreach (String s in active)
-                result.Add(s);
-            foreach (String s in inactive)
-                result.Add(s);
+            if (_characters.ContainsKey(name))
+            {
+                return _characters[name];
+            }
+            AddCharacter(Load(name));
+
+            return GetCharacter(name);
+        }
+
+        public List<String> GetAllCharacterNames()
+        {
+            List<string> result = ActiveCharacters.ToList();
+            result.AddRange(InactiveCharacters);
             return result;
         }
 
-        public void load(List<String> names)
+        public void Load(List<String> names)
         {
-            foreach (String n in names)
-                load(n);
+            foreach (string n in names)
+                Load(n);
         }
 
-        public void save(String[] names)
+        public void Save(String[] names)
         {
-            foreach (String n in names)
-                save(n);
+            foreach (string n in names)
+                Save(n);
         }
 
-        public void saveAll()
+        public void SaveAll()
         {
-            foreach (String s in getAllCharacterNames())
-                save(s);
+            foreach (string s in GetAllCharacterNames())
+                Save(s);
         }
 
-        public void save(string name)
+        public void Save(string name)
         {
-            List<Object> characterData = new List<Object>();
-            Character character = characters[name];
+            var characterData = new List<Object>();
+            Character character = _characters[name];
 
-            characterData.Add(EtConstants.ACCOUNT_LOGIN_KEY + "=" + character.account.l);
-            characterData.Add(EtConstants.ACCOUNT_PASSWORD_KEY + "=" + character.account.p);
-            characterData.Add(EtConstants.ACCOUNT_ID_KEY + "=" + character.account.id);
-            characterData.Add(EtConstants.CHARACTER_ID_KEY + "=" + character.id);
-            characterData.Add(EtConstants.CHARACTER_STATION_ID_KEY + "=" + character.stationid);
-            characterData.Add(EtConstants.CHARACTER_TRADE_SHIPS_KEY + "=" + character.tradeItems);
-            characterData.Add(EtConstants.CHARACTER_TRADE_ITEMS_KEY + "=" + character.tradeShips);
-            characterData.Add(EtConstants.CHARACTER_ADJUST_SELLS_KEY + "=" + character.adjustSells);
-            characterData.Add(EtConstants.CHARACTER_ADJUST_BUYS_KEY + "=" + character.adjustBuys);
-            characterData.Add(EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY + "=" + character.maximumOrders);
-            characterData.Add(EtConstants.CHARACTER_LOGIN_COLOR_KEY + "=" + character.loginColor);
+            characterData.Add(EtConstants.AccountLoginKey + "=" + character.Account.UserName);
+            characterData.Add(EtConstants.AccountPasswordKey + "=" + character.Account.Password);
+            characterData.Add(EtConstants.AccountIdKey + "=" + character.Account.Id);
+            characterData.Add(EtConstants.CharacterIdKey + "=" + character.Id);
+            characterData.Add(EtConstants.CharacterStationIdKey + "=" + character.StationId);
+            characterData.Add(EtConstants.CharacterTradeShipsKey + "=" + character.ShouldTradeItems);
+            characterData.Add(EtConstants.CharacterTradeItemsKey + "=" + character.ShouldTradeShips);
+            characterData.Add(EtConstants.CharacterAdjustSellsKey + "=" + character.ShouldAdjustSells);
+            characterData.Add(EtConstants.CharacterAdjustBuysKey + "=" + character.ShouldAdjustBuys);
+            characterData.Add(EtConstants.CharacterMaximumOrdersKey + "=" + character.MaximumOrders);
+            characterData.Add(EtConstants.CharacterLoginColorKey + "=" + character.LoginColor);
 
-            if (this.active.Contains(character.name))
-                characterData.Add(EtConstants.CHARACTER_ACTIVE_STATE + "=" + "true");
+            if (ActiveCharacters.Contains(character.Name))
+                characterData.Add(EtConstants.CharacterActiveState + "=" + "true");
             else
-                characterData.Add(EtConstants.CHARACTER_ACTIVE_STATE + "=" + "false");
+                characterData.Add(EtConstants.CharacterActiveState + "=" + "false");
 
-            foreach (int[] i in character.quantityThreshHolds)
+            foreach (var i in character.QuantityThreshHolds)
             {
-                characterData.Add(EtConstants.CHARACTER_THRESHHOLD_PRICE + "=" + i[0]);
-                characterData.Add(EtConstants.CHARACTER_THRESHHOLD_QUANTITY + "=" + i[1]);
+                characterData.Add(EtConstants.CharacterThreshholdPrice + "=" + i[0]);
+                characterData.Add(EtConstants.CharacterThreshholdQuantity + "=" + i[1]);
             }
 
-            textFileio.save(characterData, paths.configPath, name + ".ini");
+            _textFileio.Save(characterData, _paths.ConfigPath, name + ".ini");
 
-            saveTradeHistory(character.name, character.tradeHistory.Keys);
-            saveTradeQueue(character.name, character.tradeQueue.ToArray());
+            SaveTradeHistory(character.Name, character.TradeHistory.Keys);
+            SaveTradeQueue(character.Name, character.TradeQueue.ToArray());
         }
 
-        private Character load(string name)
+        private Character Load(string name)
         {
-            List<String> characterData = textFileio.read(paths.configPath, name + ".ini");
-            Character character = new Character(name);
+            List<String> characterData = _textFileio.Read(_paths.ConfigPath, name + ".ini");
+            var character = new Character(name);
 
-            Dictionary<string, string> characterSettings = new Dictionary<string,string>();
-            List<int> threshholdPrices = new List<int>();
-            List<int> threshholdQuantities = new List<int>();
-
-            String[] split;
+            var characterSettings = new Dictionary<string, string>();
+            var threshholdPrices = new List<int>();
+            var threshholdQuantities = new List<int>();
 
             foreach (string line in characterData)
             {
-                split = line.Split('=');
+                string[] split = line.Split('=');
 
-                if (split[0].Equals(EtConstants.CHARACTER_THRESHHOLD_PRICE))
+                if (split[0].Equals(EtConstants.CharacterThreshholdPrice))
                 {
                     threshholdPrices.Add(int.Parse(split[1]));
                 }
-                else if (split[0].Equals(EtConstants.CHARACTER_THRESHHOLD_QUANTITY))
+                else if (split[0].Equals(EtConstants.CharacterThreshholdQuantity))
                 {
                     threshholdQuantities.Add(int.Parse(split[1]));
                 }
@@ -143,144 +141,139 @@ namespace noxiousET.src.data.characters
                 }
             }
 
-            Account account = new Account(characterSettings[EtConstants.ACCOUNT_LOGIN_KEY], characterSettings[EtConstants.ACCOUNT_PASSWORD_KEY], characterSettings[EtConstants.ACCOUNT_ID_KEY]);
-            accountManager.addAccount(account);
-            character.account = account;
-            character.id = characterSettings[EtConstants.CHARACTER_ID_KEY];
-            character.stationid = Convert.ToInt32(characterSettings[EtConstants.CHARACTER_STATION_ID_KEY]);
-            character.tradeItems = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_TRADE_ITEMS_KEY]);
-            character.tradeShips = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_TRADE_SHIPS_KEY]);
-            character.adjustSells = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_ADJUST_SELLS_KEY]);
-            character.adjustBuys = Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_ADJUST_BUYS_KEY]);
-            character.maximumOrders = Convert.ToInt32(characterSettings[EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY]);
-            character.loginColor = Convert.ToInt32(characterSettings[EtConstants.CHARACTER_LOGIN_COLOR_KEY]);
+            var account = new Account(characterSettings[EtConstants.AccountLoginKey],
+                                      characterSettings[EtConstants.AccountPasswordKey],
+                                      characterSettings[EtConstants.AccountIdKey]);
+            _accountManager.AddAccount(account);
+            character.Account = account;
+            character.Id = characterSettings[EtConstants.CharacterIdKey];
+            character.StationId = Convert.ToInt32(characterSettings[EtConstants.CharacterStationIdKey]);
+            character.ShouldTradeItems = Convert.ToBoolean(characterSettings[EtConstants.CharacterTradeItemsKey]);
+            character.ShouldTradeShips = Convert.ToBoolean(characterSettings[EtConstants.CharacterTradeShipsKey]);
+            character.ShouldAdjustSells = Convert.ToBoolean(characterSettings[EtConstants.CharacterAdjustSellsKey]);
+            character.ShouldAdjustBuys = Convert.ToBoolean(characterSettings[EtConstants.CharacterAdjustBuysKey]);
+            character.MaximumOrders = Convert.ToInt32(characterSettings[EtConstants.CharacterMaximumOrdersKey]);
+            character.LoginColor = Convert.ToInt32(characterSettings[EtConstants.CharacterLoginColorKey]);
 
-            if (Convert.ToBoolean(characterSettings[EtConstants.CHARACTER_ACTIVE_STATE]))
-                active.Add(name);
+            if (Convert.ToBoolean(characterSettings[EtConstants.CharacterActiveState]))
+                ActiveCharacters.Add(name);
             else
-                inactive.Add(name);
+                InactiveCharacters.Add(name);
 
-            for (int i = 0; i < threshholdPrices.Count; i++ )
+            for (int i = 0; i < threshholdPrices.Count; i++)
             {
-                character.quantityThreshHolds.Add(new int[] { threshholdPrices[i], threshholdQuantities[i] });
+                character.QuantityThreshHolds.Add(new[] {threshholdPrices[i], threshholdQuantities[i]});
             }
-            characters.Add(name, character);
+            _characters.Add(name, character);
 
-            character.tradeQueue = loadTradeQueue(character.name);
-            character.tradeHistory = loadTradeHistory(character.name);
+            character.TradeQueue = LoadTradeQueue(character.Name);
+            character.TradeHistory = LoadTradeHistory(character.Name);
 
             return character;
         }
 
-        private Queue<int> loadTradeQueue(String name)
+        private Queue<int> LoadTradeQueue(String name)
         {
-            Queue<int> tradeQueue = new Queue<int>();
-            List<String> fileData = textFileio.read(paths.configPath + Paths.characterDataSubDir, name + tradeQueueFileName);
+            List<String> fileData = _textFileio.Read(_paths.ConfigPath + Paths.CharacterDataSubDir,
+                                                     name + TradeQueueFileName);
+            var tradeQueue = new Queue<int>();
 
             foreach (String s in fileData)
+            {
                 tradeQueue.Enqueue(Convert.ToInt32(s));
-
+            }
             return tradeQueue;
         }
 
-        private Dictionary<int, int> loadTradeHistory(String name)
+        private Dictionary<int, int> LoadTradeHistory(String name)
         {
-            Dictionary<int, int> tradeHistory = new Dictionary<int, int>();
-            List<String> fileData = textFileio.read(paths.configPath + Paths.characterDataSubDir, name + tradeHistoryFileName);
-            foreach (String s in fileData)
-            {
-                tradeHistory.Add(int.Parse(s), int.Parse(s));
-            }
-
-            return tradeHistory;
+            List<String> fileData = _textFileio.Read(_paths.ConfigPath + Paths.CharacterDataSubDir,
+                                                     name + TradeHistoryFileName);
+            return fileData.ToDictionary(int.Parse, int.Parse);
         }
 
-        private void saveTradeQueue(String name, int[] tradeQueue)
+        private void SaveTradeQueue(String name, int[] tradeQueue)
         {
-            List<Object> data = new List<Object>();
-            foreach (int i in tradeQueue)
-            {
-                data.Add(i);
-            }
-            textFileio.save(data, paths.configPath + Paths.characterDataSubDir, name + tradeQueueFileName);
+            List<Object> data = tradeQueue.Cast<object>().ToList();
+            _textFileio.Save(data, _paths.ConfigPath + Paths.CharacterDataSubDir, name + TradeQueueFileName);
         }
 
-        private void saveTradeHistory(String name, ICollection<int> tradeHistory)
+        private void SaveTradeHistory(String name, IEnumerable<int> tradeHistory)
         {
-            List<Object> data = new List<Object>();
-            foreach (int n in tradeHistory)
-                data.Add(n);
-            textFileio.save(data, paths.configPath + Paths.characterDataSubDir, name + tradeHistoryFileName);
+            List<Object> data = tradeHistory.Cast<object>().ToList();
+            _textFileio.Save(data, _paths.ConfigPath + Paths.CharacterDataSubDir, name + TradeHistoryFileName);
         }
 
-        public Dictionary<String, String> convertCharacterToDictionary(Character character)
+        public Dictionary<String, String> ConvertCharacterToDictionary(Character character)
         {
-            Dictionary<String, String> result = new Dictionary<String, String>();
-
-            result.Add(EtConstants.ACCOUNT_LOGIN_KEY, character.account.l);
-            result.Add(EtConstants.ACCOUNT_PASSWORD_KEY, character.account.p);
-            result.Add(EtConstants.ACCOUNT_ID_KEY, character.account.id);
-            result.Add(EtConstants.CHARACTER_ID_KEY, character.id);
-            result.Add(EtConstants.CHARACTER_STATION_ID_KEY, Convert.ToString(character.stationid));
-            result.Add(EtConstants.CHARACTER_TRADE_ITEMS_KEY, Convert.ToString(character.tradeItems));
-            result.Add(EtConstants.CHARACTER_TRADE_SHIPS_KEY, Convert.ToString(character.tradeShips));
-            result.Add(EtConstants.CHARACTER_ADJUST_BUYS_KEY, Convert.ToString(character.adjustBuys));
-            result.Add(EtConstants.CHARACTER_ADJUST_SELLS_KEY, Convert.ToString(character.adjustSells));
-            result.Add(EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY, Convert.ToString(character.maximumOrders));
-            result.Add(EtConstants.CHARACTER_LOGIN_COLOR_KEY, Convert.ToString(character.loginColor));
-            result.Add(EtConstants.CHARACTER_ACTIVE_STATE, Convert.ToString(active.Contains(character.name)));
-
+            var result = new Dictionary<String, String>
+                             {
+                                 {EtConstants.AccountLoginKey, character.Account.UserName},
+                                 {EtConstants.AccountPasswordKey, character.Account.Password},
+                                 {EtConstants.AccountIdKey, character.Account.Id},
+                                 {EtConstants.CharacterIdKey, character.Id},
+                                 {EtConstants.CharacterStationIdKey, Convert.ToString(character.StationId)},
+                                 {EtConstants.CharacterTradeItemsKey, Convert.ToString(character.ShouldTradeItems)},
+                                 {EtConstants.CharacterTradeShipsKey, Convert.ToString(character.ShouldTradeShips)},
+                                 {EtConstants.CharacterAdjustBuysKey, Convert.ToString(character.ShouldAdjustBuys)},
+                                 {EtConstants.CharacterAdjustSellsKey, Convert.ToString(character.ShouldAdjustSells)},
+                                 {EtConstants.CharacterMaximumOrdersKey, Convert.ToString(character.MaximumOrders)},
+                                 {EtConstants.CharacterLoginColorKey, Convert.ToString(character.LoginColor)},
+                                 {
+                                     EtConstants.CharacterActiveState,
+                                     Convert.ToString(ActiveCharacters.Contains(character.Name))
+                                     }
+                             };
             return result;
-
         }
 
-        private void characterSettingUpdatedListener(object o, string name, string key, string value)
+        private void CharacterSettingUpdatedListener(object o, string name, string key, string value)
         {
             try
             {
                 switch (key)
                 {
-                    case EtConstants.ACCOUNT_LOGIN_KEY:
-                        characters[name].account.l = value;
+                    case EtConstants.AccountLoginKey:
+                        _characters[name].Account.UserName = value;
                         break;
-                    case EtConstants.ACCOUNT_PASSWORD_KEY:
-                        characters[name].account.p = value;
+                    case EtConstants.AccountPasswordKey:
+                        _characters[name].Account.Password = value;
                         break;
-                    case EtConstants.CHARACTER_TRADE_ITEMS_KEY:
-                        characters[name].tradeItems = Convert.ToBoolean(value);
+                    case EtConstants.CharacterTradeItemsKey:
+                        _characters[name].ShouldTradeItems = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.CHARACTER_TRADE_SHIPS_KEY:
-                        characters[name].tradeShips = Convert.ToBoolean(value);
+                    case EtConstants.CharacterTradeShipsKey:
+                        _characters[name].ShouldTradeShips = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.CHARACTER_ADJUST_SELLS_KEY:
-                        characters[name].adjustSells = Convert.ToBoolean(value);
+                    case EtConstants.CharacterAdjustSellsKey:
+                        _characters[name].ShouldAdjustSells = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.CHARACTER_ADJUST_BUYS_KEY:
-                        characters[name].adjustBuys = Convert.ToBoolean(value);
+                    case EtConstants.CharacterAdjustBuysKey:
+                        _characters[name].ShouldAdjustBuys = Convert.ToBoolean(value);
                         break;
-                    case EtConstants.CHARACTER_MAXIMUM_ORDERS_KEY:
-                        characters[name].maximumOrders = Convert.ToInt32(value);
+                    case EtConstants.CharacterMaximumOrdersKey:
+                        _characters[name].MaximumOrders = Convert.ToInt32(value);
                         break;
-                    case EtConstants.CHARACTER_STATION_ID_KEY:
-                        characters[name].stationid = Convert.ToInt32(value);
+                    case EtConstants.CharacterStationIdKey:
+                        _characters[name].StationId = Convert.ToInt32(value);
                         break;
-                    case EtConstants.ACCOUNT_ID_KEY:
-                        characters[name].account.id = value;
+                    case EtConstants.AccountIdKey:
+                        _characters[name].Account.Id = value;
                         break;
-                    case EtConstants.CHARACTER_ID_KEY:
-                        characters[name].id = value;
+                    case EtConstants.CharacterIdKey:
+                        _characters[name].Id = value;
                         break;
-                    case EtConstants.CHARACTER_LOGIN_COLOR_KEY:
-                        characters[name].loginColor = Convert.ToInt32(value);
+                    case EtConstants.CharacterLoginColorKey:
+                        _characters[name].LoginColor = Convert.ToInt32(value);
                         break;
                     default:
-                        eventDispatcher.logError("Attempt to save value for non-existant character data key.");
+                        _eventDispatcher.LogError("Attempt to save value for non-existant character data key.");
                         break;
                 }
             }
             catch
             {
-                eventDispatcher.logError("Attempt to save value of incorrect type for the given character data key.");
+                _eventDispatcher.LogError("Attempt to save value of incorrect type for the given character data key.");
             }
         }
     }

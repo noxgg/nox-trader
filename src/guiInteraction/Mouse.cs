@@ -1,118 +1,123 @@
 ﻿using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Forms;
 
 namespace noxiousET.src.guiInteraction
 {
-    class Mouse
+    internal sealed class Mouse
     {
-        public enum clickTypes
+        #region ClickTypes enum
+
+        public enum ClickTypes
         {
-            LEFT,
-            RIGHT,
-            DOUBLE,
+            Left,
+            Right,
+            Double,
         };
 
-        public static ManualResetEvent suspendEvent { set; get; }
-        [System.Runtime.InteropServices.DllImport("user32.dll")]
-        public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+        #endregion
 
-        public int waitDuration { get;  set; }
-        public virtual Cursor Cursor { get; set; }
-
-        public const int MOUSEEVENTF_LEFTDOWN = 0x02;
-        public const int MOUSEEVENTF_LEFTUP = 0x04;
-        public const int MOUSEEVENTF_RIGHTDOWN = 0x08;
-        public const int MOUSEEVENTF_RIGHTUP = 0x10;
+        private const int MouseeventfLeftdown = 0x02;
+        private const int MouseeventfLeftup = 0x04;
+        private const int MouseeventfRightdown = 0x08;
+        private const int MouseeventfRightup = 0x10;
 
         public Mouse(int waitDuration)
         {
-            this.waitDuration = waitDuration;
-            this.Cursor = new Cursor(Cursor.Current.Handle);
+            WaitDuration = waitDuration;
+            Cursor = new Cursor(Cursor.Current.Handle);
         }
 
-        public void pointAndClick(int clickType, int[] point, int before, int between, int after)
+        public static ManualResetEvent SuspendEvent { set; get; }
+        public int WaitDuration { get; set; }
+        public Cursor Cursor { get; set; }
+
+        [DllImport("user32.dll")]
+        public static extern void mouse_event(int dwFlags, int dx, int dy, int cButtons, int dwExtraInfo);
+
+        public void PointAndClick(int clickType, int[] point, int before, int between, int after)
         {
-            Mouse.suspendEvent.WaitOne(Timeout.Infinite);
+            SuspendEvent.WaitOne(Timeout.Infinite);
             if (before > 0)
-                wait(before);
-            pointCursor(point);
+                Wait(before);
+            PointCursor(point);
             if (between > 0)
-                wait(between);
-            doClick(clickType);
+                Wait(between);
+            DoClick(clickType);
             if (after > 0)
-                wait(after);
+                Wait(after);
         }
 
-        public void click(int clickType, int before, int after)
+        public void Click(int clickType, int before, int after)
         {
             if (before > 0)
-                wait(before);
-            doClick(clickType);
+                Wait(before);
+            DoClick(clickType);
             if (after > 0)
-                wait(after);
+                Wait(after);
         }
 
-        public void drag(int[] startCoords, int[]endCoords, int before, int between, int after)
+        public void Drag(int[] startCoords, int[] endCoords, int before, int between, int after)
         {
-            pointCursor(startCoords);
-            wait(before);
-            mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-            wait(between);
-            pointCursor(endCoords);
-            wait(after);
-            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+            PointCursor(startCoords);
+            Wait(before);
+            mouse_event(MouseeventfLeftdown, 0, 0, 0, 0);
+            Wait(between);
+            PointCursor(endCoords);
+            Wait(after);
+            mouse_event(MouseeventfLeftup, 0, 0, 0, 0);
         }
 
-        public void pointAndClick(int clickType, int xPoint, int yPoint, int before, int between, int after)
+        public void PointAndClick(int clickType, int xPoint, int yPoint, int before, int between, int after)
         {
-            pointAndClick(clickType, new int[] { xPoint, yPoint }, before, between, after);
+            PointAndClick(clickType, new[] {xPoint, yPoint}, before, between, after);
         }
 
-        public void offsetAndClick(int clickType, int[] offset, int before, int between, int after)
+        public void OffsetAndClick(int clickType, int[] offset, int before, int between, int after)
         {
-
-            pointAndClick(clickType, new int[] { Cursor.Position.X + offset[0], Cursor.Position.Y + offset[1] }, before, between, after);
+            PointAndClick(clickType, new[] {Cursor.Position.X + offset[0], Cursor.Position.Y + offset[1]}, before,
+                          between, after);
         }
 
-        public void offsetAndClick(int clickType, int xPoint, int yPoint, int before, int between, int after)
+        public void OffsetAndClick(int clickType, int xPoint, int yPoint, int before, int between, int after)
         {
-
-            pointAndClick(clickType, new int[] { Cursor.Position.X + xPoint, Cursor.Position.Y + yPoint }, before, between, after);
+            PointAndClick(clickType, new[] {Cursor.Position.X + xPoint, Cursor.Position.Y + yPoint}, before, between,
+                          after);
         }
 
-        private void doClick(int clickType)
+        private static void DoClick(int clickType)
         {
             switch (clickType)
             {
                 case 2:
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    mouse_event(MouseeventfLeftdown, 0, 0, 0, 0);
+                    mouse_event(MouseeventfLeftup, 0, 0, 0, 0);
                     goto case 0;
                 case 0:
-                    mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0);
-                    mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0);
+                    mouse_event(MouseeventfLeftdown, 0, 0, 0, 0);
+                    mouse_event(MouseeventfLeftup, 0, 0, 0, 0);
                     break;
                 case 1:
-                    mouse_event(MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0);
-                    mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0);
+                    mouse_event(MouseeventfRightdown, 0, 0, 0, 0);
+                    mouse_event(MouseeventfRightup, 0, 0, 0, 0);
                     break;
             }
         }
 
-        private void pointCursor(int[] point)
+        private static void PointCursor(int[] point)
         {
             Cursor.Position = new Point(point[0], point[1]);
         }
 
-        private void offsetCursor(int x, int y)
+        private void OffsetCursor(int x, int y)
         {
             Cursor.Position = new Point(Cursor.Position.X + x, Cursor.Position.Y + y);
         }
 
-        private void wait(int multiplier)
+        private void Wait(int multiplier)
         {
-            Thread.Sleep(waitDuration * multiplier);
+            Thread.Sleep(WaitDuration*multiplier);
         }
     }
 }

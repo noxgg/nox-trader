@@ -4,26 +4,26 @@ using noxiousET.src.data.accounts;
 
 namespace noxiousET.src.data.characters
 {
-    class Character
+    internal class Character
     {
-        public String name { set; get; }
-        public String id { set; get; }
-        public Account account { set; get; }
-        public Boolean tradeItems { set; get; }
-        public Boolean tradeShips { set; get; }
-        public Boolean adjustSells { set; get; }
-        public Boolean adjustBuys { set; get; }
-        public int maximumOrders { set; get; }
-        public int stationid { set; get; }
-        public List<int[]> quantityThreshHolds { set; get; }
-        public int loginColor { set; get; }
-        public Queue<int> tradeQueue { set; get; }
-        public Dictionary<int, int> tradeHistory { set; get; }
-
         public Character(String name)
         {
-            this.name = name;
-            this.quantityThreshHolds = new List<int[]>();
+            Name = name;
+            QuantityThreshHolds = new List<int[]>();
         }
+
+        public String Name { set; get; }
+        public String Id { set; get; }
+        public Account Account { set; get; }
+        public Boolean ShouldTradeItems { set; get; }
+        public Boolean ShouldTradeShips { set; get; }
+        public Boolean ShouldAdjustSells { set; get; }
+        public Boolean ShouldAdjustBuys { set; get; }
+        public int MaximumOrders { set; get; }
+        public int StationId { set; get; }
+        public List<int[]> QuantityThreshHolds { set; get; }
+        public int LoginColor { set; get; }
+        public Queue<int> TradeQueue { set; get; }
+        public Dictionary<int, int> TradeHistory { set; get; }
     }
 }

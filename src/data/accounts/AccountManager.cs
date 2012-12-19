@@ -3,20 +3,20 @@ using System.Collections.Generic;
 
 namespace noxiousET.src.data.accounts
 {
-    class AccountManager
+    internal class AccountManager
     {
-        Dictionary<String, Account> accounts;
+        private readonly Dictionary<String, Account> _accounts;
 
         public AccountManager()
         {
-            accounts = new Dictionary<String, Account>();
+            _accounts = new Dictionary<String, Account>();
         }
 
-        public void addAccount(Account account)
+        public void AddAccount(Account account)
         {
-            if (accounts.ContainsKey(account.l))
-                accounts.Remove(account.l);
-            accounts.Add(account.l, account);
+            if (_accounts.ContainsKey(account.UserName))
+                _accounts.Remove(account.UserName);
+            _accounts.Add(account.UserName, account);
         }
     }
 }

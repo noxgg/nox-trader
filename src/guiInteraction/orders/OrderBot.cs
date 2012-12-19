@@ -1,5 +1,4 @@
 ﻿using System;
-using noxiousET.src.etevent;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.modules;
@@ -9,135 +8,136 @@ using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders
 {
-    class OrderBot : GuiBot
+    internal class OrderBot : GuiBot
     {
-        protected int consecutiveFailures;
-        protected Modules modules;
+        protected int ConsecutiveFailures;
+        protected Modules Modules;
 
-        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+                        Modules modules, OrderAnalyzer orderAnalyzer)
             : base(clientConfig, uiElements, paths, character, orderAnalyzer)
         {
-            this.modules = modules;
-            consecutiveFailures = 0;
+            Modules = modules;
+            ConsecutiveFailures = 0;
         }
 
         //TODO, merge with confirmOrder
-        protected int cancelOrder(int[] offset)
+        protected int CancelOrder(int[] offset)
         {
-            return cancelOrder(offset[0], offset[1]);
+            return CancelOrder(offset[0], offset[1]);
         }
-        protected int cancelOrder(int xOffset, int yOffset)
+
+        protected int CancelOrder(int xOffset, int yOffset)
         {
             int failCount = 0;
-            string temp = "0";
+            string temp;
             do
             {
-                mouse.pointAndClick(LEFT, uiElements.OrderBoxCancel[0], uiElements.OrderBoxCancel[1] + yOffset, 1, 1, 1);
+                Mouse.PointAndClick(Left, UiElements.OrderBoxCancel[0], UiElements.OrderBoxCancel[1] + yOffset, 1, 1, 1);
 
-                if (failCount > 0 && failCount % 3 == 0)
-                        errorCheck();
+                if (failCount > 0 && failCount%3 == 0)
+                    ErrorCheck();
 
                 //Right click where OK should no longer exist.
-                mouse.pointAndClick(RIGHT, uiElements.OrderBoxCancel[0] + xOffset, uiElements.OrderBoxCancel[1], 0, 1, 1);
+                Mouse.PointAndClick(Right, UiElements.OrderBoxCancel[0] + xOffset, UiElements.OrderBoxCancel[1], 0, 1, 1);
                 //Click on copy
-                mouse.offsetAndClick(LEFT, uiElements.confirmationCopyOffset, 0, 1, 1);
+                Mouse.OffsetAndClick(Left, UiElements.ChatCopyOffset, 0, 1, 1);
 
-                temp = Clipboard.getTextFromClipboard();
+                temp = Clipboard.GetTextFromClipboard();
                 ++failCount;
-            } while (string.Compare(temp, "0") == 0 && failCount < 9);
-            lastOrderModified = false;
-            if (string.Compare(temp, "0") != 0)
+            } while (temp.Equals("0") && failCount < 9);
+
+            LastOrderModified = false;
+
+            if (!temp.Equals("0"))
             {
-                Clipboard.setClip("0");
+                Clipboard.SetClip("0");
                 return 0;
             }
-            else
-                return 1;
+            return 1;
         }
 
-        protected int closeMarketAndHangarWindows()
+        protected int CloseMarketAndHangarWindows()
         {
-            mouse.pointAndClick(LEFT, uiElements.closeMarketWindow, 0, 5, 5);
-            mouse.pointAndClick(LEFT, uiElements.closeItems, 0, 5, 0);
+            Mouse.PointAndClick(Left, UiElements.MarketCloseButton, 0, 5, 5);
+            Mouse.PointAndClick(Left, UiElements.HangarCloseButton, 0, 5, 0);
             return 0;
         }
 
-        protected int[] fixCoordsForLongTypeName(int typeId, int[] coords)
+        protected int[] FixCoordsForLongTypeName(int typeId, int[] coords)
         {
-            if (modules.longNameTypeIDs.ContainsKey(typeId))
-                return new int[2] { coords[0], coords[1] + 22 };
+            if (Modules.LongNameTypeIDs.ContainsKey(typeId))
+                return new int[2] {coords[0], coords[1] + 22};
             return coords;
         }
 
-        protected void openAndIdentifyBuyWindow(int currentItem, double sellPrice)
+        protected void OpenAndIdentifyBuyWindow(int currentItem, double sellPrice)
         {
-            double result;
-
             for (int i = 0; i < 5; i++)
             {
-                cancelOrder(0,0);
-                mouse.pointAndClick(LEFT, uiElements.placeBuyOrder, 5, 2, 15);
-                mouse.pointAndClick(RIGHT, fixCoordsForLongTypeName(currentItem, uiElements.buyOrderBox), 2, 4, 2);
-                mouse.offsetAndClick(LEFT, uiElements.copyOffset, 2, 2, 2);
-                mouse.offsetAndClick(LEFT, 428, 419, 0, 0, 0);
+                CancelOrder(0, 0);
+                Mouse.PointAndClick(Left, UiElements.MarketPlaceBuyButton, 5, 2, 15);
+                Mouse.PointAndClick(Right, FixCoordsForLongTypeName(currentItem, UiElements.BuyBidPriceField), 2, 4, 2);
+                Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset, 2, 2, 2);
+                Mouse.OffsetAndClick(Left, 428, 419, 0, 0, 0);
                 try
                 {
-                    result = Convert.ToDouble(Clipboard.getTextFromClipboard());
+                    double result = Convert.ToDouble(Clipboard.GetTextFromClipboard());
                     if (result < sellPrice + 1000 && result > sellPrice - 1000)
                     {
-                        mouse.waitDuration = timing;
+                        Mouse.WaitDuration = Timing;
                         return;
                     }
-                    mouse.waitDuration *= 2;
-                    result = 0;
+                    Mouse.WaitDuration *= 2;
                 }
                 catch
                 {
-                    mouse.waitDuration *= 2;
-                    result = 0;
+                    Mouse.WaitDuration *= 2;
                 }
                 if (i == 6)
                 {
-                    cancelOrder(-53, 51);
+                    CancelOrder(-53, 51);
                 }
             }
-            logger.log("Failed to open and identify the buy window!");
-            mouse.waitDuration = timing;
+            Logger.Log("Failed to open and identify the buy window!");
+            Mouse.WaitDuration = Timing;
             throw new Exception("Could not open buy window");
-
         }
 
-        protected void placeBuyOrder(int typeId, int quantity)
+        protected void PlaceBuyOrder(int typeId, int quantity)
         {
-            int[] quantityCoords = { uiElements.buyOrderQtyBox[0], uiElements.buyOrderQtyBox[1] + 5 };
-            Double verificationValue = Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice()).Equals(0) ? Math.Max(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice()) : Math.Min(orderAnalyzer.getSellPrice(), orderAnalyzer.getOwnedSellPrice());
-            if (orderAnalyzer.noSellsExist)
+            int[] quantityCoords = {UiElements.BuyQuantityField[0], UiElements.BuyQuantityField[1] + 5};
+            Double verificationValue =
+                Math.Min(OrderAnalyzer.GetSellPrice(), OrderAnalyzer.GetOwnedSellPrice()).Equals(0)
+                    ? Math.Max(OrderAnalyzer.GetSellPrice(), OrderAnalyzer.GetOwnedSellPrice())
+                    : Math.Min(OrderAnalyzer.GetSellPrice(), OrderAnalyzer.GetOwnedSellPrice());
+            if (OrderAnalyzer.NoSellsExist)
                 quantityCoords[1] -= 15;
 
-            openAndIdentifyBuyWindow(typeId, verificationValue);
+            OpenAndIdentifyBuyWindow(typeId, verificationValue);
             //Input price
-            inputValue(5, 2, fixCoordsForLongTypeName(typeId, uiElements.buyOrderBox), Convert.ToString(orderAnalyzer.getBuyPrice() + .01));
+            InputValue(5, 1.4, FixCoordsForLongTypeName(typeId, UiElements.BuyBidPriceField),
+                       Convert.ToString(OrderAnalyzer.GetBuyPrice() + .01));
             //Input quantity
-            inputValue(3, 2, fixCoordsForLongTypeName(typeId, quantityCoords), Convert.ToString(quantity));
-            confirmOrder(fixCoordsForLongTypeName(typeId, uiElements.OrderBoxOK), 1, 1);
+            InputValue(3, 2, FixCoordsForLongTypeName(typeId, quantityCoords), Convert.ToString(quantity));
+            ConfirmOrder(FixCoordsForLongTypeName(typeId, UiElements.OrderBoxConfirm), 1, 1);
         }
 
-        protected int getBuyOrderQty(double bestBuyOrderPrice, double bestSellOrderPrice)
+        protected int GetBuyOrderQuantity(double bestBuyOrderPrice, double bestSellOrderPrice)
         {
-            int i;
-            if (bestSellOrderPrice / bestBuyOrderPrice < 1.0736) //TODO: FACTOR OUT HARDCODED VALUE
+            if (bestSellOrderPrice/bestBuyOrderPrice < 1.0736) //TODO: FACTOR OUT HARDCODED VALUE
             {
                 return -1;
             }
-            else
+
+            int i;
+            for (i = 0; i < Character.QuantityThreshHolds.Count; ++i)
             {
-                for (i = 0; i < character.quantityThreshHolds.Count; ++i)
-                {
-                    if (bestBuyOrderPrice < character.quantityThreshHolds[i][0])
-                        return character.quantityThreshHolds[i][1];
-                }
+                if (bestBuyOrderPrice < Character.QuantityThreshHolds[i][0])
+                    return Character.QuantityThreshHolds[i][1];
             }
-            return character.quantityThreshHolds[i - 1][1];
+
+            return Character.QuantityThreshHolds[i - 1][1];
         }
     }
 }

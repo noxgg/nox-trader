@@ -1,163 +1,163 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uielements;
-using noxiousET.src.etevent;
 using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autoinvester
 {
-    class AutoInvestor : OrderBot
+    internal class AutoInvestor : OrderBot
     {
-        MarketOrderio marketOrderio;
-        private int ordersCreated;
-        private int itemsScanned;
+        private readonly MarketOrderio _marketOrderio;
+        private int _itemsScanned;
+        private int _ordersCreated;
 
-        public AutoInvestor(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character, Modules modules, OrderAnalyzer orderAnalyzer)
+        public AutoInvestor(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+                            Modules modules, OrderAnalyzer orderAnalyzer)
             : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
         {
-            this.marketOrderio = new MarketOrderio();
-            marketOrderio.path = paths.logPath;
+            _marketOrderio = new MarketOrderio();
+            _marketOrderio.Path = paths.LogPath;
         }
 
-        public void getTypeForCharacterFromQuickbar(Character character, String firstItemId, String lastItemId)
+        public void GetTypeForCharacterFromQuickbar(Character character, String firstItemId, String lastItemId)
         {
-            this.character = character;
-            int previousItemId = int.Parse(firstItemId);
-            List<int> newTradeHistory = new List<int>();
+            Character = character;
+            var newTradeHistory = new List<int>();
             int offset = 0;
-            int visibleRows = uiElements.marketWindowQuickbarVisibleRows;
-            int[] lastVisibleRowCoords = new int[] { uiElements.marketWindowQuickbarFirstRow[0], uiElements.marketWindowQuickbarFirstRow[1] + ((visibleRows - 1) * uiElements.lineHeight) };
+            int visibleRows = UiElements.MarketWindowQuickbarVisibleRows;
+            var lastVisibleRowCoords = new[]
+                {
+                    UiElements.MarketWindowQuickbarFirstRow[0],
+                    UiElements.MarketWindowQuickbarFirstRow[1] +
+                    ((visibleRows - 1)*UiElements.StandardRowHeight)
+                };
             String lastTypeName = "no last type name just yet";
 
-            exportOrders(4, 30);
+            ExportOrders(4, 30);
 
-            marketOrderio.fileName = executeQueryAndExportResult(5, 1.2, lastTypeName, offset);
-            orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(character.stationid));
-            if (orderAnalyzer.getTypeId() != int.Parse(firstItemId))
+            _marketOrderio.FileName = ExecuteQueryAndExportResult(5, 1.2, offset);
+            OrderAnalyzer.AnalyzeInvestment(_marketOrderio.Read(), Convert.ToString(character.StationId));
+            if (OrderAnalyzer.GetTypeId() != int.Parse(firstItemId))
                 throw new Exception("First type id does not match discovered type id");
-            newTradeHistory.Add(orderAnalyzer.getTypeId());
-            previousItemId = orderAnalyzer.getTypeId();
+            newTradeHistory.Add(OrderAnalyzer.GetTypeId());
+            int previousItemId = OrderAnalyzer.GetTypeId();
             offset++;
 
             while (previousItemId != int.Parse(lastItemId))
             {
                 if (offset > (visibleRows - 1))
                 {
-                    mouse.pointAndClick(LEFT, lastVisibleRowCoords, 1, 1, 1);
-                    keyboard.send("{DOWN}");
+                    Mouse.PointAndClick(Left, lastVisibleRowCoords, 1, 1, 1);
+                    Keyboard.Send("{DOWN}");
                     offset = visibleRows - 1;
                 }
-                    doExport(offset, visibleRows, lastVisibleRowCoords, lastTypeName);
-                    orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(character.stationid));
-                    newTradeHistory.Add(orderAnalyzer.getTypeId());
-                    previousItemId = orderAnalyzer.getTypeId();
-                    lastTypeName = modules.typeNames[previousItemId];
-                    offset++;
+                DoExport(offset, visibleRows, lastVisibleRowCoords, lastTypeName);
+                OrderAnalyzer.AnalyzeInvestment(_marketOrderio.Read(), Convert.ToString(character.StationId));
+                newTradeHistory.Add(OrderAnalyzer.GetTypeId());
+                previousItemId = OrderAnalyzer.GetTypeId();
+                lastTypeName = Modules.TypeNames[previousItemId];
+                offset++;
             }
-            Dictionary<int, int> newTradeHistoryDictionary = new Dictionary<int, int>();
-            foreach (int n in newTradeHistory)
-            {
-                newTradeHistoryDictionary.Add(n, n);
-            }
+            Dictionary<int, int> newTradeHistoryDictionary = newTradeHistory.ToDictionary(n => n);
 
-            character.tradeHistory = newTradeHistoryDictionary;
+            character.TradeHistory = newTradeHistoryDictionary;
         }
 
-        private void doExport(int offset, int visibleRows, int[] lastVisibleRowCoords, String lastTypeName)
+        private void DoExport(int offset, int visibleRows, int[] lastVisibleRowCoords, String lastTypeName)
         {
-
             for (int i = 0; i < 10; i++)
             {
                 if (i == 9 && offset == visibleRows - 1)
                 {
-                    mouse.pointAndClick(LEFT, lastVisibleRowCoords, 1, 1, 1);
-                    keyboard.send("{DOWN}");
+                    Mouse.PointAndClick(Left, lastVisibleRowCoords, 1, 1, 1);
+                    Keyboard.Send("{DOWN}");
                 }
                 try
                 {
-                    marketOrderio.fileName = executeQueryAndExportResult(5, 1.2, lastTypeName, offset);
+                    _marketOrderio.FileName = ExecuteQueryAndExportResult(5, 1.2, offset);
                     return;
                 }
-                catch (Exception)
+                catch
                 {
                 }
-
             }
         }
 
-        public void execute(Character character)
+        public void Execute(Character character)
         {
-            this.character = character;
-            itemsScanned = 0;
-            ordersCreated = 0;
-            if (character.tradeQueue.Count < 1)
+            Character = character;
+            _itemsScanned = 0;
+            _ordersCreated = 0;
+            if (character.TradeQueue.Count < 1)
             {
-                foreach (int item in character.tradeHistory.Keys)
+                foreach (int item in character.TradeHistory.Keys)
                 {
-                    character.tradeQueue.Enqueue(item);
+                    character.TradeQueue.Enqueue(item);
                 }
             }
-            if (character.tradeQueue.Count > 0)
+            if (character.TradeQueue.Count > 0)
             {
                 try
                 {
-                    exportOrders(4, 30);
-                    if (orderAnalyzer.orderSet.getNumberOfActiveOrders() >= character.maximumOrders)
+                    ExportOrders(4, 30);
+                    if (OrderAnalyzer.OrderSet.GetNumberOfActiveOrders() >= character.MaximumOrders)
                         return;
-                    prepareEnvironment();
+                    PrepareEnvironment();
                 }
                 catch (Exception e)
                 {
-                    logger.log("AI failed to prepare environment!");
+                    Logger.Log("AI failed to prepare environment!");
                     throw e;
                 }
 
 
                 try
                 {
-                    Stopwatch stopwatch = new Stopwatch();
+                    var stopwatch = new Stopwatch();
                     stopwatch.Start();
-                    createInvestments();
+                    CreateInvestments();
                     stopwatch.Stop();
-                    logger.log(character.name + ": AI scanned " + itemsScanned + " and made " + ordersCreated + " buys " + stopwatch.Elapsed.ToString());
+                    Logger.Log(character.Name + ": AI scanned " + _itemsScanned + " and made " + _ordersCreated +
+                               " buys " + stopwatch.Elapsed.ToString());
 
                     //If we failed to create any orders, the queue is full of items that aren't worth trading. Flush it and enqueue all known items.
-                    if (ordersCreated == 0)
+                    if (_ordersCreated == 0)
                     {
-                        character.tradeQueue = new System.Collections.Generic.Queue<int>();
-                        foreach (int item in character.tradeHistory.Keys)
+                        character.TradeQueue = new Queue<int>();
+                        foreach (int item in character.TradeHistory.Keys)
                         {
-                            character.tradeQueue.Enqueue(item);
+                            character.TradeQueue.Enqueue(item);
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    logger.log("Auto investor failed to complete run.");
-                    logger.logError(e.Message);
+                    Logger.Log("Auto investor failed to complete run.");
+                    Logger.LogError(e.Message);
                 }
             }
             else
             {
-                logger.log(character.name + " has no items in the queue for Auto Investor to process. Auto Investor aborted.");
+                Logger.Log(character.Name +
+                           " has no items in the queue for Auto Investor to process. Auto Investor aborted.");
             }
-
         }
 
-        private void prepareEnvironment()
+        private void PrepareEnvironment()
         {
             try
             {
-                if (isEVERunningForSelectedCharacter())
+                if (IsEveRunningForSelectedCharacter())
                 {
-                    mouse.pointAndClick(LEFT, uiElements.bringMarketWindowToFront, 50, 1, 50);
-                    mouse.pointAndClick(LEFT, uiElements.marketWindowQuickbarFirstRow, 1, 1, 1);
+                    Mouse.PointAndClick(Left, UiElements.MarketWindowDeadspace, 50, 1, 50);
+                    Mouse.PointAndClick(Left, UiElements.MarketWindowQuickbarFirstRow, 1, 1, 1);
                 }
                 else
                 {
@@ -168,34 +168,28 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             {
                 throw e;
             }
-
         }
 
 
-        private void createInvestments()
+        private void CreateInvestments()
         {
-            int consecutiveFailures = 0;
+            ConsecutiveFailures = 0;
             int currentPosition = 0;
-            int initialPosition = currentPosition;
-            int size;
-            int freeOrders = character.maximumOrders - orderAnalyzer.orderSet.getNumberOfActiveOrders();
-            int currentTypeId;
-            int quantity = 0;
-            String expectedTypeName;
-            String foundTypeName = "no types found so far!";
+            int count = 0;
+            int freeOrders = Character.MaximumOrders - OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
             int currentOffset = currentPosition;
-            int visibleRows = uiElements.marketWindowQuickbarVisibleRows;
-            List<int> tradeQueue = modules.getTypeIdsAlphabetizedByItemName(character.tradeHistory.Keys);
-            size = tradeQueue.Count;
+            int visibleRows = UiElements.MarketWindowQuickbarVisibleRows;
+            List<int> tradeQueue = Modules.GetTypeIdsAlphabetizedByItemName(Character.TradeHistory.Keys);
+            int size = tradeQueue.Count;
 
             while (currentOffset > visibleRows)
             {
                 currentOffset -= visibleRows;
-                goToNextQuickbarPage();
+                GoToNextQuickbarPage();
             }
             if (size - currentPosition <= visibleRows)
             {
-                goToNextQuickbarPage();
+                GoToNextQuickbarPage();
                 currentOffset = visibleRows - (size - currentPosition);
             }
             do
@@ -203,111 +197,118 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
                 if (currentPosition == size)
                 {
                     currentPosition = 0;
-                    goToFirstQuickbarPage(size);
+                    GoToFirstQuickbarPage();
                     currentOffset = 0;
                 }
                 else if (currentOffset > (visibleRows - 1))
                 {
-                    goToNextQuickbarPage();
+                    GoToNextQuickbarPage();
                     if (size - currentPosition <= visibleRows)
                         currentOffset = visibleRows - (size - currentPosition);
                     else
                         currentOffset = 0;
-                } 
-                expectedTypeName = modules.typeNames[tradeQueue[currentPosition]];
-                currentTypeId = tradeQueue[currentPosition];
-                if (orderAnalyzer.orderSet.checkForActiveOrders(tradeQueue[currentPosition]) == 0)
+                }
+                String expectedTypeName = Modules.TypeNames[tradeQueue[currentPosition]];
+                int currentTypeId = tradeQueue[currentPosition];
+                if (OrderAnalyzer.OrderSet.CheckForActiveOrders(tradeQueue[currentPosition]) == 0)
                 {
                     try
                     {
-                        marketOrderio.fileName = executeQueryAndExportResult(5, 1.2, expectedTypeName, currentOffset);
-                        orderAnalyzer.analyzeInvestment(marketOrderio.read(), Convert.ToString(character.stationid));
-                        foundTypeName = modules.typeNames[orderAnalyzer.getTypeId()];
-                        if (foundTypeName.Equals(expectedTypeName) && !orderAnalyzer.isSomeBuyOwned() && !orderAnalyzer.isSomeSellOwned())
+                        _marketOrderio.FileName = ExecuteQueryAndExportResult(5, 1.2, currentOffset);
+                        OrderAnalyzer.AnalyzeInvestment(_marketOrderio.Read(), Convert.ToString(Character.StationId));
+                        String foundTypeName = Modules.TypeNames[OrderAnalyzer.GetTypeId()];
+                        if (foundTypeName.Equals(expectedTypeName) && !OrderAnalyzer.IsSomeBuyOwned() &&
+                            !OrderAnalyzer.IsSomeSellOwned())
                         {
                             //Uses data from orderAnalyzer.analyzeInvestment to decide if a buy order should be made
-                            quantity = getBuyOrderQty(orderAnalyzer.getBuyPrice(), orderAnalyzer.getSellPrice());
+                            int quantity = GetBuyOrderQuantity(OrderAnalyzer.GetBuyPrice(), OrderAnalyzer.GetSellPrice());
 
                             if (quantity > 0)
                             {
-                                openAndIdentifyBuyWindow(currentTypeId, orderAnalyzer.getSellPrice());
-                                placeBuyOrder(currentTypeId, quantity);
+                                OpenAndIdentifyBuyWindow(currentTypeId, OrderAnalyzer.GetSellPrice());
+                                PlaceBuyOrder(currentTypeId, quantity);
                                 freeOrders--;
-                                ordersCreated++;
+                                _ordersCreated++;
                                 //logger.log(modules.typeNames[currentTypeId] + " should create buy order.");
                             }
                             else if (foundTypeName.CompareTo(expectedTypeName) > 0)
                             {
                                 currentOffset -= 2;
                                 currentPosition--;
+                                count--;
                             }
                             else if (foundTypeName.CompareTo(expectedTypeName) < 0)
                             {
                                 currentPosition--;
+                                count--;
                             }
                             else
                             {
                                 //logger.log(modules.typeNames[currentTypeId] + " should create buy order, but quantity was 0.");
                             }
-
                         }
-                        consecutiveFailures = 0;
+                        ConsecutiveFailures = 0;
                     }
                     catch (Exception e)
                     {
-                        ++consecutiveFailures;
-                        if (consecutiveFailures > 4)
+                        ++ConsecutiveFailures;
+                        if (ConsecutiveFailures > 4)
                             return;
-                        logger.log(e.Message);
+                        Logger.Log(e.Message);
                     }
                 }
                 ++currentPosition;
                 ++currentOffset;
-                itemsScanned++;
+                ++count;
+                _itemsScanned++;
                 if (freeOrders == 0)
                     return;
-            } while (currentPosition != initialPosition);
+            } while (count < size);
         }
 
-        private void goToNextQuickbarPage()
+        private void GoToNextQuickbarPage()
         {
-            int visibleRows = uiElements.marketWindowQuickbarVisibleRows;
-            mouse.pointAndClick(LEFT, uiElements.marketWindowQuickbarFirstRow[0], uiElements.marketWindowQuickbarFirstRow[1] + ((visibleRows - 1) * uiElements.lineHeight), 30, 1, 30);
+            int visibleRows = UiElements.MarketWindowQuickbarVisibleRows;
+            Mouse.PointAndClick(Left, UiElements.MarketWindowQuickbarFirstRow[0],
+                                UiElements.MarketWindowQuickbarFirstRow[1] +
+                                ((visibleRows - 1)*UiElements.StandardRowHeight), 30, 1, 30);
             for (int i = 0; i < visibleRows; i++)
             {
-                keyboard.send("{DOWN}");
+                Keyboard.Send("{DOWN}");
             }
-            wait(30);
+            Wait(30);
         }
 
-        private void goToFirstQuickbarPage(int numberOfEntries)
+        private void GoToFirstQuickbarPage()
         {
-            mouse.drag(uiElements.marketWindowQuickbarScrollbarBottom, uiElements.marketWindowQuickbarScrollbarTop, 20, 20, 20);
+            Mouse.Drag(UiElements.MarketWindowQuickbarScrollbarBottom, UiElements.MarketWindowQuickbarScrollbarTop, 20,
+                       20, 20);
         }
 
-        private String executeQueryAndExportResult(int tries, double timingScaleFactor, String lastTypeName, int offSet)
+        private string ExecuteQueryAndExportResult(int tries, double timingScaleFactor, int offSet)
         {
-            String fileName;
-            DirectoryEraser.nuke(paths.logPath);
-            if (marketOrderio.getNumberOfFilesInDirectory(paths.logPath) != 0)
+            DirectoryEraser.Nuke(Paths.LogPath);
+            if (_marketOrderio.GetNumberOfFilesInDirectory(Paths.LogPath) != 0)
                 throw new Exception("Could not clean log path directory");
 
             for (int i = 0; i < tries; i++)
             {
-                mouse.pointAndClick(LEFT, uiElements.marketWindowQuickbarFirstRow[0], uiElements.marketWindowQuickbarFirstRow[1] + (offSet * uiElements.lineHeight), 1, 1, 1);
-                mouse.pointAndClick(LEFT, uiElements.exportItem, 10, 1, 10);
-                fileName = marketOrderio.getNewestFileNameInDirectory(paths.logPath);
+                Mouse.PointAndClick(Left, UiElements.MarketWindowQuickbarFirstRow[0],
+                                    UiElements.MarketWindowQuickbarFirstRow[1] + (offSet*UiElements.StandardRowHeight),
+                                    1, 1, 1);
+                Mouse.PointAndClick(Left, UiElements.MarketExportButton, 10, 1, 10);
+                String fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
                 if (fileName != null)
                 {
-                    mouse.waitDuration = timing;
+                    Mouse.WaitDuration = Timing;
                     return fileName;
                 }
                 //logger.log("Found last in file name/null file name.");
-                mouse.waitDuration = Convert.ToInt32(mouse.waitDuration * timingScaleFactor);
+                Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
                 if (i > 2)
-                    errorCheck();
+                    ErrorCheck();
             }
-            mouse.waitDuration = timing;
+            Mouse.WaitDuration = Timing;
             throw new Exception("Could not export query result");
         }
     }

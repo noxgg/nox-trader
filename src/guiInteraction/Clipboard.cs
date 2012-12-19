@@ -1,15 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace noxiousET.src.guiInteraction
 {
-    class Clipboard
+    internal class Clipboard
     {
-        public static string getTextFromClipboard()
+        public static string GetTextFromClipboard()
         {
             try
             {
@@ -22,22 +19,23 @@ namespace noxiousET.src.guiInteraction
             }
         }
 
-        public static void setClip(String inputText)
+        public static void SetClip(String inputText)
         {
             new SetClipboardHelper(DataFormats.Text, inputText).Go();
         }
     }
 
-    abstract class StaHelper
+    internal abstract class StaHelper
     {
-        readonly ManualResetEvent _complete = new ManualResetEvent(false);
+        private readonly ManualResetEvent _complete = new ManualResetEvent(false);
+        public bool DontRetryWorkOnFailed { get; set; }
 
         public void Go()
         {
-            var thread = new Thread(new ThreadStart(DoWork))
-            {
-                IsBackground = true,
-            };
+            var thread = new Thread(DoWork)
+                             {
+                                 IsBackground = true,
+                             };
             thread.SetApartmentState(ApartmentState.STA);
             thread.Start();
         }
@@ -73,16 +71,14 @@ namespace noxiousET.src.guiInteraction
             }
         }
 
-        public bool DontRetryWorkOnFailed { get; set; }
-
         // Implemented in base class to do actual work.
         protected abstract void Work();
     }
 
-    class SetClipboardHelper : StaHelper
+    internal class SetClipboardHelper : StaHelper
     {
-        readonly string _format;
-        readonly object _data;
+        private readonly object _data;
+        private readonly string _format;
 
         public SetClipboardHelper(string format, object data)
         {
@@ -92,10 +88,10 @@ namespace noxiousET.src.guiInteraction
 
         protected override void Work()
         {
-            var obj = new System.Windows.Forms.DataObject(
+            var obj = new DataObject(
                 _format,
                 _data
-            );
+                );
 
             System.Windows.Forms.Clipboard.SetDataObject(obj, true);
         }
