@@ -86,7 +86,7 @@ namespace noxiousET.src.guiInteraction
                           after);
         }
 
-        private static void DoClick(int clickType)
+        private void DoClick(int clickType)
         {
             switch (clickType)
             {
@@ -95,6 +95,8 @@ namespace noxiousET.src.guiInteraction
                     mouse_event(MouseeventfLeftup, 0, 0, 0, 0);
                     goto case 0;
                 case 0:
+                    //Clicking too quickly causes double clicks to not register.
+                    Thread.Sleep(25);
                     mouse_event(MouseeventfLeftdown, 0, 0, 0, 0);
                     mouse_event(MouseeventfLeftup, 0, 0, 0, 0);
                     break;
@@ -105,7 +107,7 @@ namespace noxiousET.src.guiInteraction
             }
         }
 
-        private static void PointCursor(int[] point)
+        public static void PointCursor(int[] point)
         {
             Cursor.Position = new Point(point[0], point[1]);
         }

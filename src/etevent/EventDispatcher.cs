@@ -28,7 +28,7 @@ namespace noxiousET.src.etevent
         public delegate void SaveAllSettingsRequestHandler(object sourceObject);
 
         public delegate void UpdateActionToTakeRequestHandler(
-            object sourceObject, string character, string typeId, string buyOrSell, string action);
+            object sourceObject, string character, string typeId, bool isBuy, string action);
 
         #endregion
 
@@ -108,9 +108,9 @@ namespace noxiousET.src.etevent
             getTypesFromQuickbarRequestHandler(this, character, firstItemId, lastItemId);
         }
 
-        public void UpdateActionToTakeRequest(string character, string typeId, string buyOrSell, string action)
+        public void UpdateActionToTakeRequest(string character, string typeId, bool isBuy, string action)
         {
-            updateActionToTakeRequestHandler(this, character, typeId, buyOrSell, action);
+            updateActionToTakeRequestHandler(this, character, typeId, isBuy, action);
         }
     }
 }

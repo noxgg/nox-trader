@@ -30,52 +30,49 @@ namespace noxiousET.src.helpers
             {
                 try
                 {
-                    variance = Convert.ToDouble(real.Match(message));
+                    variance = Convert.ToDouble(real.Match(message).ToString());
                     if (variance < 200)
-                        return 1;
-                    else
-                        return 4;
+                        return EtConstants.AlertInputAboveRegionalAverage;
+                    return EtConstants.AlertInput200PercentAboveAverage;
                 }
                 catch
                 {
-                    return 0;
+                    return EtConstants.ErrorParseFailure;
                 }
             }
-            else if (message.Contains("below regional average"))
+            if (message.Contains("below regional average"))
             {
                 try
                 {
                     variance = Convert.ToDouble(real.Match(message).ToString());
                     if (variance < 200)
-                        return 2;
-                    else
-                        return 5;
+                        return EtConstants.AlertInputBelowRegionalAverage;
+                    return EtConstants.AlertInput200PercentBelowAverage;
                 }
                 catch
                 {
-                    return 0;
+                    return EtConstants.ErrorParseFailure;
                 }
             }
-            else if (message.Contains("cannot modify an order within a certain time"))
-                return 3;
-            else if (message.Contains("Could not connect to the specified address"))
-                return 6;
-            else if (message.Contains("Incorrect username or password"))
-                return 7;
-            else if (message.Contains("Unable to connect to the selected server. Please check the address"))
-                return 8;
-            else if (message.Contains("connection to the server was closed"))
-                return 9;
-            else if (message.Contains("You are about to throw away the following items:"))
-                return 10;
-            else if (message.Contains("There were no buy or sell orders found."))
-                return 11;
-            else if (message.Contains("Implants are lost when unplugged and when you die."))
-                return 12;
-            else if (message.Contains("Are you sure you want to cancel this order?"))
-                return 13;
-            else
-                return 69;
+            if (message.Contains("cannot modify an order within a certain time"))
+                return EtConstants.AlertOrderUpdateRateExceeded;
+            if (message.Contains("Could not connect to the specified address"))
+                return EtConstants.ErrorConnectionFailure;
+            if (message.Contains("Incorrect username or password"))
+                return EtConstants.ErrorBadLogin;
+            if (message.Contains("Unable to connect to the selected server. Please check the address"))
+                return EtConstants.ErrorUnableToConnect;
+            if (message.Contains("connection to the server was closed"))
+                return EtConstants.ErrorConnectionClosed;
+            if (message.Contains("You are about to throw away the following items:"))
+                return EtConstants.AlertItemDestruction;
+            if (message.Contains("There were no buy or sell orders found."))
+                return EtConstants.ErrorNoOrdersFound;
+            if (message.Contains("Implants are lost when unplugged and when you die."))
+                return EtConstants.AlertImplantsLostOnDeath;
+            if (message.Contains("Are you sure you want to cancel this order?"))
+                return EtConstants.PromptCancelOrderConfirmation;
+            return EtConstants.UnknownError;
         }
     }
 }

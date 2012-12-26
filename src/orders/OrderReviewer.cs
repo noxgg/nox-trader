@@ -10,6 +10,15 @@ namespace noxiousET.src.orders
         private readonly Dictionary<string, string> _actionsToTake;
         private readonly EventDispatcher _eventDispatcher;
         private readonly Dictionary<string, List<String[]>> _ordersForReview;
+        private const int OrderInfoBuyOrSell = 0;
+        private const int OrderInfoPrice = 1;
+        private const int OrderInfoVolumeRemaining = 2;
+        private const int OrderInfoTimeLeft = 3;
+        private const int OrderInfoMetaRow = 0;
+        private const int OrderInfoFirstDataRow = 1;
+        private const int MetaDataCharacter = 0;
+        private const int MetaDataTypeName = 1;
+        private const int MetaDataTypeId = 2;
 
         public OrderReviewer(EventDispatcher eventDispatcher)
         {
@@ -19,39 +28,39 @@ namespace noxiousET.src.orders
             _actionsToTake = new Dictionary<string, string>();
         }
 
-        public List<String[]> GetOrdersForReviewEntry(string character, string typeId, int buyOrSell)
+        public List<String[]> GetOrdersForReviewEntry(string character, string typeId, bool isBuy)
         {
-            string key = GenerateKey(character, int.Parse(typeId), buyOrSell);
+            string key = GenerateKey(character, int.Parse(typeId), isBuy);
             return _ordersForReview.ContainsKey(key) ? _ordersForReview[key] : null;
         }
 
-        public string GetAction(string character, string typeId, int buyOrSell)
+        public string GetAction(string character, string typeId, bool isBuy)
         {
-            string key = GenerateKey(character, int.Parse(typeId), buyOrSell);
+            string key = GenerateKey(character, int.Parse(typeId), isBuy);
             return _actionsToTake.ContainsKey(key) ? _actionsToTake[key] : "";
         }
 
-        public double GetPrice(string character, int typeId, int buyOrSell)
+        public double GetPrice(string character, int typeId, bool isBuy)
         {
-            string key = GenerateKey(character, typeId, buyOrSell);
+            string key = GenerateKey(character, typeId, isBuy);
 
-            return buyOrSell.Equals(EtConstants.Sell)
-                       ? Double.Parse(_ordersForReview[key][1][1])
-                       : (from orderRow in _ordersForReview[key]
-                          where orderRow[0].Equals("Buy")
-                          select Double.Parse(orderRow[1])).FirstOrDefault();
+            return isBuy
+                       ? (from orderRow in _ordersForReview[key]
+                          where orderRow[OrderInfoBuyOrSell].Equals("Buy")
+                          select Double.Parse(orderRow[OrderInfoPrice])).FirstOrDefault()
+                       : Double.Parse(_ordersForReview[key][OrderInfoFirstDataRow][OrderInfoPrice]);
         }
 
-        public string GetItemName(string character, string typeId, int buyOrSell)
+        public string GetItemName(string character, string typeId, bool isBuy)
         {
-            string key = GenerateKey(character, int.Parse(typeId), buyOrSell);
-            return _ordersForReview.ContainsKey(key) ? _ordersForReview[key][0][1] : "";
+            string key = GenerateKey(character, int.Parse(typeId), isBuy);
+            return _ordersForReview.ContainsKey(key) ? _ordersForReview[key][OrderInfoMetaRow][MetaDataTypeName] : "";
         }
 
-        private void UpdateActionToTakeListener(Object o, string character, string typeid, string buyOrSell,
+        private void UpdateActionToTakeListener(Object o, string character, string typeid, bool isBuy,
                                                 string action)
         {
-            string key = GenerateKey(character, int.Parse(typeid), int.Parse(buyOrSell));
+            string key = GenerateKey(character, int.Parse(typeid), isBuy);
             if (_actionsToTake.ContainsKey(key))
             {
                 _actionsToTake.Remove(key);
@@ -67,33 +76,29 @@ namespace noxiousET.src.orders
         public void AddOrderRequiringReview(string stationId, List<string[]> orderData, string ownedPrice,
                                             string characterName, string itemName)
         {
-            int typeId = int.Parse(orderData[0][2]);
+            int typeId = int.Parse(orderData[0][EtConstants.OrderDataColumnTypeId]);
             var printableOrderInfo = new List<string[]>();
-            string key = GenerateKey(characterName, typeId, -1);
+            string key = GenerateKey(characterName, typeId, false);
             printableOrderInfo.Add(new[] {characterName, itemName, typeId.ToString()});
 
             foreach (var orderRow in orderData)
             {
-                if (IsCompetingOrder(Convert.ToBoolean(orderRow[7]), Convert.ToInt32(orderRow[3]),
-                                     Convert.ToInt32(orderRow[13]), orderRow[10], stationId))
+                if (IsCompetingOrder(orderRow, stationId))
                 {
-                    if (orderRow[0].Equals(ownedPrice))
+                    string printableBuyOrSell = PrintableBuyOrSell(orderRow[EtConstants.OrderDataColumnIsBuyOrder]);
+
+                    if (orderRow[EtConstants.OrderDataColumnPrice].Equals(ownedPrice))
                     {
-                        key = GenerateKey(characterName, typeId, BuyOrSellToInt(orderRow[7]));
-                        printableOrderInfo.Add(new[]
-                        {
-                            "OWNED " + PrintableBuyOrSell(orderRow[7]), orderRow[0], orderRow[1]
-                            , GetPrintableTimeLeft(orderRow[8], orderRow[9])
-                        });
+                        key = GenerateKey(characterName, typeId, Convert.ToBoolean(orderRow[EtConstants.OrderDataColumnIsBuyOrder]));
+                        printableBuyOrSell = "OWNED " + printableBuyOrSell;
                     }
-                    else
+                    printableOrderInfo.Add(new[]
                     {
-                        printableOrderInfo.Add(new[]
-                        {
-                            PrintableBuyOrSell(orderRow[7]), orderRow[0], orderRow[1],
-                            GetPrintableTimeLeft(orderRow[8], orderRow[9])
-                        });
-                    }
+                        printableBuyOrSell, 
+                        orderRow[EtConstants.OrderDataColumnPrice], 
+                        orderRow[EtConstants.OrderDataColumnVolumeRemaining],
+                        GetPrintableTimeLeft(orderRow[EtConstants.OrderDataColumnIssueDate], orderRow[EtConstants.OrderDataColumnDuration])
+                    });
                 }
             }
             if (_ordersForReview.ContainsKey(key))
@@ -104,14 +109,14 @@ namespace noxiousET.src.orders
             _actionsToTake.Add(key, "Ignore");
         }
 
-        private static string GenerateKey(string characterName, int typeId, int buyOrSell)
+        private static string GenerateKey(string characterName, int typeId, bool isBuy)
         {
-            return (characterName + "," + typeId + "," + buyOrSell.ToString());
+            return (characterName + "," + typeId + "," + isBuy);
         }
 
-        public void RemoveOrderRequiringReview(string character, int typeId, int buyOrSell)
+        public void RemoveOrderRequiringReview(string character, int typeId, bool isBuy)
         {
-            string key = GenerateKey(character, typeId, buyOrSell);
+            string key = GenerateKey(character, typeId, isBuy);
             if (_ordersForReview.ContainsKey(key))
             {
                 _ordersForReview.Remove(key);
@@ -119,28 +124,22 @@ namespace noxiousET.src.orders
             }
         }
 
-        public Boolean ShouldCancel(string characterName, int typeId, int buyOrSell)
+        public Boolean ShouldCancel(string characterName, int typeId, bool isBuy)
         {
-            string key = GenerateKey(characterName, typeId, buyOrSell);
+            string key = GenerateKey(characterName, typeId, isBuy);
             return _actionsToTake.ContainsKey(key) && _actionsToTake[key].Equals("Cancel");
         }
 
-        public Boolean ShouldUpdate(string characterName, int typeId, int buyOrSell)
+        public Boolean ShouldUpdate(string characterName, int typeId, bool isBuy)
         {
-            string key = GenerateKey(characterName, typeId, buyOrSell);
+            string key = GenerateKey(characterName, typeId, isBuy);
             return _actionsToTake.ContainsKey(key) && _actionsToTake[key].Equals("Update");
         }
 
-        public Boolean ShouldIgnore(string characterName, int typeId, int buyOrSell)
+        public Boolean ShouldIgnore(string characterName, int typeId, bool isBuy)
         {
-            string key = GenerateKey(characterName, typeId, buyOrSell);
+            string key = GenerateKey(characterName, typeId, isBuy);
             return _actionsToTake.ContainsKey(key) && _actionsToTake[key].Equals("Ignore");
-        }
-
-        private static int BuyOrSellToInt(String isBidColumn)
-        {
-            Boolean isBuyOrder = Convert.ToBoolean(isBidColumn);
-            return isBuyOrder ? EtConstants.Buy : EtConstants.Sell;
         }
 
         private static String PrintableBuyOrSell(String isBidColumn)
@@ -177,12 +176,16 @@ namespace noxiousET.src.orders
             return (daysRemaining).ToString("##.####");
         }
 
-        private static bool IsCompetingOrder(Boolean isBuyOrder, int range, int jumps, string stationid,
-                                             string targetStationid)
+        private static bool IsCompetingOrder(string[] orderRow, string targetStationid)
         {
+            bool isBuyOrder = Convert.ToBoolean(orderRow[EtConstants.OrderDataColumnIsBuyOrder]);
+            string stationid = orderRow[EtConstants.OrderDataColumnStationId];
+            int range = Convert.ToInt32(orderRow[EtConstants.OrderDataColumnRange]);
+            int jumps = Convert.ToInt32(orderRow[EtConstants.OrderDataColumnJumps]);
+
             if (!isBuyOrder && stationid.Equals(targetStationid))
                 return true;
-            if (isBuyOrder && (range == -1 && stationid.Equals(targetStationid) || range - jumps >= 0))
+            if (isBuyOrder && (range == EtConstants.StationRange && stationid.Equals(targetStationid) || range - jumps >= 0))
                 //If this is my station or the order is in range
                 return true;
             return false;

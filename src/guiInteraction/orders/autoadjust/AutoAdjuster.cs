@@ -6,7 +6,7 @@ using noxiousET.src.data.client;
 using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+using noxiousET.src.data.uidata;
 using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autoadjuster
@@ -19,10 +19,11 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
         private int _freeOrders;
         private int _numModified;
         private int _numScanned;
+        private const int AdjusterFailureLimit = 4;
 
-        public AutoAdjuster(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+        public AutoAdjuster(ClientConfig clientConfig, EveUi eveUi, Paths paths, Character character,
                             Modules modules, OrderAnalyzer orderAnalyzer, OrderReviewer orderReviewer)
-            : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
+            : base(clientConfig, eveUi, paths, character, modules, orderAnalyzer)
         {
             _orderReviewer = orderReviewer;
             _marketOrderio = new MarketOrderio {Path = paths.LogPath};
@@ -51,108 +52,120 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
 
             var stopwatch = new Stopwatch();
             stopwatch.Start();
+
             if (character.ShouldAdjustBuys)
-                Adjust(EtConstants.Buy, UiElements.WalletBuyListFirstRow, UiElements.WalletBuyListSortByType);
+                Adjust(true, EveUi.WalletBuyListFirstRow, EveUi.WalletBuyListSortByType, EveUi.WalletVisibleRows[EtConstants.Buy]);
             if (character.ShouldAdjustSells)
-                Adjust(EtConstants.Sell, UiElements.WalletSellListFirstRow, UiElements.WalletSellListSortByType);
+                Adjust(false, EveUi.WalletSellListFirstRow, EveUi.WalletSellListSortByType, EveUi.WalletVisibleRows[EtConstants.Sell]);
+            
             stopwatch.Stop();
             Logger.Log(character.Name + ": AA scanned " + _numScanned + ", adjusted " + _numModified + " in " +
                        stopwatch.Elapsed.ToString());
         }
 
-        private void Adjust(int typeToAdjust, int[] topLineCoords, int[] sortByTypeCoords)
+        private void Adjust(bool isBuyOrder, int[] firstRowCoords, int[] sortByTypeCoords, int rowsPerPage)
         {
-            ConsecutiveFailures = 0;
-            var cursorPosition = new int[2];
-            int visibleLines = UiElements.WalletVisibleRows[typeToAdjust];
-            int currentTypeId = 5321;
-            bool modifiedOnLastIteration = false;
+            int consecutiveFailures = 0;
+            int rowsToCheck = OrderAnalyzer.OrderSet.GetNumberOfOrders(isBuyOrder);
+            int currentTypeId = 0;
+            bool orderRequiresConfirmation = false;
 
-            int ceiling =
-                Convert.ToInt32(
-                    Math.Ceiling(OrderAnalyzer.OrderSet.GetNumberOfBuysAndSells()[typeToAdjust]/
-                                 Convert.ToDouble(UiElements.WalletVisibleRows[typeToAdjust])));
-            for (int i = 0; i < ceiling; ++i)
+            int numberOfPages = Convert.ToInt32(Math.Ceiling(rowsToCheck / Convert.ToDouble(rowsPerPage)));
+            var currentRowCoords = new int[2];
+            currentRowCoords[EtConstants.X] = firstRowCoords[EtConstants.X];
+
+            for (int i = 0; i < numberOfPages; ++i)
             {
-                cursorPosition[0] = topLineCoords[0];
-                cursorPosition[1] = topLineCoords[1];
+                currentRowCoords[EtConstants.Y] = firstRowCoords[EtConstants.Y];
 
-                for (int j = 0; j < visibleLines; j++)
+                //We don't need to check every row on the last page.
+                if (i.Equals(numberOfPages - 1))
+                {
+                    rowsPerPage = rowsToCheck % rowsPerPage;
+                }
+
+                for (int j = 0; j < rowsPerPage; j++)
                 {
                     try
                     {
                         if (EveHandle != GetForegroundWindow())
                             SetForegroundWindow(EveHandle);
 
-                        _marketOrderio.FileName = ExecuteQueryAndExportResult(3, 2, cursorPosition, ref currentTypeId);
-                        List<String[]> orderData = _marketOrderio.Read();
-                        OrderAnalyzer.AnalyzeInvestment(orderData, Convert.ToString(Character.StationId));
+                        ExecuteQueryAndExportResult(currentRowCoords, currentTypeId, isBuyOrder);
                         currentTypeId = OrderAnalyzer.GetTypeId();
-                        if (modifiedOnLastIteration)
+
+                        //Confirm orders after executing the next query to avoid lag caused by the market window re-querying market data
+                        //after confirming an order for an item that is currently being viewed.
+                        if (orderRequiresConfirmation)
                         {
-                            ConfirmOrder(UiElements.OrderBoxConfirm, 1, typeToAdjust);
-                            modifiedOnLastIteration = false;
+                            ConfirmOrder(EveUi.OrderBoxConfirm, 1, isBuyOrder);
+                            orderRequiresConfirmation = false;
                             ++_numModified;
                         }
-                        if (!OrderAnalyzer.IsBestOrderOwned(typeToAdjust) && ShouldAdjustOrder(ref typeToAdjust) ||
-                            OrderAnalyzer.IsBestOrderOwned(typeToAdjust) && IsAnOverbid(typeToAdjust))
+
+                        if (ShouldUpdate(isBuyOrder))
                         {
-                            OpenAndIdentifyModifyWindow(10, 1.2, cursorPosition,
-                                                        OrderAnalyzer.GetOwnedPrice(typeToAdjust));
-                            InputValue(5, 1.4, UiElements.ModifyBidField,
-                                       Convert.ToString(OrderAnalyzer.GetPrice(typeToAdjust) + Outbid(typeToAdjust)));
-                            modifiedOnLastIteration = true;
-                            _orderReviewer.RemoveOrderRequiringReview(Character.Name, OrderAnalyzer.GetTypeId(),
-                                                                      typeToAdjust);
+                            UpdateOrder(currentRowCoords, isBuyOrder);
+                            orderRequiresConfirmation = true;
                         }
-                        else if (_orderReviewer.ShouldCancel(Character.Name, OrderAnalyzer.GetTypeId(), typeToAdjust))
+                        else if (_orderReviewer.ShouldCancel(Character.Name, OrderAnalyzer.GetTypeId(), isBuyOrder))
                         {
-                            cancelExistingOrder(cursorPosition);
+                            cancelExistingOrder(currentRowCoords);
                         }
-                        else if (!OrderAnalyzer.IsBestOrderOwned(typeToAdjust) && !ShouldAdjustOrder(ref typeToAdjust))
-                        {
-                            double ownedPrice = OrderAnalyzer.GetOwnedPrice(typeToAdjust);
-                            _orderReviewer.AddOrderRequiringReview(Character.StationId.ToString(), orderData,
-                                                                   ownedPrice.ToString(), Character.Name,
-                                                                   Modules.TypeNames[OrderAnalyzer.GetTypeId()]);
-                        }
+
                         ++_numScanned;
-                        cursorPosition[1] += UiElements.StandardRowHeight;
-                        ConsecutiveFailures = 0;
+                        consecutiveFailures = 0;
                     }
                     catch (Exception e)
                     {
-                        ++ConsecutiveFailures;
-                        if (ConsecutiveFailures > 4)
-                            return;
-                        cursorPosition[1] += UiElements.StandardRowHeight;
+                        ++consecutiveFailures;
                         Logger.Log(e.Message);
                         ErrorCheck();
+
+                        if (consecutiveFailures > AdjusterFailureLimit)
+                            return;
                     }
+                    currentRowCoords[EtConstants.Y] += EveUi.StandardRowHeight;
                 }
-                if (i == (ceiling - 2))
+                currentRowCoords[EtConstants.Y] -= EveUi.StandardRowHeight;
+                //Scroll back to top and flip ordering to hit last few items if at the end if we're at the second to last page.
+                if (i == (numberOfPages - 2))
                 {
                     ErrorCheck();
-                    Mouse.PointAndClick(Left, cursorPosition[0], cursorPosition[1] - UiElements.StandardRowHeight, 0, 40,
+                    Mouse.PointAndClick(Left, currentRowCoords, 0, 40,
                                         20);
-                    for (int l = 0; l < OrderAnalyzer.OrderSet.GetNumberOfBuysAndSells()[typeToAdjust]; ++l)
+                    for (int l = 0; l < rowsToCheck; ++l)
                         Keyboard.Send("{UP}");
                     Wait(20);
                     Mouse.PointAndClick(Left, sortByTypeCoords, 0, 20, 20);
                 }
-                else if (i < (ceiling - 1))
+                //Otherwise move to the next page if there are more pages.
+                else if (i < (numberOfPages - 2))
                 {
                     ErrorCheck();
-                    Mouse.PointAndClick(Left, cursorPosition[0], cursorPosition[1] - UiElements.StandardRowHeight, 0, 40,
+                    Mouse.PointAndClick(Left, currentRowCoords, 0, 40,
                                         20);
-                    for (int k = 0; k < UiElements.WalletVisibleRows[typeToAdjust]; ++k)
+                    for (int k = 0; k < rowsPerPage; ++k)
                         Keyboard.Send("{DOWN}");
                     Wait(20);
                 }
             }
-            if (LastOrderModified)
-                ConfirmOrder(UiElements.OrderBoxConfirm, 1, typeToAdjust);
+            if (orderRequiresConfirmation)
+                ConfirmOrder(EveUi.OrderBoxConfirm, 1, isBuyOrder);
             Wait(20);
+        }
+
+        private bool ShouldUpdate(bool isBuyOrder)
+        {
+            return !OrderAnalyzer.IsBestOrderOwned(isBuyOrder) && ShouldAdjustOrder(isBuyOrder) ||
+                   OrderAnalyzer.IsBestOrderOwned(isBuyOrder) && IsAnOverbid(isBuyOrder);
+        }
+
+        private void UpdateOrder(int[] rowCoordinates, bool isBuyOrder)
+        {
+            OpenAndIdentifyModifyWindow(10, 1.2, rowCoordinates, OrderAnalyzer.GetOwnedPrice(isBuyOrder));
+            InputValue(5, 1.4, EveUi.ModifyBidField, Convert.ToString(OrderAnalyzer.GetPrice(isBuyOrder) + Outbid(isBuyOrder)));
+            _orderReviewer.RemoveOrderRequiringReview(Character.Name, OrderAnalyzer.GetTypeId(), isBuyOrder);
         }
 
         private void cancelExistingOrder(int[] rowCoords)
@@ -166,7 +179,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             for (int i = 0; i < 5; i++)
             {
                 Mouse.PointAndClick(Right, rowCoords, 1, 1, 1);
-                Mouse.OffsetAndClick(Left, UiElements.ContextMenuCancelOrderOffset, 1, 1, 1);
+                Mouse.OffsetAndClick(Left, EveUi.ContextMenuCancelOrderOffset, 1, 1, 1);
                 Mouse.WaitDuration *= 2;
                 if (GetError() == 13)
                 {
@@ -178,29 +191,30 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             throw new Exception("Failed to identify cancellation window.");
         }
 
-        private Boolean IsAnOverbid(int typeToAdjust)
+        private Boolean IsAnOverbid(bool isBuyOrder)
         {
-            if (typeToAdjust == EtConstants.Buy)
+            if (isBuyOrder)
             {
                 return OrderAnalyzer.GetOwnedBuyPrice() - OrderAnalyzer.GetBuyPrice() >= 1;
             }
             return OrderAnalyzer.GetSellPrice() - OrderAnalyzer.GetOwnedSellPrice() >= 1;
         }
 
-        private static double Outbid(int typeToAdjust)
+        private static double Outbid(bool isBuyOrder)
         {
-            return typeToAdjust == EtConstants.Buy ? .01 : -.01;
+            return isBuyOrder ? .01 : -.01;
         }
 
         private void OpenAndIdentifyModifyWindow(int tries, double timingScaleFactor, int[] coords, double price)
         {
+            Clipboard.SetClip(EtConstants.ClipboardNullValue);
             for (int i = 0; i < tries; i++)
             {
                 Mouse.PointAndClick(Right, coords, 1, 1, 1);
-                Mouse.OffsetAndClick(Left, UiElements.ContextMenuModifyOrderOffset, 1, 1, 1);
-                Mouse.PointAndClick(Right, UiElements.ModifyBidField, 1, 1, 1);
-                Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset[0], UiElements.ContextMenuCopyOffset[1], 1,
-                                     1, 1);
+                Mouse.OffsetAndClick(Left, EveUi.ContextMenuModifyOrderOffset, 1, 1, 1);
+                Mouse.PointAndClick(Double, EveUi.ModifyBidField, 1, 1, 1);
+                Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkC);
+                Clipboard.GetTextFromClipboard();
                 try
                 {
                     double result = Convert.ToDouble(Clipboard.GetTextFromClipboard());
@@ -219,22 +233,22 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             throw new Exception("Could not find modification window.");
         }
 
-        private bool ShouldAdjustOrder(ref int typeToAdjust)
+        private bool ShouldAdjustOrder(bool isBuyOrder)
         {
-            if (typeToAdjust == EtConstants.Sell)
-            {
-                if (OrderAnalyzer.GetSellPrice() >
-                    (OrderAnalyzer.GetBuyPrice() + (OrderAnalyzer.GetOwnedSellPrice() - OrderAnalyzer.GetBuyPrice())/2))
-                    return true;
-            }
-            else
+            if (isBuyOrder)
             {
                 if (OrderAnalyzer.GetSellPrice() < 0 ||
                     OrderAnalyzer.GetBuyPrice() <
                     (OrderAnalyzer.GetSellPrice() - (OrderAnalyzer.GetSellPrice() - OrderAnalyzer.GetOwnedBuyPrice())/2))
                     return true;
             }
-            if (OverrideShouldAdjust(typeToAdjust))
+            else
+            {
+                if (OrderAnalyzer.GetSellPrice() >
+                    (OrderAnalyzer.GetBuyPrice() + (OrderAnalyzer.GetOwnedSellPrice() - OrderAnalyzer.GetBuyPrice())/2))
+                    return true;
+            }
+            if (OverrideShouldAdjust(isBuyOrder))
             {
                 return true;
             }
@@ -242,24 +256,40 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             Logger.AutoListerLog("AL not adjusting " + Modules.TypeNames[Convert.ToInt32(OrderAnalyzer.GetTypeId())]);
             Logger.AutoListerLog("Best Sell: " + OrderAnalyzer.GetBuyPrice());
             Logger.AutoListerLog("Best Buy: " + OrderAnalyzer.GetSellPrice());
-            if (typeToAdjust == EtConstants.Sell)
-                Logger.AutoListerLog("Target sell order: " + OrderAnalyzer.GetOwnedSellPrice());
-            else
+            if (isBuyOrder)
                 Logger.AutoListerLog("Target buy order: " + OrderAnalyzer.GetOwnedBuyPrice());
+            else
+                Logger.AutoListerLog("Target sell order: " + OrderAnalyzer.GetOwnedSellPrice());
             return false;
         }
 
-        private Boolean OverrideShouldAdjust(int typeToAdjust)
+        private Boolean OverrideShouldAdjust(bool isBuyOrder)
         {
-            return (_orderReviewer.ShouldUpdate(Character.Name, OrderAnalyzer.GetTypeId(), typeToAdjust) &&
-                    !SiginificantPriceChangeDetected(typeToAdjust));
+            return (_orderReviewer.ShouldUpdate(Character.Name, OrderAnalyzer.GetTypeId(), isBuyOrder) &&
+                    !SiginificantPriceChangeDetected(isBuyOrder));
         }
 
-        private Boolean SiginificantPriceChangeDetected(int typeToAdjust)
+        private Boolean SiginificantPriceChangeDetected(bool isBuyOrder)
         {
-            double newPrice = OrderAnalyzer.GetPrice(typeToAdjust);
-            double oldPrice = _orderReviewer.GetPrice(Character.Name, OrderAnalyzer.GetTypeId(), typeToAdjust);
+            double newPrice = OrderAnalyzer.GetPrice(isBuyOrder);
+            double oldPrice = _orderReviewer.GetPrice(Character.Name, OrderAnalyzer.GetTypeId(), isBuyOrder);
             return Math.Abs((newPrice - oldPrice)/oldPrice) > .02;
+        }
+
+        private void ExecuteQueryAndExportResult(int[] cursorPosition, int lastTypeId, bool isBuyOrder)
+        {
+            _marketOrderio.FileName = ExecuteQueryAndExportResult(3, 1.5, cursorPosition, ref lastTypeId);
+            List<String[]> orderData = _marketOrderio.Read();
+            OrderAnalyzer.AnalyzeInvestment(orderData, Convert.ToString(Character.StationId));
+
+            if (!OrderAnalyzer.IsBestOrderOwned(isBuyOrder) && !ShouldAdjustOrder(isBuyOrder))
+            {
+                double ownedPrice = OrderAnalyzer.GetOwnedPrice(isBuyOrder);
+                _orderReviewer.AddOrderRequiringReview(Character.StationId.ToString(), orderData,
+                                                       ownedPrice.ToString(), Character.Name,
+                                                       Modules.TypeNames[OrderAnalyzer.GetTypeId()]);
+            }
+
         }
 
         private String ExecuteQueryAndExportResult(int tries, double timingScaleFactor, int[] cursorPosition,
@@ -272,12 +302,12 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             for (i = 0; i < tries; i++)
             {
                 Mouse.PointAndClick(Double, cursorPosition, 0, 1, 0);
-                Mouse.PointAndClick(Left, UiElements.MarketExportButton, 5, 1, 5);
+                Mouse.PointAndClick(Left, EveUi.MarketExportButton, 7, 1, 5);
                 _fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
                 try
                 {
                     if (_fileName != null &&
-                        Convert.ToInt32(_marketOrderio.ReadFirstEntryNoDelete(Paths.LogPath, _fileName)[2]) !=
+                        Convert.ToInt32(_marketOrderio.ReadFirstEntryNoDelete(Paths.LogPath, _fileName)[EtConstants.OrderDataColumnTypeId]) !=
                         lastTypeId)
                     {
                         Mouse.WaitDuration = Timing;
@@ -288,7 +318,10 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 {
                     Logger.Log(e.Message);
                 }
-                ErrorCheck();
+                if (i % 2 == 1)
+                {
+                    ErrorCheck();
+                }
                 Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
             }
             Logger.Log("Iterations ran out of tries @ " + i);
@@ -308,8 +341,8 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             DirectoryEraser.Nuke(Paths.LogPath);
             ExportOrders(3, 30);
 
-            Mouse.PointAndClick(Left, UiElements.WalletSellListSortByType, 40, 0, 0);
-            Mouse.PointAndClick(Left, UiElements.WalletBuyListSortByType, 40, 0, 0);
+            Mouse.PointAndClick(Left, EveUi.WalletSellListSortByType, 40, 0, 0);
+            Mouse.PointAndClick(Left, EveUi.WalletBuyListSortByType, 40, 0, 0);
             _freeOrders = Character.MaximumOrders - OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
         }
     }

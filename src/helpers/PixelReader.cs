@@ -23,19 +23,29 @@ namespace noxiousET.src.helpers
             this.yPos = yPos;
         }
 
-        public int setTarget()
+        public PixelReader()
+        {
+            
+        }
+
+        public int SetTarget()
         {
             target = GetPixel(hdcScr, xPos, yPos);
             return target;
         }
 
-        public Boolean checkForTarget(int target)
+        public Boolean CheckForTarget(int target)
         {
             int cr = 0;
             cr = GetPixel(hdcScr, xPos, yPos);
             if (cr == target)
                 return true;
             return false;
+        }
+
+        public int GetPixelColor(int x, int y)
+        {
+            return GetPixel(hdcScr, x, y);
         }
     }
 

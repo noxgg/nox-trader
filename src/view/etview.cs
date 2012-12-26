@@ -355,9 +355,7 @@ namespace noxiousET
             string typeId = itemsToReviewList.Items[selectedIndex].SubItems[4].Text;
             string buyOrSell = itemsToReviewList.Items[selectedIndex].SubItems[0].Text;
 
-            buyOrSell = buyOrSell.Equals("B") ? EtConstants.Buy.ToString() : EtConstants.Sell.ToString();
-
-            _eventDispatcher.UpdateActionToTakeRequest(character, typeId, buyOrSell, newItemAction);
+            _eventDispatcher.UpdateActionToTakeRequest(character, typeId, buyOrSell.Equals("B"), newItemAction);
         }
 
         private void ItemsToReviewListSelectedIndexChanged(object sender, EventArgs e)

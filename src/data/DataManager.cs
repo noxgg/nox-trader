@@ -8,7 +8,7 @@ using noxiousET.src.data.client;
 using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+using noxiousET.src.data.uidata;
 using noxiousET.src.etevent;
 
 namespace noxiousET.src.data
@@ -24,7 +24,7 @@ namespace noxiousET.src.data
         private readonly MarketOrderio _marketOrderio;
         private TextFileToDictionaryLoader _textFileToDictionaryLoader;
         private TextFileio _textFileio;
-        private UiElementsio _uiElementsio;
+        private EveUiDataIo _eveUiDataIo;
 
         public DataManager()
         {
@@ -38,7 +38,7 @@ namespace noxiousET.src.data
             AccountManager = new AccountManager();
             CharacterManager = new CharacterManager(Paths, AccountManager);
             Modules = new Modules();
-            UiElements = new UiElements();
+            Ui = new EveUi();
 
             try
             {
@@ -56,7 +56,7 @@ namespace noxiousET.src.data
 
         public Modules Modules { set; get; }
         public Paths Paths { set; get; }
-        public UiElements UiElements { set; get; }
+        public EveUi Ui { set; get; }
         public CharacterManager CharacterManager { set; get; }
         public AccountManager AccountManager { set; get; }
         public ClientConfig ClientConfig { set; get; }
@@ -92,7 +92,7 @@ namespace noxiousET.src.data
 
             String fileName = Convert.ToString(ClientConfig.XResolution) + "x" +
                               Convert.ToString(ClientConfig.YResolution) + ".ini";
-            _uiElementsio = new UiElementsio(Paths.ConfigPath, fileName, UiElements);
+            _eveUiDataIo = new EveUiDataIo(Paths.ConfigPath, fileName, Ui);
 
             _textFileToDictionaryLoader = new TextFileToDictionaryLoader(Paths.ConfigPath, FittableModuleTypeIdsFilename);
             Modules.FittableModuleTypeIDs = _textFileToDictionaryLoader.LoadIntKeyEqualsIntValueEqualsOneLine();

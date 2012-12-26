@@ -15,7 +15,7 @@ namespace noxiousET.src.orders
         private double _sellPrice;
         private bool _someBuyOwned;
         private bool _someSellOwned;
-        private string _typeid;
+        private string _typeId;
 
         public OrderAnalyzer()
         {
@@ -37,7 +37,12 @@ namespace noxiousET.src.orders
             Analyze(ref orderData, ref orderData[0][2], ref stationid);
         }
 
-        private void Analyze(ref List<String[]> orderData, ref String typeId, ref String stationId)
+        public bool IsNewOrderData(List<String[]> orderData)
+        {
+            return !orderData[0][EtConstants.OrderDataColumnTypeId].Equals(_typeId);
+        }
+
+        private void Analyze(ref List<String[]> orderData, ref String expectedTypeId, ref String stationId)
         {
             _buyPrice = 0;
             _sellPrice = 0;
@@ -47,26 +52,30 @@ namespace noxiousET.src.orders
             _bestBuyOwned = false;
             int i = 0;
             int orderDataCount = orderData.Count;
-            String[] order = i < orderDataCount ? orderData[i++] : null;
-            _typeid = order[2];
-            if (!typeId.Equals(0))
-                throw new Exception("Wrong typeid");
-            _someSellOwned = OrderSet.ExistsOrderOfType(Convert.ToInt32(typeId), 0);
-            _someBuyOwned = OrderSet.ExistsOrderOfType(Convert.ToInt32(typeId), 1);
-            //Find first order at target station
-            while (order != null && order[7].Equals("False") && !order[10].Equals(stationId))
-                order = i < orderDataCount ? orderData[i++] : null;
 
-            //If this order is a sell order and if it is competing at the target station
-            if (order != null && order[7].Equals("False") && order[10].Equals(stationId))
+            String[] orderRow = i < orderDataCount ? orderData[i++] : null;
+            _typeId = orderRow[EtConstants.OrderDataColumnTypeId];
+            if (!expectedTypeId.Equals(_typeId))
+                throw new Exception("Wrong typeid");
+
+            _someSellOwned = OrderSet.ExistsOrderOfType(expectedTypeId, EtConstants.Sell);
+            _someBuyOwned = OrderSet.ExistsOrderOfType(expectedTypeId, EtConstants.Buy);
+
+            //Navigate past irrelevant orders that aren't competing at the current station.
+            while (orderRow != null && IsNonCompetitiveSellOrder(orderRow, stationId))
             {
+                orderRow = i < orderDataCount ? orderData[i++] : null;
+            }
+
+            if (orderRow != null && IsCompetitiveSellOrder(orderRow, stationId))
+            {
+                _sellPrice = Convert.ToDouble(orderRow[EtConstants.OrderDataColumnPrice]);
                 //Is this an owned order?
-                if (OrderSet.IsOrderOwned(order[4], 0))
+                if (OrderSet.IsOrderOwned(orderRow[EtConstants.OrderDataColumnOrderId], EtConstants.Sell))
                 {
-                    _ownedSellPrice = Convert.ToDouble(order[0]);
+                    _ownedSellPrice = _sellPrice;
                     _bestSellOwned = true;
                 }
-                _sellPrice = Convert.ToDouble(order[0]);
             }
             else
             {
@@ -74,42 +83,45 @@ namespace noxiousET.src.orders
                 _sellPrice = 0;
             }
 
-            //If this is the best sell order, fetch the next nest competitive price
+            //If the best sell order is owned, fetch the next most competitive price
             if (_bestSellOwned)
             {
-                order = i < orderDataCount ? orderData[i++] : null;
-                while (order != null && order[7].Equals("False") && !order[10].Equals(stationId))
-                    order = i < orderDataCount ? orderData[i++] : null;
-                if (order != null && order[7].Equals("False") && order[10].Equals(stationId))
-                    _sellPrice = Convert.ToDouble(order[0]);
+                orderRow = i < orderDataCount ? orderData[i++] : null;
+
+                while (orderRow != null && IsNonCompetitiveSellOrder(orderRow, stationId))
+                    orderRow = i < orderDataCount ? orderData[i++] : null;
+
+                if (orderRow != null && IsCompetitiveSellOrder(orderRow, stationId))
+                    _sellPrice = Convert.ToDouble(orderRow[EtConstants.OrderDataColumnPrice]);
                 else
                     _sellPrice = 0;
             }
 
 
             //Jump over any remaining sell orders
-            while (order != null && order[7].Equals("False"))
+            while (orderRow != null && orderRow[EtConstants.OrderDataColumnIsBuyOrder].Equals("False"))
             {
-                if (OrderSet.IsOrderOwned(order[4], 0))
-                    _ownedSellPrice = Convert.ToDouble(order[0]);
-                order = i < orderDataCount ? orderData[i++] : null;
+                if (OrderSet.IsOrderOwned(orderRow[EtConstants.OrderDataColumnOrderId], EtConstants.Sell))
+                    _ownedSellPrice = Convert.ToDouble(orderRow[EtConstants.OrderDataColumnPrice]);
+
+                orderRow = i < orderDataCount ? orderData[i++] : null;
             }
 
             //Find first order that is competing at target station
-            while (order != null &&
-                   !IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
-                order = i < orderDataCount ? orderData[i++] : null;
+            while (orderRow != null &&  !IsCompetetiveBuyOrder(orderRow, stationId))
+                orderRow = i < orderDataCount ? orderData[i++] : null;
 
-            if (order != null && order[7].Equals("True") &&
-                IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
+            if (orderRow != null 
+                && orderRow[EtConstants.OrderDataColumnIsBuyOrder].Equals("True") 
+                && IsCompetetiveBuyOrder(orderRow, stationId))
             {
+                _buyPrice = Convert.ToDouble(orderRow[EtConstants.OrderDataColumnPrice]);
                 //Is this an owned order?
-                if (OrderSet.IsOrderOwned(order[4], 1))
+                if (OrderSet.IsOrderOwned(orderRow[EtConstants.OrderDataColumnOrderId], EtConstants.Buy))
                 {
-                    _ownedBuyPrice = Convert.ToDouble(order[0]);
+                    _ownedBuyPrice = _buyPrice;
                     _bestBuyOwned = true;
                 }
-                _buyPrice = Convert.ToDouble(order[0]);
             }
             else
             {
@@ -117,25 +129,32 @@ namespace noxiousET.src.orders
                 _buyPrice = 0;
             }
 
-            //If this is the best sell order, fetch the next best price.
+            //If the best buy order is owned, fetch the next best price.
             if (_bestBuyOwned)
             {
-                order = i < orderDataCount ? orderData[i++] : null;
-                while (order != null &&
-                       !IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
-                    order = i < orderDataCount ? orderData[i++] : null;
-                if (order != null && order[7].Equals("True") &&
-                    IsCompetingBuyOrder(Convert.ToInt32(order[3]), Convert.ToInt32(order[13]), order[10], stationId))
-                    _buyPrice = Convert.ToDouble(order[0]);
+                orderRow = i < orderDataCount ? orderData[i++] : null;
+
+                while (orderRow != null && !IsCompetetiveBuyOrder(orderRow, stationId))
+                    orderRow = i < orderDataCount ? orderData[i++] : null;
+
+                if (orderRow != null
+                    && orderRow[EtConstants.OrderDataColumnIsBuyOrder].Equals("True")
+                    && IsCompetetiveBuyOrder(orderRow, stationId))
+                {
+                    _buyPrice = Convert.ToDouble(orderRow[EtConstants.OrderDataColumnPrice]);
+                }
                 else
+                {
                     _buyPrice = 0;
+                }
             }
 
-            while (order != null && _ownedBuyPrice.Equals(0))
+            while (orderRow != null && _ownedBuyPrice.Equals(0))
             {
-                if (OrderSet.IsOrderOwned(order[4], 1))
-                    _ownedBuyPrice = Convert.ToDouble(order[0]);
-                order = i < orderDataCount ? orderData[i++] : null;
+                if (OrderSet.IsOrderOwned(orderRow[EtConstants.OrderDataColumnOrderId], EtConstants.Buy))
+                    _ownedBuyPrice = Convert.ToDouble(orderRow[EtConstants.OrderDataColumnPrice]);
+
+                orderRow = i < orderDataCount ? orderData[i++] : null;
             }
 
             if (_sellPrice <= 0 && _buyPrice <= 0) //If there are no orders to compare against, return
@@ -154,15 +173,30 @@ namespace noxiousET.src.orders
             }
         }
 
-        private static bool IsCompetingBuyOrder(int range, int jumps, string stationid, string targetStationid)
+        private static bool IsCompetetiveBuyOrder(string[] orderRow, string targetStationid)
         {
+            int range = Convert.ToInt32(orderRow[EtConstants.OrderDataColumnRange]);
+            int jumps = Convert.ToInt32(orderRow[EtConstants.OrderDataColumnJumps]);
             //If this is my station and the order has a station range
-            return range == -1 && stationid.Equals(targetStationid) || range - jumps >= 0;
+            return range.Equals(EtConstants.StationRange) && orderRow[EtConstants.OrderDataColumnStationId].Equals(targetStationid) 
+                || range - jumps >= 0;
+        }
+
+        private Boolean IsNonCompetitiveSellOrder(string[] orderRow, string targetStationId)
+        {
+            return orderRow[EtConstants.OrderDataColumnIsBuyOrder].Equals("False")
+                   && !orderRow[EtConstants.OrderDataColumnStationId].Equals(targetStationId);
+        }
+
+        private Boolean IsCompetitiveSellOrder(string[] orderRow, string targetStationId)
+        {
+            return orderRow[EtConstants.OrderDataColumnIsBuyOrder].Equals("False")
+                   && orderRow[EtConstants.OrderDataColumnStationId].Equals(targetStationId);
         }
 
         public int GetTypeId()
         {
-            return Convert.ToInt32(_typeid);
+            return Convert.ToInt32(_typeId);
         }
 
         public double GetBuyPrice()
@@ -175,9 +209,9 @@ namespace noxiousET.src.orders
             return _sellPrice;
         }
 
-        public double GetPrice(int type)
+        public double GetPrice(bool isBuyOrder)
         {
-            return type == EtConstants.Buy ? _buyPrice : _sellPrice;
+            return isBuyOrder ? _buyPrice : _sellPrice;
         }
 
         public double GetOwnedBuyPrice()
@@ -195,9 +229,9 @@ namespace noxiousET.src.orders
             _ownedBuyPrice = ownedBuyPrice;
         }
 
-        public double GetOwnedPrice(int type)
+        public double GetOwnedPrice(bool isBuyOrder)
         {
-            return type == EtConstants.Buy ? _ownedBuyPrice : _ownedSellPrice;
+            return isBuyOrder ? _ownedBuyPrice : _ownedSellPrice;
         }
 
         public bool IsSomeBuyOwned()
@@ -210,6 +244,11 @@ namespace noxiousET.src.orders
             return _someSellOwned;
         }
 
+        public bool IsSomeOrderOwned()
+        {
+            return _someBuyOwned || _someSellOwned;
+        }
+
         public bool IsBestBuyOwned()
         {
             return _bestBuyOwned;
@@ -220,9 +259,9 @@ namespace noxiousET.src.orders
             return _bestSellOwned;
         }
 
-        public bool IsBestOrderOwned(int type)
+        public bool IsBestOrderOwned(bool isBuyOrder)
         {
-            return type == EtConstants.Buy ? _bestBuyOwned : _bestSellOwned;
+            return isBuyOrder ? _bestBuyOwned : _bestSellOwned;
         }
     };
 }

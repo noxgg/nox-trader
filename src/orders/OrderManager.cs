@@ -11,45 +11,65 @@ namespace noxiousET.src.orders
         private List<Order>[] _orders;
         private int _sellOrders;
 
+        private const int MyOrdersColumnOrderId = 0;
+        private const int MyOrdersColumnTypeId = 1;
+        private const int MyOrdersColumnCharacterId = 2;
+        private const int MyOrdersColumnCharacterName = 3;
+        private const int MyOrdersColumnRegionId = 4;
+        private const int MyOrdersColumnRegionName = 5;
+        private const int MyOrdersColumnStationId = 6;
+        private const int MyOrdersColumnStationName = 7;
+        private const int MyOrdersColumnRange = 8;
+        private const int MyOrdersColumnIsBuyOrder = 9;
+        private const int MyOrdersColumnPrice = 10;
+        private const int MyOrdersColumnVolumeEntered = 11;
+        private const int MyOrdersColumnVolumeRemaining = 12;
+        private const int MyOrdersColumnIssueDate = 13;
+        private const int MyOrdersColumnOrderState = 14;
+        private const int MyOrdersColumnMinimumVolume = 15;
+        private const int MyOrdersColumnAccountId = 16;
+        private const int MyOrdersColumnDuration = 17;
+        private const int MyOrdersColumnIsCorp = 18;
+        private const int MyOrdersColumnSolarSystemid = 19;
+        private const int MyOrdersColumnSolarSystemName = 20;
+        private const int MyOrdersColumnEscrow = 21;
+        private const int NumberOfMyOrdersColumns = 23;
+
         public void CreateOrderSet(string filePathAndName, ref StreamReader file, Dictionary<int, int> tradeHistory)
         {
             _orders = new List<Order>[2];
-            _orders[0] = new List<Order>();
-            _orders[1] = new List<Order>();
+            _orders[EtConstants.Sell] = new List<Order>();
+            _orders[EtConstants.Buy] = new List<Order>();
             _buyOrders = 0;
             _sellOrders = 0;
 
-            string line = file.ReadLine();
-            while ((line = file.ReadLine()) != null)
+            string orderLine = file.ReadLine();
+
+            //Does the header have the correct number of columns?
+            if (orderLine != null && !orderLine.Split(',').Count().Equals(NumberOfMyOrdersColumns))
+                throw new Exception("The current file doesn't appear to be a character's order list.");
+            
+
+            while ((orderLine = file.ReadLine()) != null)
             {
-                string[] parts = line.Split(',');
+                string[] orderRow = orderLine.Split(',');
+                
+                var newOrder = new Order(orderRow[MyOrdersColumnOrderId], 
+                    Convert.ToInt32(orderRow[MyOrdersColumnTypeId]), 
+                    orderRow[MyOrdersColumnStationId], 
+                    Convert.ToInt32(orderRow[MyOrdersColumnRange]),
+                    Convert.ToDouble(orderRow[MyOrdersColumnPrice]), 
+                    Convert.ToInt32(Convert.ToDouble(orderRow[MyOrdersColumnVolumeRemaining])));
 
-                //TODO DEPRECIATE?
-                //if (!tradeHistory.ContainsKey(typeID))
-                //    tradeHistory.Add(typeID, typeID);
-
-                if (parts[9].Equals("False")) //If this is a sell order
+                if (orderRow[MyOrdersColumnIsBuyOrder].Equals("False")) //If this is a sell order
                 {
-                    var newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6], Convert.ToInt32(parts[8]),
-                                             Convert.ToDouble(parts[10]), Convert.ToInt32(Convert.ToDouble(parts[12])));
-                    _orders[0].Add(newOrder);
+                    _orders[EtConstants.Sell].Add(newOrder);
                     ++_sellOrders;
                 }
                 else //Otherwise it is a buy order
                 {
-                    try
-                    {
-                        var newOrder = new Order(parts[0], Convert.ToInt32(parts[1]), parts[6],
-                                                 Convert.ToInt32(parts[8]), Convert.ToDouble(parts[10]),
-                                                 Convert.ToInt32(Convert.ToDouble(parts[12])));
-                        _orders[1].Add(newOrder);
-                        ++_buyOrders;
-                    }
-                    catch
-                    {
-                        file.Close();
-                        return;
-                    }
+                    _orders[EtConstants.Buy].Add(newOrder);
+                    ++_buyOrders;
                 }
             }
             file.Close();
@@ -61,6 +81,7 @@ namespace noxiousET.src.orders
             _orders[orderType].Add(new Order(typeID));
         }
 
+        //TODO refactor this terrible function
         public string GetOrderIDandListPosition(ref string typeID, ref int orderType, out int listPosition)
         {
             for (int i = 0; i < _orders[orderType].Count(); ++i)
@@ -98,9 +119,20 @@ namespace noxiousET.src.orders
             return sellOrderExists && buyOrderExists ? 3 : (buyOrderExists ? 2 : (sellOrderExists ? 1 : 0));
         }
 
+        public bool ExistsAnyOrder(int typeId)
+        {
+            return CheckForActiveOrders(typeId) > 0;
+        }
+
         public bool ExistsOrderOfType(int typeid, int type)
         {
             return _orders[type].Any(o => o.GetTypeId() == typeid);
+        }
+
+        public bool ExistsOrderOfType(string typeid, int type)
+        {
+            int typeId = int.Parse(typeid);
+            return _orders[type].Any(o => o.GetTypeId() == typeId);
         }
 
         public bool IsOrderOwned(String orderid, int type)
@@ -142,10 +174,9 @@ namespace noxiousET.src.orders
             return _orders[orderType][listPosition].GetRuns();
         }
 
-        public int[] GetNumberOfBuysAndSells()
+        public int GetNumberOfOrders(bool getBuys)
         {
-            int[] temp = {_sellOrders, _buyOrders};
-            return temp;
+            return getBuys ? _buyOrders : _sellOrders;
         }
 
         public int GetNumberOfActiveOrders()

@@ -27,13 +27,13 @@ namespace noxiousET.src.guiInteraction
             _characterManager = dataManager.CharacterManager;
             _orderAnalyzer = new OrderAnalyzer();
             OrderReviewer = new OrderReviewer(dataManager.EventDispatcher);
-            LoginBot = new LoginBot(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+            LoginBot = new LoginBot(dataManager.ClientConfig, dataManager.Ui, dataManager.Paths, null,
                                     _orderAnalyzer);
-            _autoLister = new AutoLister(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+            _autoLister = new AutoLister(dataManager.ClientConfig, dataManager.Ui, dataManager.Paths, null,
                                          dataManager.Modules, _orderAnalyzer);
-            _autoAdjuster = new AutoAdjuster(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+            _autoAdjuster = new AutoAdjuster(dataManager.ClientConfig, dataManager.Ui, dataManager.Paths, null,
                                              dataManager.Modules, _orderAnalyzer, OrderReviewer);
-            _autoInvestor = new AutoInvestor(dataManager.ClientConfig, dataManager.UiElements, dataManager.Paths, null,
+            _autoInvestor = new AutoInvestor(dataManager.ClientConfig, dataManager.Ui, dataManager.Paths, null,
                                              dataManager.Modules, _orderAnalyzer);
             _eventDispatcher = dataManager.EventDispatcher;
             _eventDispatcher.getTypesFromQuickbarRequestHandler += GetTypeForCharacterFromQuickbar;
@@ -95,8 +95,7 @@ namespace noxiousET.src.guiInteraction
 
         private void Automate(Character character)
         {
-            if (LoginBot.Login(character) != 0)
-                return;
+            LoginBot.Login(character);
 
             _autoAdjuster.Execute(character);
             _characterManager.Save(character.Name);

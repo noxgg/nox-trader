@@ -10,17 +10,19 @@ namespace noxiousET.src.guiInteraction
         {
             try
             {
+                //return System.Windows.Forms.Clipboard.GetText();
                 IDataObject dataObj = System.Windows.Forms.Clipboard.GetDataObject();
                 return dataObj.GetData(DataFormats.Text).ToString();
             }
             catch
             {
-                return "0";
+                return EtConstants.ClipboardNullValue;
             }
         }
 
         public static void SetClip(String inputText)
         {
+            //System.Windows.Forms.Clipboard.SetText(inputText);
             new SetClipboardHelper(DataFormats.Text, inputText).Go();
         }
     }

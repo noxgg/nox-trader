@@ -7,7 +7,8 @@ using noxiousET.src.data.client;
 using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+using noxiousET.src.data.uidata;
+using noxiousET.src.helpers;
 using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autolister
@@ -26,13 +27,21 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         private int _openOrders;
         private int _totalBuyOrdersCreated;
         private int _totalSellOrdersCreated;
+        private int _currentItemType;
+        private const int FittableItem = 0;
+        private const int NonFittableItem = 1;
+        private const int UnknownItemType = 2;
+        private PixelReader _pixelReader;
+        private const int ContextMenuHorizontalRuleColor = 4210752;
+        private const int ContextMenuBackgroundColor = 0;
 
-        public AutoLister(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+        public AutoLister(ClientConfig clientConfig, EveUi eveUi, Paths paths, Character character,
                           Modules modules, OrderAnalyzer orderAnalyzer)
-            : base(clientConfig, uiElements, paths, character, modules, orderAnalyzer)
+            : base(clientConfig, eveUi, paths, character, modules, orderAnalyzer)
         {
             _marketOrderio = new MarketOrderio {Path = paths.LogPath};
             FreeOrders = 0;
+            _pixelReader = new PixelReader();
         }
 
         public int FreeOrders { set; get; }
@@ -80,7 +89,7 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             FreeOrders = OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
 
             _openOrders = Character.MaximumOrders - OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
-            new SetClipboardHelper(DataFormats.Text, "0").Go();
+            new SetClipboardHelper(DataFormats.Text, EtConstants.ClipboardNullValue).Go();
 
             CloseMarketAndHangarWindows();
         }
@@ -106,12 +115,13 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
             while (_openOrders > 0)
             {
+                _currentItemType = UnknownItemType;
                 //TODO Remove hardcoded value
                 if (currentHangarListPosition > 18)
                 {
-                    Mouse.PointAndClick(Left, UiElements.HangarFirstRow[0],
-                                        UiElements.HangarFirstRow[1] +
-                                        (currentHangarListPosition*UiElements.HangarRowHeight), 40, 1, 40);
+                    Mouse.PointAndClick(Left, EveUi.HangarFirstRow[0],
+                                        EveUi.HangarFirstRow[1] +
+                                        (currentHangarListPosition*EveUi.HangarRowHeight), 40, 1, 40);
                     for (int k = 0; k < 19; ++k)
                         Keyboard.Send("{DOWN}");
                     Wait(20);
@@ -166,6 +176,22 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             }
         }
 
+        private int OpenContextMenuAndGetItemType(int[] rowCoords)
+        {
+            Mouse.PointAndClick(Right, rowCoords, 1, 1, 20);
+            int color = _pixelReader.GetPixelColor(rowCoords[0] + 75, rowCoords[1] + 31);
+            if (color.Equals(ContextMenuBackgroundColor))
+            {
+                return NonFittableItem;
+            }
+            if (color.Equals(ContextMenuHorizontalRuleColor))
+            {
+                 return FittableItem;
+            }
+            return UnknownItemType;
+        }
+
+
         private void ViewDetailsAndExportResult(int tries, double timingScaleFactor, int currentHangarListPosition,
                                                 int hangarType)
         {
@@ -173,53 +199,41 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             if (lastTypeId.Equals(0))
                 lastTypeId = 806;
             int[] lineCoords = {
-                                   UiElements.HangarFirstRow[0],
-                                   UiElements.HangarFirstRow[1] + currentHangarListPosition*UiElements.HangarRowHeight
+                                   EveUi.HangarFirstRow[0],
+                                   EveUi.HangarFirstRow[1] + currentHangarListPosition*EveUi.HangarRowHeight
                                };
-            int[] viewDetailsOffset = {
-                                          UiElements.HangarContextMenuViewDetailsOffset[0],
-                                          UiElements.HangarContextMenuViewDetailsOffset[1]
-                                      };
             DirectoryEraser.Nuke(Paths.LogPath);
-
+            
             for (int i = 0; i < tries; i++)
             {
                 if (i > 2)
                 {
                     int errorCode = GetError();
-                    if (errorCode == 10 || errorCode == 12)
-                    {
-                        ErrorCheck();
-                        Mouse.PointAndClick(Left, UiElements.HangarFirstRow, 1, 1, 1);
-                    }
                     ErrorCheck();
+                    if (errorCode == EtConstants.AlertItemDestruction || errorCode == EtConstants.AlertImplantsLostOnDeath)
+                    {
+                        Mouse.PointAndClick(Left, EveUi.HangarFirstRow, 1, 1, 1);
+                    }
                 }
-                //RClick current line
-                Mouse.PointAndClick(Right, lineCoords, 1, 1, 1);
-                //View details
-                Mouse.OffsetAndClick(Left, viewDetailsOffset, 0, 2, 1);
-                //TODO Make variable. Normal click route often causes inadvertant double-clicks on items, causing ships to be assembled and items
-                //to be fitted. This left-click in a deadzone prevents such double clicks from occuring. 
-                Mouse.PointAndClick(Left, 120, 747, 1, 1, 1);
+                //Open Context Menu, and use its structure to determine what kind of item we're looking at.
+                _currentItemType = OpenContextMenuAndGetItemType(lineCoords);
+                Mouse.OffsetAndClick(Left, GenerateViewDetailsOffset(), 0, 2, 1);
 
-                if (hangarType == TradeItems)
-                    if (viewDetailsOffset[1].Equals(UiElements.HangarContextMenuViewDetailsOffset[1]))
-                        viewDetailsOffset[1] = UiElements.HangarContextMenuViewDetailsOffset[1] +
-                                               UiElements.HangarContextMenuExtraXOffsetForModules;
-                    else
-                        viewDetailsOffset[1] = UiElements.HangarContextMenuViewDetailsOffset[1];
-
+                
                 if (i%2 == 1)
                     Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
                 //Click on Export Market info
-                Mouse.PointAndClick(Left, UiElements.MarketExportButton, 0, 5, 3);
-
-                List<String[]> orderData = ExportOrderData(lastTypeId);
-                if (orderData != null)
+                if (!_currentItemType.Equals(UnknownItemType))
                 {
-                    OrderAnalyzer.AnalyzeInvestment(orderData, Convert.ToString(Character.StationId));
-                    Mouse.WaitDuration = Timing;
-                    return;
+                    Mouse.PointAndClick(Left, EveUi.MarketExportButton, 12, 5, 3);
+
+                    List<String[]> orderData = ExportOrderData();
+                    if (orderData != null && OrderAnalyzer.IsNewOrderData(orderData))
+                    {
+                        OrderAnalyzer.AnalyzeInvestment(orderData, Convert.ToString(Character.StationId));
+                        Mouse.WaitDuration = Timing;
+                        return;
+                    }
                 }
             }
             Logger.Log("Failed to view item details and export result.");
@@ -227,10 +241,24 @@ namespace noxiousET.src.guiInteraction.orders.autolister
             throw new Exception("Failed to view item details and export result.");
         }
 
-        private List<String[]> ExportOrderData(int lastTypeId)
+        private int[] GenerateViewDetailsOffset()
+        {
+            if (_currentItemType.Equals(FittableItem))
+            {
+                return new[]
+                           {
+                               EveUi.HangarContextMenuViewDetailsOffset[0],
+                               EveUi.HangarContextMenuViewDetailsOffset[1] +
+                               EveUi.HangarContextMenuExtraYOffsetForModules
+                           };
+            }
+            return EveUi.HangarContextMenuViewDetailsOffset;
+        }
+
+        private List<String[]> ExportOrderData()
         {
             string fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
-            if (fileName != null && !fileName.Contains(Modules.TypeNames[lastTypeId]) && !fileName.Contains("My Orders"))
+            if (fileName != null && !fileName.Contains("My Orders"))
             {
                 _marketOrderio.FileName = fileName;
                 List<String[]> result = _marketOrderio.Read();
@@ -245,17 +273,17 @@ namespace noxiousET.src.guiInteraction.orders.autolister
         {
             Double verificationValue = Math.Max(OrderAnalyzer.GetOwnedBuyPrice(), OrderAnalyzer.GetBuyPrice());
             int[] lineCoords = {
-                                   UiElements.HangarFirstRow[0],
-                                   UiElements.HangarFirstRow[1] + currentHangarListPosition*UiElements.HangarRowHeight
+                                   EveUi.HangarFirstRow[0],
+                                   EveUi.HangarFirstRow[1] + currentHangarListPosition*EveUi.HangarRowHeight
                                };
             int[] sellItemOffset = {
-                                       UiElements.HangarContextMenuSellItemOffset[0],
-                                       UiElements.HangarContextMenuSellItemOffset[1]
+                                       EveUi.HangarContextMenuSellItemOffset[EtConstants.X],
+                                       EveUi.HangarContextMenuSellItemOffset[EtConstants.Y]
                                    };
 
-            if (hangarType == TradeItems && !Modules.FittableModuleTypeIDs.ContainsKey(OrderAnalyzer.GetTypeId()))
+            if (_currentItemType.Equals(FittableItem))
             {
-                sellItemOffset[1] += UiElements.HangarContextMenuExtraXOffsetForModules;
+                sellItemOffset[EtConstants.Y] += EveUi.HangarContextMenuExtraYOffsetForModules;
             }
 
             for (int i = 0; i < tries; i++)
@@ -270,11 +298,11 @@ namespace noxiousET.src.guiInteraction.orders.autolister
                     Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
 
                 //Right click on the field
-                Mouse.PointAndClick(Right,
-                                    FixCoordsForLongTypeName(OrderAnalyzer.GetTypeId(), UiElements.SellBidPriceField), 5,
-                                    2, 2);
+                Mouse.PointAndClick(Double,
+                                    GenerateSellWindowCoords(OrderAnalyzer.GetTypeId(), EveUi.SellBidPriceField), 
+                                    50, 2, 2);
                 //Click on copy
-                Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset, 0, 2, 2);
+                Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkC);
                 Double clipboardValue;
                 try
                 {
@@ -312,9 +340,9 @@ namespace noxiousET.src.guiInteraction.orders.autolister
 
         private void PlaceSellOrder()
         {
-            InputValue(5, 1.4, FixCoordsForLongTypeName(OrderAnalyzer.GetTypeId(), UiElements.SellBidPriceField),
+            InputValue(5, 1.4, GenerateSellWindowCoords(OrderAnalyzer.GetTypeId(), EveUi.SellBidPriceField),
                        (OrderAnalyzer.GetSellPrice() - .01).ToString());
-            ConfirmOrder(FixCoordsForLongTypeName(OrderAnalyzer.GetTypeId(), UiElements.OrderBoxConfirm), 1, 1);
+            ConfirmOrder(GenerateSellWindowCoords(OrderAnalyzer.GetTypeId(), EveUi.OrderBoxConfirm), 1, EtConstants.IsSellOrder);
         }
 
         private void ResetView(int tradeType)

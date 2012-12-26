@@ -3,28 +3,32 @@ using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+using noxiousET.src.data.uidata;
 using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders
 {
     internal class OrderBot : GuiBot
     {
-        protected int ConsecutiveFailures;
         protected Modules Modules;
 
-        public OrderBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+        private const int BuyWindowOpenTries = 3;
+        private const int CancelOrderTries = 9;
+        private const int ValueIndex = 0;
+        private const int QuantityIndex = 1;
+        private const string EveDefaultBuyQuantity = "1";
+
+        public OrderBot(ClientConfig clientConfig, EveUi eveUi, Paths paths, Character character,
                         Modules modules, OrderAnalyzer orderAnalyzer)
-            : base(clientConfig, uiElements, paths, character, orderAnalyzer)
+            : base(clientConfig, eveUi, paths, character, orderAnalyzer)
         {
             Modules = modules;
-            ConsecutiveFailures = 0;
         }
 
         //TODO, merge with confirmOrder
         protected int CancelOrder(int[] offset)
         {
-            return CancelOrder(offset[0], offset[1]);
+            return CancelOrder(offset[EtConstants.X], offset[EtConstants.Y]);
         }
 
         protected int CancelOrder(int xOffset, int yOffset)
@@ -33,25 +37,24 @@ namespace noxiousET.src.guiInteraction.orders
             string temp;
             do
             {
-                Mouse.PointAndClick(Left, UiElements.OrderBoxCancel[0], UiElements.OrderBoxCancel[1] + yOffset, 1, 1, 1);
+                Mouse.PointAndClick(Left, EveUi.OrderBoxCancel[EtConstants.X], EveUi.OrderBoxCancel[EtConstants.Y] + yOffset, 1, 1, 1);
 
-                if (failCount > 0 && failCount%3 == 0)
+                if (failCount > 0 && failCount % 3 == 0)
                     ErrorCheck();
 
-                //Right click where OK should no longer exist.
-                Mouse.PointAndClick(Right, UiElements.OrderBoxCancel[0] + xOffset, UiElements.OrderBoxCancel[1], 0, 1, 1);
-                //Click on copy
-                Mouse.OffsetAndClick(Left, UiElements.ChatCopyOffset, 0, 1, 1);
+                //Right click where Cancel should no longer exist.
+                Mouse.PointAndClick(Double, EveUi.OrderBoxCancel[EtConstants.X] + xOffset, EveUi.OrderBoxCancel[EtConstants.Y], 0, 1, 1);
 
+                Clipboard.SetClip(EtConstants.ClipboardNullValue);
+                Keyboard.Shortcut(new[] {Keyboard.VkLcontrol}, Keyboard.VkC);
                 temp = Clipboard.GetTextFromClipboard();
+
                 ++failCount;
-            } while (temp.Equals("0") && failCount < 9);
+            } while (!temp.Contains(EtConstants.OrderWindowClosedVerificationSubstring) && failCount < CancelOrderTries);
 
-            LastOrderModified = false;
-
-            if (!temp.Equals("0"))
+            if (!temp.Equals(EtConstants.ClipboardNullValue))
             {
-                Clipboard.SetClip("0");
+                Clipboard.SetClip(EtConstants.ClipboardNullValue);
                 return 0;
             }
             return 1;
@@ -59,27 +62,37 @@ namespace noxiousET.src.guiInteraction.orders
 
         protected int CloseMarketAndHangarWindows()
         {
-            Mouse.PointAndClick(Left, UiElements.MarketCloseButton, 0, 5, 5);
-            Mouse.PointAndClick(Left, UiElements.HangarCloseButton, 0, 5, 0);
+            Mouse.PointAndClick(Left, EveUi.MarketCloseButton, 0, 5, 5);
+            Mouse.PointAndClick(Left, EveUi.HangarCloseButton, 0, 5, 0);
             return 0;
         }
 
-        protected int[] FixCoordsForLongTypeName(int typeId, int[] coords)
+        protected int[] GenerateSellWindowCoords(int typeId, int[] coords)
+        {
+            return GenerateAdjustedWindowCoords(typeId, coords);
+        }
+
+        protected int[] GenerateBuyWindowCoords(int typeId, int[] coords)
+        {
+            return GenerateAdjustedWindowCoords(typeId, coords);
+        }
+
+        private int[] GenerateAdjustedWindowCoords(int typeId, int[] coords)
         {
             if (Modules.LongNameTypeIDs.ContainsKey(typeId))
-                return new int[2] {coords[0], coords[1] + 22};
+                return new int[2] { coords[EtConstants.X], coords[EtConstants.Y] + 22 };
             return coords;
         }
 
         protected void OpenAndIdentifyBuyWindow(int currentItem, double sellPrice)
         {
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < BuyWindowOpenTries; i++)
             {
                 CancelOrder(0, 0);
-                Mouse.PointAndClick(Left, UiElements.MarketPlaceBuyButton, 5, 2, 15);
-                Mouse.PointAndClick(Right, FixCoordsForLongTypeName(currentItem, UiElements.BuyBidPriceField), 2, 4, 2);
-                Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset, 2, 2, 2);
-                Mouse.OffsetAndClick(Left, 428, 419, 0, 0, 0);
+                Mouse.PointAndClick(Left, EveUi.MarketWindowDeadspace, 0,0,0);
+                Mouse.PointAndClick(Left, EveUi.MarketPlaceBuyButton, 5, 2, 50);
+                Mouse.PointAndClick(Double, GenerateBuyWindowCoords(currentItem, EveUi.BuyBidPriceField), 2, 4, 2);
+                Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkC);
                 try
                 {
                     double result = Convert.ToDouble(Clipboard.GetTextFromClipboard());
@@ -94,10 +107,11 @@ namespace noxiousET.src.guiInteraction.orders
                 {
                     Mouse.WaitDuration *= 2;
                 }
-                if (i == 6)
+                /*if (i == BuyWindowOpenTries - 1)
                 {
+                    //TODO fix magic numbers.
                     CancelOrder(-53, 51);
-                }
+                }*/
             }
             Logger.Log("Failed to open and identify the buy window!");
             Mouse.WaitDuration = Timing;
@@ -106,7 +120,7 @@ namespace noxiousET.src.guiInteraction.orders
 
         protected void PlaceBuyOrder(int typeId, int quantity)
         {
-            int[] quantityCoords = {UiElements.BuyQuantityField[0], UiElements.BuyQuantityField[1] + 5};
+            int[] quantityCoords = {EveUi.BuyQuantityField[0], EveUi.BuyQuantityField[1] + 5};
             Double verificationValue =
                 Math.Min(OrderAnalyzer.GetSellPrice(), OrderAnalyzer.GetOwnedSellPrice()).Equals(0)
                     ? Math.Max(OrderAnalyzer.GetSellPrice(), OrderAnalyzer.GetOwnedSellPrice())
@@ -116,16 +130,17 @@ namespace noxiousET.src.guiInteraction.orders
 
             OpenAndIdentifyBuyWindow(typeId, verificationValue);
             //Input price
-            InputValue(5, 1.4, FixCoordsForLongTypeName(typeId, UiElements.BuyBidPriceField),
+            InputValue(3, 1.4, GenerateBuyWindowCoords(typeId, EveUi.BuyBidPriceField),
                        Convert.ToString(OrderAnalyzer.GetBuyPrice() + .01));
             //Input quantity
-            InputValue(3, 2, FixCoordsForLongTypeName(typeId, quantityCoords), Convert.ToString(quantity));
-            ConfirmOrder(FixCoordsForLongTypeName(typeId, UiElements.OrderBoxConfirm), 1, 1);
+            VerifyFieldContains(GenerateBuyWindowCoords(typeId, quantityCoords), EveDefaultBuyQuantity);
+            InputValue(3, 1.4, GenerateBuyWindowCoords(typeId, quantityCoords), Convert.ToString(quantity));
+            ConfirmOrder(GenerateBuyWindowCoords(typeId, EveUi.OrderBoxConfirm), 1, EtConstants.IsBuyOrder);
         }
 
         protected int GetBuyOrderQuantity(double bestBuyOrderPrice, double bestSellOrderPrice)
         {
-            if (bestSellOrderPrice/bestBuyOrderPrice < 1.0736) //TODO: FACTOR OUT HARDCODED VALUE
+            if (bestSellOrderPrice/bestBuyOrderPrice < EtVariables.MinimumProfitMargin) //TODO: FACTOR OUT HARDCODED VALUE
             {
                 return -1;
             }
@@ -133,11 +148,11 @@ namespace noxiousET.src.guiInteraction.orders
             int i;
             for (i = 0; i < Character.QuantityThreshHolds.Count; ++i)
             {
-                if (bestBuyOrderPrice < Character.QuantityThreshHolds[i][0])
+                if (bestBuyOrderPrice < Character.QuantityThreshHolds[i][ValueIndex])
                     return Character.QuantityThreshHolds[i][1];
             }
 
-            return Character.QuantityThreshHolds[i - 1][1];
+            return Character.QuantityThreshHolds[i - 1][QuantityIndex];
         }
     }
 }

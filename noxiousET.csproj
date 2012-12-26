@@ -75,6 +75,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="src\EtVariables.cs" />
     <Compile Include="src\guiInteraction\Hotkey.cs" />
     <Compile Include="src\control\AutomationRequester.cs" />
     <Compile Include="src\control\CharacterInfoProvider.cs" />
@@ -111,11 +112,11 @@
     <Compile Include="src\helpers\FileHandler.cs" />
     <Compile Include="src\orders\Order.cs" />
     <Compile Include="src\orders\OrderManager.cs" />
-    <Compile Include="src\data\uielements\UiElements.cs" />
+    <Compile Include="src\data\uidata\EveUi.cs" />
     <Compile Include="src\orders\OrderReviewer.cs" />
     <Compile Include="src\Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="src\data\io\UiElementsio.cs" />
+    <Compile Include="src\data\io\EveUiDataIo.cs" />
     <Compile Include="src\view\etview.cs">
       <SubType>Form</SubType>
     </Compile>

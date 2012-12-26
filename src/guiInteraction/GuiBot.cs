@@ -6,7 +6,7 @@ using System.Threading;
 using noxiousET.src.data.characters;
 using noxiousET.src.data.client;
 using noxiousET.src.data.paths;
-using noxiousET.src.data.uielements;
+using noxiousET.src.data.uidata;
 using noxiousET.src.etevent;
 using noxiousET.src.helpers;
 using noxiousET.src.orders;
@@ -15,29 +15,27 @@ namespace noxiousET.src.guiInteraction
 {
     internal class GuiBot
     {
-        protected static readonly int Left = (int) Mouse.ClickTypes.Left;
-        protected static readonly int Right = (int) Mouse.ClickTypes.Right;
-        protected static readonly int Double = (int) Mouse.ClickTypes.Double;
+        protected const int Left = (int) Mouse.ClickTypes.Left;
+        protected const int Right = (int) Mouse.ClickTypes.Right;
+        protected const int Double = (int) Mouse.ClickTypes.Double;
         protected ClientConfig ClientConfig;
-        protected Boolean ConfirmingOrderInput = true;
         protected ErrorParser ErrorParser;
         protected IntPtr EveHandle;
         protected Keyboard Keyboard;
-        protected Boolean LastOrderModified;
         protected EventDispatcher Logger;
         protected Mouse Mouse;
         protected OrderAnalyzer OrderAnalyzer;
         protected Paths Paths;
-        protected Boolean ShortCopyPasteMenu;
         protected int Timing;
-        protected UiElements UiElements;
-        private int _shortCopyPasteAdjustment;
+        protected EveUi EveUi;
+        private readonly int _shortContextMenuAdjustment;
+        private const int OrderConfirmationTries = 5;
 
-        public GuiBot(ClientConfig clientConfig, UiElements uiElements, Paths paths, Character character,
+        public GuiBot(ClientConfig clientConfig, EveUi eveUi, Paths paths, Character character,
                       OrderAnalyzer orderAnalyzer)
         {
             ClientConfig = clientConfig;
-            UiElements = uiElements;
+            EveUi = eveUi;
             Paths = paths;
             Character = character;
             Logger = EventDispatcher.Instance;
@@ -46,6 +44,8 @@ namespace noxiousET.src.guiInteraction
             Keyboard = new Keyboard();
             ErrorParser = new ErrorParser();
             OrderAnalyzer = orderAnalyzer;
+
+            _shortContextMenuAdjustment = -eveUi.StandardRowHeight;
         }
 
         public Character Character { set; get; }
@@ -59,21 +59,24 @@ namespace noxiousET.src.guiInteraction
         [DllImport("user32.dll")]
         protected static extern IntPtr GetForegroundWindow();
 
-        protected int ErrorCheck()
+        protected void ErrorCheck()
         {
-            Mouse.PointAndClick(Left, UiElements.AlertCancelButton, 0, 1, 0);
-            return 0;
+            Mouse.PointAndClick(Left, EveUi.AlertCancelButton, 0, 1, 0);
         }
 
-        protected int ConfirmErrorCheck()
+        protected void CancelPrompt()
         {
-            Mouse.PointAndClick(Left, UiElements.AlertConfirmButton, 0, 2, 0);
-            return 0;
+            Mouse.PointAndClick(Left, EveUi.AlertCancelButton, 0, 2, 0);
+        }
+
+        protected void ConfirmPrompt()
+        {
+            Mouse.PointAndClick(Left, EveUi.AlertConfirmButton, 0, 2, 0);
         }
 
         protected void Wait(int multiplier)
         {
-            Thread.Sleep(ClientConfig.TimingMultiplier*multiplier);
+            Thread.Sleep(ClientConfig.TimingMultiplier * multiplier);
         }
 
         protected bool IsEveRunningForSelectedCharacter()
@@ -89,12 +92,12 @@ namespace noxiousET.src.guiInteraction
 
         protected int GetError()
         {
-            Clipboard.SetClip("0");
-            Mouse.PointAndClick(Right, UiElements.AlertMessageBody, 0, 1, 1);
-            Mouse.OffsetAndClick(Left, UiElements.AlertContextMenuCopyOffset, 0, 1, 1);
+            Clipboard.SetClip(EtConstants.ClipboardNullValue);
+            Mouse.PointAndClick(Right, EveUi.AlertMessageBody, 0, 1, 1);
+            Mouse.OffsetAndClick(Left, EveUi.AlertContextMenuCopyOffset, 0, 1, 1);
             string message = Clipboard.GetTextFromClipboard();
 
-            return message.Equals("0") ? 0 : ErrorParser.parse(message);
+            return message.Equals(EtConstants.ClipboardNullValue) ? EtConstants.ErrorNoErrorFound : ErrorParser.parse(message);
         }
 
         protected void ExportOrders(int tries, int waitMultiplier)
@@ -104,7 +107,7 @@ namespace noxiousET.src.guiInteraction
                 Wait(waitMultiplier);
 
                 ErrorCheck();
-                Mouse.PointAndClick(Left, UiElements.WalletExportButton, 0, 2, 0);
+                Mouse.PointAndClick(Left, EveUi.WalletExportButton, 0, 2, 0);
 
                 StreamReader file = null;
                 try
@@ -125,52 +128,58 @@ namespace noxiousET.src.guiInteraction
             throw new Exception("Failed to export orders");
         }
 
-        protected int ConfirmOrder(int[] coords, int confirmationType, int buyOrSell)
+        protected void ConfirmOrder(int[] coords, int confirmationType, bool isBuyOrder)
         {
             int failCount = 0;
             string result;
-            Clipboard.SetClip("0");
+
+            Clipboard.SetClip(EtConstants.ClipboardNullValue);
             do
             {
                 Mouse.PointAndClick(Left, coords, 1, 1, 1);
                 if (confirmationType == 1 && failCount > 1)
                 {
-                    int errorFlag = GetError();
-                    //If the error is 'above regional average' and this is a sell order || it is below/buy
-                    if (errorFlag == 1 && buyOrSell == EtConstants.Sell ||
-                        errorFlag == 2 && buyOrSell == EtConstants.Buy)
+                    var errorCode = GetError();
+                    if (errorCode.Equals(EtConstants.AlertInputAboveRegionalAverage) && !isBuyOrder ||
+                        errorCode.Equals(EtConstants.AlertInputBelowRegionalAverage) && isBuyOrder)
                     {
-                        ConfirmErrorCheck();
+                        //Sometimes the confirmation fails the first time. So retry it once.
+                        ConfirmPrompt();
                         Wait(1);
-                        ConfirmErrorCheck();
+                        ConfirmPrompt();
                     }
                     else
                     {
-                        ErrorCheck();
+                        //Sometimes the cancellation fails the first time. So retry it once.
+                        CancelPrompt();
                         Wait(1);
-                        ErrorCheck();
+                        CancelPrompt();
                     }
-                    Clipboard.SetClip("0");
                 }
 
-                //Right click where OK should no longer exist. 
-                Mouse.PointAndClick(Right, UiElements.OrderBoxConfirm, 0, 1, 1);
+                //Right click where OK should no longer exist. Subtract 100 from double click location so we don't
+                //cause double error messages to be thrown by clicking 'ok' button multiple times rapidly
+                //when there is a problem confirming the order
+                Mouse.PointAndClick(Double, EveUi.OrderBoxConfirm[0] - 60, EveUi.OrderBoxConfirm[1], 0, 1, 1);
 
                 //Click on copy
-                Mouse.OffsetAndClick(Left, UiElements.ChatCopyOffset, 0, 1, 1);
+                Clipboard.SetClip(EtConstants.ClipboardNullValue);
+                Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkC);
+
                 if (failCount > 1)
                     Mouse.WaitDuration *= 2;
+
                 result = Clipboard.GetTextFromClipboard();
                 ++failCount;
-            } while (result.Equals("0") && failCount < 5);
+            } while (!result.Contains(EtConstants.OrderWindowClosedVerificationSubstring) && failCount < 5);
+
             Mouse.WaitDuration = Timing;
-            LastOrderModified = false;
-            if (!result.Equals("0"))
+
+            if (result.Equals(EtConstants.ClipboardNullValue))
             {
-                Clipboard.SetClip("0");
-                return 0;
+                throw new Exception("Failed to confirm the order!");
             }
-            return 1;
+            Clipboard.SetClip(EtConstants.ClipboardNullValue);
         }
 
         public int KillClient()
@@ -179,46 +188,42 @@ namespace noxiousET.src.guiInteraction
             return 0;
         }
 
-        protected void InputValue(int tries, double timingScaleFactor, int[] coords, string value)
+        public void InputValue(int tries, double timingScaleFactor, int[] inputFieldCoords, string value)
         {
-            _shortCopyPasteAdjustment = ShortCopyPasteMenu ? UiElements.StandardRowHeight : 0;
             for (int i = 0; i < tries; i++)
             {
-                Mouse.PointAndClick(Double, coords, 4, 2, 2);
-                Clipboard.SetClip(value);
-                Mouse.Click(Right, 2, 2);
-                Mouse.OffsetAndClick(Left, UiElements.ContextMenuPasteOffset[0],
-                                     UiElements.ContextMenuPasteOffset[1] - _shortCopyPasteAdjustment, 0, 2, 0);
-                if (VerifyInput(coords, value))
+                try
                 {
+                    //Highlight any existing value in the field
+                    Mouse.PointAndClick(Double, inputFieldCoords, 6, 2, 2);
+                    Clipboard.SetClip(value);
+                    Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkV);
+
+                    VerifyFieldContains(inputFieldCoords, value);
                     Mouse.WaitDuration = Timing;
                     return;
                 }
-                Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
+                catch (Exception)
+                {
+                    Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration * timingScaleFactor);
+                }
+                
             }
             Mouse.WaitDuration = Timing;
             throw new Exception("Failed to input value " + value);
         }
 
-        private bool VerifyInput(int[] coords, string desiredValue)
+        public void VerifyFieldContains(int[] inputField, string expectedValue)
         {
-            Clipboard.SetClip("");
-            Mouse.PointAndClick(Right, coords, 1, 1, 1);
-            Mouse.OffsetAndClick(Left, UiElements.ContextMenuCopyOffset[0],
-                                 UiElements.ContextMenuCopyOffset[1] - _shortCopyPasteAdjustment, 1, 1, 1);
+            Clipboard.SetClip(EtConstants.ClipboardNullValue);
+            Mouse.PointAndClick(Double, inputField, 6, 2, 2);
+            Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkC);
 
-            try
-            {
-                if (desiredValue.Equals(Clipboard.GetTextFromClipboard()) ||
-                    (desiredValue == Character.Account.Password &&
-                     desiredValue.Length == Clipboard.GetTextFromClipboard().Length))
-                    return true;
-            }
-            catch
-            {
-                return false;
-            }
-            return false;
+            if (expectedValue.Equals(Clipboard.GetTextFromClipboard()) ||
+                (expectedValue == Character.Account.Password &&
+                    expectedValue.Length == Clipboard.GetTextFromClipboard().Length))
+                return;
+            throw new Exception("Expected value does not match discovered value!");
         }
     }
 }
