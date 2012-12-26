@@ -89,7 +89,7 @@ namespace noxiousET.src.guiInteraction
         private void Automate(Character character)
         {
             LoginBot.Login(character);
-            /*
+
             _autoAdjuster.Execute(character);
             _characterManager.Save(character.Name);
 
@@ -101,7 +101,7 @@ namespace noxiousET.src.guiInteraction
             
             if (_autoLister.FreeOrders < 5)
                 return;
-             * */
+
             _autoInvestor.Execute(character);
             _characterManager.Save(character.Name);
         }
