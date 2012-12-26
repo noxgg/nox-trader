@@ -17,5 +17,7 @@
         public string ClientPath { set; get; }
         public string ConfigPath { set; get; }
         public string EveSettingsPath { set; get; }
+        public string LocalDropboxPath { set; get; }
+        public string WebDropboxPath { set; get; }
     }
 }

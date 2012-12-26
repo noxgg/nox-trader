@@ -118,21 +118,6 @@ namespace noxiousET.src.data.io
                         case EveUi.MarketWindowDeadspaceKey:
                             _eveUi.MarketWindowDeadspace = values;
                             break;
-                        case EveUi.MarketWindowQuickbarFirstRowKey:
-                            _eveUi.MarketWindowQuickbarFirstRow = values;
-                            break;
-                        case EveUi.MarketWindowQuickbarScrollbarBottomKey:
-                            _eveUi.MarketWindowQuickbarScrollbarBottom = values;
-                            break;
-                        case EveUi.MarketWindowQuickbarScrollbarTopKey:
-                            _eveUi.MarketWindowQuickbarScrollbarTop = values;
-                            break;
-                        case EveUi.MarketWindowQuickbarScrollbarUnfixedPositionKey:
-                            _eveUi.MarketWindowQuickbarScrollbarUnfixedPosition = values;
-                            break;
-                        case EveUi.MarketWindowQuickbarVisibleRowsKey:
-                            _eveUi.MarketWindowQuickbarVisibleRows = values[0];
-                            break;
                         case EveUi.ModifyBidFieldKey:
                             _eveUi.ModifyBidField = values;
                             break;
@@ -165,6 +150,30 @@ namespace noxiousET.src.data.io
                             break;
                         case EveUi.WalletVisibleRowsKey:
                             _eveUi.WalletVisibleRows = values;
+                            break;
+                        case EveUi.BrowserUrlBarKey:
+                            _eveUi.BrowserUrlBar = values;
+                            break;
+                        case EveUi.BrowserRefreshButtonKey:
+                            _eveUi.BrowserRefreshButton = values;
+                            break;
+                        case EveUi.InvestmentPageIdentifierKey:
+                            _eveUi.InvestmentPageIdentifier = values;
+                            break;
+                        case EveUi.InvestmentPageFirstEntryKey:
+                            _eveUi.InvestmentPageFirstEntry = values;
+                            break;
+                        case EveUi.InvestmentPageColumnWidthKey:
+                            _eveUi.InvestmentPageColumnWidth = values[0];
+                            break;
+                        case EveUi.InvestmentPageVisibleColumnsKey:
+                            _eveUi.InvestmentPageVisibleColumns = values[0];
+                            break;
+                        case EveUi.InvestmentPageVisibleRowsKey:
+                            _eveUi.InvestmentPageVisibleRows = values[0];
+                            break;
+                        case EveUi.InvestmentPageRowHeightKey:
+                            _eveUi.InvestmentPageRowHeight = values[0];
                             break;
                     }
                 }

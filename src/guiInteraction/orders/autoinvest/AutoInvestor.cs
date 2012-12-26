@@ -8,6 +8,7 @@ using noxiousET.src.data.io;
 using noxiousET.src.data.modules;
 using noxiousET.src.data.paths;
 using noxiousET.src.data.uidata;
+using noxiousET.src.helpers;
 using noxiousET.src.orders;
 
 namespace noxiousET.src.guiInteraction.orders.autoinvester
@@ -27,20 +28,103 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             _marketOrderio.Path = paths.LogPath;
         }
 
+        private string GenerateInvestmentHtml(List<string> potentialInvestments)
+        {
+            string hexColor = RandomHexColor();
+            var pageMarkup = new List<object>();
+            pageMarkup.Add("<body bgcolor='" + hexColor + "'>");
+            pageMarkup.AddRange(from typeId in potentialInvestments
+                                select "<a href='#' onclick='CCPEVE.showMarketDetails(" + typeId.ToString() + ")'>x</a>");
+            var textFileio = new TextFileio(Paths.LocalDropboxPath, EtConstants.MarketSearchHtml);
+            textFileio.Save(pageMarkup);
+            return hexColor;
+        }
+
+        private List<String> GeneratePotentialInvestments()
+        {
+            return Character.TradeHistory.Keys.Select(typeId => typeId.ToString()).ToList();
+        }
+
+
+        private void OpenBrowserWindow()
+        {
+            const int tries = 5;
+            for (int i = 0; i < tries; i++)
+            {
+                SetForegroundWindow(EveHandle);
+                Wait(20);
+                Keyboard.Shortcut(Keyboard.VkLAlt, Keyboard.VkB);
+                Wait(20);
+                Keyboard.Shortcut(Keyboard.VkLcontrol, Keyboard.VkC);
+                Wait(20);
+                string clipboardText = Clipboard.GetTextFromClipboard();
+                if (clipboardText.Contains(EtConstants.InGameBrowserWebUrlPrefix) || clipboardText.Contains(EtConstants.InGameBrowserLocalFileUrlPrefix))
+                    return;
+            }
+            throw new Exception("Failed to open browser window!");
+        }
+
+        private void NavigateToInvestmentsPage(string pageIdentifier)
+        {
+            const int tries = 6;
+            for (int i = 0; i < tries; i++)
+            {
+                try
+                {
+
+                    InputValue(4, 2, EveUi.BrowserUrlBar, EtConstants.InGameBrowserLocalFileUrlPrefix + Paths.WebDropboxPath + EtConstants.MarketSearchHtml);
+                    Keyboard.Send("{ENTER}");
+                    PixelReader pixelReader = new PixelReader();
+                    string discoveredColor = pixelReader.GetPixelHexColor(EveUi.InvestmentPageIdentifier[0], EveUi.InvestmentPageIdentifier[1]);
+                    if (discoveredColor.Equals(pageIdentifier))
+                    {
+                        Mouse.WaitDuration = Timing;
+                        return;
+                    }
+                }
+                catch
+                {
+                }
+                Mouse.WaitDuration *= 2;
+            }
+            Mouse.WaitDuration = Timing;
+            throw new Exception("Failed to navigate to investments page!");
+        }
+
+        private string RandomHexColor()
+        {
+            var random = new Random((int)DateTime.Now.Ticks);
+            const string chars = "0123456789ABCDEF";
+            var buffer = new char[7];
+            buffer[0] = '#';
+            for (int i = 1; i < 7; i++)
+            {
+                buffer[i] = chars[random.Next(chars.Length)];
+            }
+            return new string(buffer);
+        }
+
         public void Execute(Character character)
         {
             Character = character;
             _itemsScanned = 0;
             _ordersCreated = 0;
 
-            PrepareEnvironment(character);
+            if (!IsEveRunningForSelectedCharacter())
+                throw new Exception("Auto investor ould not find EVE Client for selected character.");
+            Mouse.PointAndClick(Left, EveUi.MarketCloseButton, 0, 5, 5);
+            GetCurrentOrders(character);
+            List<String> potentialInvestments = GeneratePotentialInvestments();
+            String pageIdentifier = GenerateInvestmentHtml(potentialInvestments);
+            OpenBrowserWindow();
+            NavigateToInvestmentsPage(pageIdentifier);
 
             try
             {
                 var stopwatch = new Stopwatch();
                 stopwatch.Start();
 
-                CreateInvestments();
+                CreateInvestments(potentialInvestments.Count);
 
                 stopwatch.Stop();
                 Logger.Log(character.Name + ": AI scanned " + _itemsScanned + " and made " + _ordersCreated +
@@ -53,20 +137,8 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             }
         }
 
-        private void PrepareEnvironment(Character character)
+        private void GetCurrentOrders(Character character)
         {
-            if (IsEveRunningForSelectedCharacter())
-            {
-                //Bring the market window to the front
-                Mouse.PointAndClick(Left, EveUi.MarketWindowDeadspace, 50, 1, 50);
-                Mouse.PointAndClick(Left, EveUi.MarketWindowQuickbarFirstRow, 1, 1, 1);
-            }
-            else
-            {
-                Logger.Log("AI failed to prepare environment!");
-                throw new Exception("Auto investor ould not find EVE Client for selected character.");
-            }
-
             ExportOrders(4, 30);
             if (OrderAnalyzer.OrderSet.GetNumberOfActiveOrders() >= character.MaximumOrders)
             {
@@ -75,143 +147,65 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             }
         }
 
-        private int PaginateToFirstItem(int currentPosition, int visibleRows, int size)
-        {
-            int currentOffset = currentPosition;
-            while (currentOffset > visibleRows)
-            {
-                currentOffset -= visibleRows;
-                GoToNextQuickbarPage();
-            }
-            if (size - currentPosition <= visibleRows)
-            {
-                GoToNextQuickbarPage();
-                currentOffset = visibleRows - (size - currentPosition);
-            }
-
-            return currentOffset;
-        }
-
-        private void CreateInvestments()
+        private void CreateInvestments(int potentialInvestmentCount)
         {
             int consecutiveFailures = 0;
-            int currentPosition = 0;
             int count = 0;
             int freeOrders = Character.MaximumOrders - OrderAnalyzer.OrderSet.GetNumberOfActiveOrders();
-            int visibleRows = EveUi.MarketWindowQuickbarVisibleRows;
             List<int> tradeQueue = Modules.GetTypeIdsAlphabetizedByItemName(Character.TradeHistory.Keys);
-            int size = tradeQueue.Count;
 
-            int currentOffset = PaginateToFirstItem(currentPosition, visibleRows, size);
+            int[] cursorPosition = new[] {EveUi.InvestmentPageFirstEntry[0], EveUi.InvestmentPageFirstEntry[1]};
 
             do
             {
-                if (currentPosition == size)
+                try
                 {
-                    currentPosition = 0;
-                    GoToFirstQuickbarPage();
-                    currentOffset = 0;
-                    Wait(4);
-                }
-                else if (currentOffset > (visibleRows - 1))
-                {
-                    GoToNextQuickbarPage();
-                    if (size - currentPosition <= visibleRows)
-                        currentOffset = visibleRows - (size - currentPosition);
-                    else
-                        currentOffset = 0;
-                    Wait(4);
-                }
+                    List<String[]> orderData = ExecuteQueryAndExportResult(5, 1.2, cursorPosition);
+                    OrderAnalyzer.AnalyzeInvestment(orderData, Convert.ToString(Character.StationId));
+                    int currentTypeId = OrderAnalyzer.GetTypeId();;
 
-                String expectedTypeName = Modules.TypeNames[tradeQueue[currentPosition]];
-                int currentTypeId = tradeQueue[currentPosition];
-
-                if (!OrderAnalyzer.OrderSet.ExistsAnyOrder(tradeQueue[currentPosition]))
-                {
-                    try
+                    if (!OrderAnalyzer.IsSomeOrderOwned())
                     {
-                        _marketOrderio.FileName = ExecuteQueryAndExportResult(5, 1.2, currentOffset);
-                        OrderAnalyzer.AnalyzeInvestment(_marketOrderio.Read(), Convert.ToString(Character.StationId));
-                        String foundTypeName = Modules.TypeNames[OrderAnalyzer.GetTypeId()];
+                        //Uses data from orderAnalyzer.analyzeInvestment to decide if a buy order should be made
+                        int quantity = GetBuyOrderQuantity(OrderAnalyzer.GetBuyPrice(), OrderAnalyzer.GetSellPrice());
 
-                        if (foundTypeName.Equals(expectedTypeName) && !OrderAnalyzer.IsSomeOrderOwned())
+                        if (quantity > 0)
                         {
-                            //Uses data from orderAnalyzer.analyzeInvestment to decide if a buy order should be made
-                            int quantity = GetBuyOrderQuantity(OrderAnalyzer.GetBuyPrice(), OrderAnalyzer.GetSellPrice());
-
-                            if (quantity > 0)
-                            {
-                                OpenAndIdentifyBuyWindow(currentTypeId, OrderAnalyzer.GetSellPrice());
-                                PlaceBuyOrder(currentTypeId, quantity);
-                                freeOrders--;
-                                _ordersCreated++;
-                                //logger.log(modules.typeNames[currentTypeId] + " should create buy order.");
-                                consecutiveFailures = 0;
-                            }
-                            else
-                            {
-                                //logger.log(modules.typeNames[currentTypeId] + " should create buy order, but quantity was 0.");
-                            }
-                        consecutiveFailures = 0;
+                            OpenAndIdentifyBuyWindow(currentTypeId, OrderAnalyzer.GetSellPrice());
+                            PlaceBuyOrder(currentTypeId, quantity);
+                            freeOrders--;
+                            _ordersCreated++;
+                            //logger.log(modules.typeNames[currentTypeId] + " should create buy order.");
+                            consecutiveFailures = 0;
                         }
-                        else if (foundTypeName.CompareTo(expectedTypeName) > 0)
-                        {
-                            currentOffset -= 2;
-                            currentPosition--;
-                            count--;
-                            consecutiveFailures++;
-                        }
-                        else if (foundTypeName.CompareTo(expectedTypeName) < 0)
-                        {
-                            currentPosition--;
-                            count--;
-                            consecutiveFailures++;
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        ++consecutiveFailures;
-                        if (consecutiveFailures > InvestorFailureLimit)
-                            return;
-                        Logger.Log(e.Message);
+                    consecutiveFailures = 0;
                     }
                 }
-                ++currentPosition;
-                ++currentOffset;
+                catch (Exception e)
+                {
+                    ++consecutiveFailures;
+                    if (consecutiveFailures > InvestorFailureLimit)
+                        return;
+                    Logger.Log(e.Message);
+                }
                 ++count;
+                if (count % EveUi.InvestmentPageVisibleColumns == 0)
+                {
+                    cursorPosition[EtConstants.X] = EveUi.InvestmentPageFirstEntry[EtConstants.X];
+                    cursorPosition[EtConstants.Y] += EveUi.InvestmentPageRowHeight;
+                }
+                else
+                {
+                    cursorPosition[EtConstants.X] += EveUi.InvestmentPageColumnWidth;
+                }
+
                 _itemsScanned++;
                 if (freeOrders == 0)
                     return;
-            } while (count < size);
+            } while (count < potentialInvestmentCount);
         }
 
-        private void GoToNextQuickbarPage()
-        {
-            int visibleRows = EveUi.MarketWindowQuickbarVisibleRows;
-            Mouse.PointAndClick(Left, CalculateRowCoords(visibleRows - 1), 30, 1, 30);
-            for (int i = 0; i < visibleRows; i++)
-            {
-                Keyboard.Send("{DOWN}");
-            }
-            Wait(30);
-        }
-
-        private int[] CalculateRowCoords(int offset)
-        {
-            return new[]
-                       {
-                           EveUi.MarketWindowQuickbarFirstRow[EtConstants.X],
-                           EveUi.MarketWindowQuickbarFirstRow[EtConstants.Y] + offset*EveUi.StandardRowHeight
-                       };
-        }
-
-        private void GoToFirstQuickbarPage()
-        {
-            Mouse.Drag(EveUi.MarketWindowQuickbarScrollbarBottom, EveUi.MarketWindowQuickbarScrollbarTop, 20,
-                       20, 20);
-        }
-
-        private string ExecuteQueryAndExportResult(int tries, double timingScaleFactor, int offSet)
+        private List<String[]> ExecuteQueryAndExportResult(int tries, double timingScaleFactor, int[] cursorPosition)
         {
             DirectoryEraser.Nuke(Paths.LogPath);
             if (_marketOrderio.GetNumberOfFilesInDirectory(Paths.LogPath) != 0)
@@ -219,13 +213,20 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
 
             for (int i = 0; i < tries; i++)
             {
-                Mouse.PointAndClick(Left, CalculateRowCoords(offSet), 1, 1, 1);
+                /* The in-game browser doesn't recognize click events if we move directly on top of 
+                 * an element and click on it. To get around this, we move the cursor slightly while
+                 * on top of a target element, which forces the IGB to recognize the subsequent click. */
+                Mouse.PointCursor(new[] {cursorPosition[0] + 1, cursorPosition[1] + 1});
+                Mouse.PointAndClick(Left, cursorPosition, 5, 5, 1);
                 Mouse.PointAndClick(Left, EveUi.MarketExportButton, 10, 1, 10);
                 String fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
                 if (fileName != null)
                 {
                     Mouse.WaitDuration = Timing;
-                    return fileName;
+                    _marketOrderio.FileName = fileName;
+                    List<String[]> result = _marketOrderio.Read();
+                    if (result != null && OrderAnalyzer.IsNewOrderData(result))
+                        return result;
                 }
                 Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
                 if (i > 2)
@@ -233,72 +234,6 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             }
             Mouse.WaitDuration = Timing;
             throw new Exception("Could not export query result");
-        }
-
-
-        //For synching with character's quickbar.
-        public void GetTypeForCharacterFromQuickbar(Character character, String firstItemId, String lastItemId)
-        {
-            Character = character;
-            var newTradeHistory = new List<int>();
-            int offset = 0;
-            int visibleRows = EveUi.MarketWindowQuickbarVisibleRows;
-            var lastVisibleRowCoords = new[]
-                {
-                    EveUi.MarketWindowQuickbarFirstRow[0],
-                    EveUi.MarketWindowQuickbarFirstRow[1] +
-                    ((visibleRows - 1)*EveUi.StandardRowHeight)
-                };
-            String lastTypeName = "no last type name just yet";
-
-            ExportOrders(4, 30);
-
-            _marketOrderio.FileName = ExecuteQueryAndExportResult(5, 1.2, offset);
-            OrderAnalyzer.AnalyzeInvestment(_marketOrderio.Read(), Convert.ToString(character.StationId));
-            if (OrderAnalyzer.GetTypeId() != int.Parse(firstItemId))
-                throw new Exception("First type id does not match discovered type id");
-            newTradeHistory.Add(OrderAnalyzer.GetTypeId());
-            int previousItemId = OrderAnalyzer.GetTypeId();
-            offset++;
-
-            while (previousItemId != int.Parse(lastItemId))
-            {
-                if (offset > (visibleRows - 1))
-                {
-                    Mouse.PointAndClick(Left, lastVisibleRowCoords, 1, 1, 1);
-                    Keyboard.Send("{DOWN}");
-                    offset = visibleRows - 1;
-                }
-                DoExport(offset, visibleRows, lastVisibleRowCoords, lastTypeName);
-                OrderAnalyzer.AnalyzeInvestment(_marketOrderio.Read(), Convert.ToString(character.StationId));
-                newTradeHistory.Add(OrderAnalyzer.GetTypeId());
-                previousItemId = OrderAnalyzer.GetTypeId();
-                lastTypeName = Modules.TypeNames[previousItemId];
-                offset++;
-            }
-            Dictionary<int, int> newTradeHistoryDictionary = newTradeHistory.ToDictionary(n => n);
-
-            character.TradeHistory = newTradeHistoryDictionary;
-        }
-
-        private void DoExport(int offset, int visibleRows, int[] lastVisibleRowCoords, String lastTypeName)
-        {
-            for (int i = 0; i < 10; i++)
-            {
-                if (i == 9 && offset == visibleRows - 1)
-                {
-                    Mouse.PointAndClick(Left, lastVisibleRowCoords, 1, 1, 1);
-                    Keyboard.Send("{DOWN}");
-                }
-                try
-                {
-                    _marketOrderio.FileName = ExecuteQueryAndExportResult(5, 1.2, offset);
-                    return;
-                }
-                catch
-                {
-                }
-            }
         }
     }
 }

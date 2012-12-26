@@ -36,17 +36,10 @@ namespace noxiousET.src.guiInteraction
             _autoInvestor = new AutoInvestor(dataManager.ClientConfig, dataManager.Ui, dataManager.Paths, null,
                                              dataManager.Modules, _orderAnalyzer);
             _eventDispatcher = dataManager.EventDispatcher;
-            _eventDispatcher.getTypesFromQuickbarRequestHandler += GetTypeForCharacterFromQuickbar;
         }
 
         public LoginBot LoginBot { set; get; }
         public OrderReviewer OrderReviewer { set; get; }
-
-
-        private void GetTypeForCharacterFromQuickbar(object o, String name, String firstItemId, String lastItemId)
-        {
-            _autoInvestor.GetTypeForCharacterFromQuickbar(_characterManager.GetCharacter(name), firstItemId, lastItemId);
-        }
 
         public int Automate(int iterations)
         {
@@ -96,7 +89,7 @@ namespace noxiousET.src.guiInteraction
         private void Automate(Character character)
         {
             LoginBot.Login(character);
-
+            /*
             _autoAdjuster.Execute(character);
             _characterManager.Save(character.Name);
 
@@ -105,10 +98,10 @@ namespace noxiousET.src.guiInteraction
 
             _autoLister.Execute(character);
             _characterManager.Save(character.Name);
-
+            
             if (_autoLister.FreeOrders < 5)
                 return;
-
+             * */
             _autoInvestor.Execute(character);
             _characterManager.Save(character.Name);
         }

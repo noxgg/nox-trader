@@ -83,6 +83,8 @@ namespace noxiousET.src.data
             Paths.ClientPath = configLines[EtConstants.ClientPathKey];
             Paths.ConfigPath = configLines[EtConstants.ConfigPathKey];
             Paths.EveSettingsPath = configLines[EtConstants.EveSettingsPathKey];
+            Paths.LocalDropboxPath = configLines[EtConstants.LocalDropboxPathKey];
+            Paths.WebDropboxPath = Paths.LocalDropboxPath.Replace('\\', '/');
             ClientConfig.TimingMultiplier = Convert.ToInt32(configLines[EtConstants.TimingMultiplierKey]);
             ClientConfig.Iterations = Convert.ToInt32(configLines[EtConstants.IterationsKey]);
             ClientConfig.XResolution = Convert.ToInt32(configLines[EtConstants.XResolutionKey]);

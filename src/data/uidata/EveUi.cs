@@ -31,11 +31,6 @@
         public const string MarketExportButtonKey = "MarketExportButton";
         public const string MarketPlaceBuyButtonKey = "MarketPlaceBuyButton";
         public const string MarketWindowDeadspaceKey = "MarketWindowDeadspace";
-        public const string MarketWindowQuickbarFirstRowKey = "MarketWindowQuickbarFirstRow";
-        public const string MarketWindowQuickbarScrollbarBottomKey = "MarketWindowQuickbarScrollbarBottom";
-        public const string MarketWindowQuickbarScrollbarTopKey = "MarketWindowQuickbarScrollbarTop";
-        public const string MarketWindowQuickbarScrollbarUnfixedPositionKey = "MarketWindowQuickbarScrollbarUnfixedPosition";
-        public const string MarketWindowQuickbarVisibleRowsKey = "MarketWindowQuickbarVisibleRows";
         public const string ModifyBidFieldKey = "ModifyBidField";
         public const string OrderBoxCancelKey = "OrderBoxCancel";
         public const string OrderBoxConfirmKey = "OrderBoxConfirm";
@@ -47,11 +42,18 @@
         public const string WalletSellListFirstRowKey = "WalletSellListFirstRow";
         public const string WalletSellListSortByTypeKey = "WalletSellListSortByType";
         public const string WalletVisibleRowsKey = "WalletVisibleRows";
+        public const string BrowserRefreshButtonKey = "BrowserRefreshButton";
+        public const string BrowserUrlBarKey = "BrowserUrlBar";
+        public const string InvestmentPageIdentifierKey = "InvestmentPageIdentifier";
+        public const string InvestmentPageFirstEntryKey = "InvestmentPageFirstEntry";
+        public const string InvestmentPageColumnWidthKey = "InvestmentPageColumnWidth";
+        public const string InvestmentPageRowHeightKey = "InvestmentPageRowHeight";
+        public const string InvestmentPageVisibleColumnsKey = "InvestmentPageVisibleColumns";
+        public const string InvestmentPageVisibleRowsKey = "InvestmentPageVisibleRows";
 
         public int confirmingOrderAdjustment { set; get; }
         public int HangarContextMenuExtraYOffsetForModules { set; get; }
         public int HangarRowHeight { set; get; }
-        public int MarketWindowQuickbarVisibleRows { set; get; }
         public int StandardRowHeight { set; get; }
         public int[] AlertCancelButton { set; get; }
         public int[] AlertConfirmButton { set; get; }
@@ -79,10 +81,6 @@
         public int[] MarketExportButton { set; get; }
         public int[] MarketPlaceBuyButton { set; get; }
         public int[] MarketWindowDeadspace { set; get; }
-        public int[] MarketWindowQuickbarFirstRow { set; get; }
-        public int[] MarketWindowQuickbarScrollbarBottom { set; get; }
-        public int[] MarketWindowQuickbarScrollbarTop { set; get; }
-        public int[] MarketWindowQuickbarScrollbarUnfixedPosition { set; get; }
         public int[] ModifyBidField { set; get; }
         public int[] OrderBoxCancel { set; get; }
         public int[] OrderBoxConfirm { set; get; }
@@ -93,5 +91,14 @@
         public int[] WalletSellListFirstRow { set; get; }
         public int[] WalletSellListSortByType { set; get; }
         public int[] WalletVisibleRows { set; get; }
+
+        public int[] BrowserUrlBar { set; get; }
+        public int[] BrowserRefreshButton { set; get; }
+        public int[] InvestmentPageIdentifier { set; get; }
+        public int[] InvestmentPageFirstEntry { set; get; }
+        public int InvestmentPageColumnWidth { set; get; }
+        public int InvestmentPageRowHeight { set; get; }
+        public int InvestmentPageVisibleColumns { set; get; }
+        public int InvestmentPageVisibleRows { set; get; }
     };
 }

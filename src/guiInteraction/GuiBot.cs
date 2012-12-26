@@ -199,7 +199,7 @@ namespace noxiousET.src.guiInteraction
                     Clipboard.SetClip(value);
                     Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkV);
 
-                    VerifyFieldContains(inputFieldCoords, value);
+                    VerifyFieldEquals(inputFieldCoords, value);
                     Mouse.WaitDuration = Timing;
                     return;
                 }
@@ -213,7 +213,7 @@ namespace noxiousET.src.guiInteraction
             throw new Exception("Failed to input value " + value);
         }
 
-        public void VerifyFieldContains(int[] inputField, string expectedValue)
+        public void VerifyFieldEquals(int[] inputField, string expectedValue)
         {
             Clipboard.SetClip(EtConstants.ClipboardNullValue);
             Mouse.PointAndClick(Double, inputField, 6, 2, 2);
@@ -222,6 +222,17 @@ namespace noxiousET.src.guiInteraction
             if (expectedValue.Equals(Clipboard.GetTextFromClipboard()) ||
                 (expectedValue == Character.Account.Password &&
                     expectedValue.Length == Clipboard.GetTextFromClipboard().Length))
+                return;
+            throw new Exception("Expected value does not match discovered value!");
+        }
+
+        public void VerifyFieldContains(int[] inputField, string expectedValue)
+        {
+            Clipboard.SetClip(EtConstants.ClipboardNullValue);
+            Mouse.PointAndClick(Double, inputField, 6, 2, 2);
+            Keyboard.Shortcut(new[] { Keyboard.VkLcontrol }, Keyboard.VkC);
+
+            if (Clipboard.GetTextFromClipboard().Contains(expectedValue))
                 return;
             throw new Exception("Expected value does not match discovered value!");
         }

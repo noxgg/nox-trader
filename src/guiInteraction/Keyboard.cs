@@ -10,7 +10,9 @@ namespace noxiousET.src.guiInteraction
         private readonly Mutex _mutex;
         public const byte VkLshift = 0xA0; // left shift key
         public const byte VkLcontrol = 0xA2;
+        public const byte VkLAlt = 0xA4;
         public const byte VkTab = 0x09;
+        public const byte VkB = 0x42;
         public const byte VkC = 0x43;
         public const byte VkV = 0x56;
         public const int KeyeventfExtendedkey = 0x01;
@@ -31,6 +33,11 @@ namespace noxiousET.src.guiInteraction
             _mutex.WaitOne();
             SendKeys.SendWait(s);
             _mutex.ReleaseMutex();
+        }
+
+        public void Shortcut(byte modifier, byte key)
+        {
+            Shortcut(new[] {modifier}, key);
         }
 
         public void Shortcut (byte[] modifiers, byte key)

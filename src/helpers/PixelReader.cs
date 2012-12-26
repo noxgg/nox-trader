@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace noxiousET.src.helpers
@@ -46,6 +47,16 @@ namespace noxiousET.src.helpers
         public int GetPixelColor(int x, int y)
         {
             return GetPixel(hdcScr, x, y);
+        }
+
+        public string GetPixelHexColor(int x, int y)
+        {
+            int pixel = GetPixel(hdcScr, x, y);
+
+            Color color = Color.FromArgb((pixel & 0x000000FF),
+                    (pixel & 0x0000FF00) >> 8,
+                    (pixel & 0x00FF0000) >> 16);
+            return ColorTranslator.ToHtml(color);
         }
     }
 

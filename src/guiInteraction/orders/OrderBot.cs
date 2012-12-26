@@ -133,7 +133,7 @@ namespace noxiousET.src.guiInteraction.orders
             InputValue(3, 1.4, GenerateBuyWindowCoords(typeId, EveUi.BuyBidPriceField),
                        Convert.ToString(OrderAnalyzer.GetBuyPrice() + .01));
             //Input quantity
-            VerifyFieldContains(GenerateBuyWindowCoords(typeId, quantityCoords), EveDefaultBuyQuantity);
+            VerifyFieldEquals(GenerateBuyWindowCoords(typeId, quantityCoords), EveDefaultBuyQuantity);
             InputValue(3, 1.4, GenerateBuyWindowCoords(typeId, quantityCoords), Convert.ToString(quantity));
             ConfirmOrder(GenerateBuyWindowCoords(typeId, EveUi.OrderBoxConfirm), 1, EtConstants.IsBuyOrder);
         }

@@ -12,6 +12,9 @@ namespace noxiousET.src
         public const String ClientPathKey = "clientPath";
         public const String ConfigPathKey = "configPath";
         public const String EveSettingsPathKey = "eveSettingsPath";
+        public const String LocalDropboxPathKey = "localDropboxPath";
+        public const String WebDropboxPathKey = "webDropboxPath";
+        public const String MarketSearchHtml = "MarketSearch.html";
         public const String AccountLoginKey = "login";
         public const String AccountPasswordKey = "password";
         public const String CharacterTradeItemsKey = "tradeItems";
@@ -30,6 +33,8 @@ namespace noxiousET.src
         public const String ClipboardNullValue = "0";
         public const String OrderWindowClosedVerificationText= "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm";
         public const String OrderWindowClosedVerificationSubstring = "mmmmmm";
+        public const String InGameBrowserLocalFileUrlPrefix = @"file:///";
+        public const String InGameBrowserWebUrlPrefix = @"http";
         public const int Sell = 0;
         public const int Buy = 1;
         public const int X = 0;
