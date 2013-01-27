@@ -40,9 +40,12 @@ namespace noxiousET.src.guiInteraction.orders.autoinvester
             return hexColor;
         }
 
+        //TODO cleanup
         private List<String> GeneratePotentialInvestments()
         {
-            return Character.TradeHistory.Keys.Select(typeId => typeId.ToString()).ToList();
+            return Character.TradeHistory.Keys.
+                Where(typeId => !OrderAnalyzer.OrderSet.ExistsAnyOrder(typeId)).
+                Select(typeId => typeId.ToString()).ToList();
         }
 
 

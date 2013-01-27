@@ -205,7 +205,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
             return isBuyOrder ? .01 : -.01;
         }
 
-        private void OpenAndIdentifyModifyWindow(int tries, double timingScaleFactor, int[] coords, double price)
+        private void OpenAndIdentifyModifyWindow(int tries, double timingScaleFactor, int[] coords, double fieldShouldContain)
         {
             Clipboard.SetClip(EtConstants.ClipboardNullValue);
             for (int i = 0; i < tries; i++)
@@ -218,7 +218,7 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 try
                 {
                     double result = Convert.ToDouble(Clipboard.GetTextFromClipboard());
-                    if (result < price + 1000 && result > price - 1000)
+                    if (result < fieldShouldContain + 10 && result > fieldShouldContain - 10)
                     {
                         Mouse.WaitDuration = Timing;
                         return;

@@ -140,8 +140,8 @@ namespace noxiousET.src.guiInteraction
                 if (confirmationType == 1 && failCount > 1)
                 {
                     var errorCode = GetError();
-                    if (errorCode.Equals(EtConstants.AlertInputAboveRegionalAverage) && !isBuyOrder ||
-                        errorCode.Equals(EtConstants.AlertInputBelowRegionalAverage) && isBuyOrder)
+                    if ((errorCode.Equals(EtConstants.AlertInputAboveRegionalAverage) || errorCode.Equals(EtConstants.AlertInput200PercentAboveAverage)) && !isBuyOrder ||
+                        (errorCode.Equals(EtConstants.AlertInputBelowRegionalAverage) || errorCode.Equals(EtConstants.AlertInput200PercentBelowAverage)) && isBuyOrder)
                     {
                         //Sometimes the confirmation fails the first time. So retry it once.
                         ConfirmPrompt();
