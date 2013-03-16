@@ -41,9 +41,16 @@ namespace noxiousET.src.data.io
             FileName = fileName;
             ReadOpen();
             ReadLine();
-            string[] line = ReadLine().Split(',');
+            string line = ReadLine(); 
             ReadClose();
-            return line;
+            if (line != null)
+            {
+                return line.Split(',');
+            }
+            else
+            {
+                return null;
+            }
         }
 
         public String[] ReadFirstEntryNoDelete(String path, String fileName)

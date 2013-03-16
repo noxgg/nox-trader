@@ -182,6 +182,11 @@ namespace noxiousET.src.guiInteraction
             Clipboard.SetClip(EtConstants.ClipboardNullValue);
         }
 
+        protected void resetMouseWait()
+        {
+            Mouse.WaitDuration = Timing;
+        }
+
         public int KillClient()
         {
             ProcessKiller.killProcessByHandle(EveHandle);

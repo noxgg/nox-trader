@@ -412,7 +412,7 @@ namespace noxiousET
 
         private string buyOrSellToString(string buyOrSell)
         {
-            return buyOrSell.Equals(EtConstants.Buy.ToString()) ? "B" : "S";
+            return buyOrSell.Equals("True") ? "B" : "S";
         }
 
         #region Nested type: AutoAdjusterListenerCallback

@@ -306,11 +306,9 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 _fileName = _marketOrderio.GetNewestFileNameInDirectory(Paths.LogPath);
                 try
                 {
-                    if (_fileName != null &&
-                        Convert.ToInt32(_marketOrderio.ReadFirstEntryNoDelete(Paths.LogPath, _fileName)[EtConstants.OrderDataColumnTypeId]) !=
-                        lastTypeId)
+                    if (isGoodFile(lastTypeId, _fileName))
                     {
-                        Mouse.WaitDuration = Timing;
+                        resetMouseWait();
                         return _fileName;
                     }
                 }
@@ -324,9 +322,34 @@ namespace noxiousET.src.guiInteraction.orders.autoadjuster
                 }
                 Mouse.WaitDuration = Convert.ToInt32(Mouse.WaitDuration*timingScaleFactor);
             }
-            Logger.Log("Iterations ran out of tries @ " + i);
-            Mouse.WaitDuration = Timing;
+            resetMouseWait();
             throw new Exception("Could not export query result");
+        }
+
+        private Boolean isGoodFile(int lastTypeId, String fileName)
+        {
+            int parsedTypeId;
+            string[] firstLine = null;
+            if (_fileName == null)
+            {
+                return false;
+            }
+
+            firstLine = _marketOrderio.ReadFirstEntryNoDelete(Paths.LogPath, _fileName);
+
+            if (firstLine == null)
+            {
+                return false;
+            }
+
+            parsedTypeId = Convert.ToInt32(firstLine[EtConstants.OrderDataColumnTypeId]);
+
+            if (lastTypeId == parsedTypeId)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void Prepare()
